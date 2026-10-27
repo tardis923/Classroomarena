@@ -70,6 +70,27 @@
     team: '关卡血量（每人每关题数）'
   };
 
+  /* 标题统一为「四人争霸赛」：不含学科词，以后加语文知识竞赛也不用改 */
+  var GAME_TITLE = '四人争霸赛';
+  var ROSTER = {
+    forest: '熊大、熊二、光头强、蹦蹦',
+    tavern: '四位壮士'
+  };
+  /* 副标题按 主题（角色 + 食物）× 模式 自动生成，同样不含学科词 */
+  var SUBS = {
+    eat: function (f, r) { return r + '同场竞技：答对题目，角色吃掉一个' + f + '。先吃完全部' + f + '者获胜！'; },
+    race: function (f, r) { return r + '各驾一辆卡丁车：答对一题就向前冲一段，先冲过终点线者获胜！'; },
+    team: function (f, r) { return r + '并肩作战：答对的题目变成' + f + '炮弹砸向大魔王，打完 ' + TEAM_MAX_LEVEL + ' 关即团队胜利！'; }
+  };
+
+  /* 刷新设置页标题与副标题 */
+  function applyTitle() {
+    var h1 = document.querySelector('#setup h1');
+    var sub = document.querySelector('#setup .sub');
+    if (h1) h1.textContent = GAME_TITLE;
+    if (sub) sub.textContent = (SUBS[cfg.mode] || SUBS.eat)(Scene.food(), ROSTER[cfg.theme] || ROSTER.forest);
+  }
+
   /* ================= 缩放适配 ================= */
   function fit() {
     var s = Math.min(window.innerWidth / W, window.innerHeight / H);
@@ -200,6 +221,7 @@
       lb.innerHTML = (BUN_LABEL[cfg.mode] || BUN_LABEL.eat)
         .replace('食物', '<span id="lbFood">' + Scene.food() + '</span>');
     }
+    applyTitle();
     showDemo();
   }
 
@@ -213,14 +235,7 @@
       cfg.names.push(sk[i].name);
       $('nm' + i).value = sk[i].name;
     }
-    var titles = {
-      forest: ['森林大赛 · 口算大作战', '熊大、熊二、光头强、蹦蹦同场竞技：答对口算题，吃掉一个苹果。吃完全部苹果者获胜！'],
-      tavern: ['包子大赛 · 口算擂台', '四位选手同屏竞速：答对口算题，角色吃掉一个包子。吃完全部包子者获胜！']
-    };
-    var t = titles[id] || titles.forest;
-    document.querySelector('#setup h1').textContent = t[0];
-    document.querySelector('#setup .sub').textContent = t[1];
-    applyMode();
+    applyMode();   // 内部会调用 applyTitle()，标题与副标题自动跟着主题、模式走
   }
 
   /* 背景预览：设置页 / 未开局时展示当前主题的角色 */
