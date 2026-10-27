@@ -1,0 +1,13 @@
+# 原始素材图（21MB，仅换图时才需要，不必进仓库）
+tools/input/
+tools/_tmp/
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志与临时文件
+*.log
+.playwright-cli/
+node_modules/

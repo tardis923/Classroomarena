@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>包子大赛 · 口算擂台</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage">
+
+  <!-- ================= 上方 2/3：动画区 ================= -->
+  <div id="sceneWrap">
+    <canvas id="scene" width="1920" height="720"></canvas>
+    <div id="hud">
+      <div id="hudTime">00:00</div>
+      <div class="hudBtns">
+        <button id="btnSound" class="hudBtn" title="音效开关">🔊</button>
+        <button id="btnPause" class="hudBtn" title="暂停/继续">⏸</button>
+        <button id="btnFinish" class="hudBtn">提前结算</button>
+        <button id="btnHome" class="hudBtn">重开</button>
+      </div>
+    </div>
+    <div id="countdown"></div>
+  </div>
+
+  <!-- ================= 下方 1/3：四人操作区 ================= -->
+  <div id="panels"></div>
+
+  <!-- ================= 覆盖层：设置 / 结算 ================= -->
+  <div id="overlay">
+
+    <div id="setup" class="card">
+      <h1>包子大赛 · 口算擂台</h1>
+      <p class="sub">四位选手同屏竞速：答对口算题，角色吃掉一个包子。吃完全部包子者获胜！</p>
+
+      <div class="setRow">
+        <div class="setLabel">游戏模式</div>
+        <div class="opts" id="optMode"></div>
+      </div>
+
+      <div class="setRow">
+        <div class="setLabel">场景角色</div>
+        <div class="opts" id="optTheme"></div>
+      </div>
+
+      <div class="setRow">
+        <div class="setLabel" id="lbBun">食物数量（每人题数）</div>
+        <div class="opts" id="optBuns"></div>
+      </div>
+
+      <div class="setRow">
+        <div class="setLabel">题目难度</div>
+        <div class="opts" id="optLevel"></div>
+      </div>
+
+      <div class="setRow">
+        <div class="setLabel">选手名字</div>
+        <div class="nameInputs">
+          <div class="nameCell"><input class="nameIn" id="nm0" maxlength="6"></div>
+          <div class="nameCell"><input class="nameIn" id="nm1" maxlength="6"></div>
+          <div class="nameCell"><input class="nameIn" id="nm2" maxlength="6"></div>
+          <div class="nameCell"><input class="nameIn" id="nm3" maxlength="6"></div>
+        </div>
+      </div>
+
+      <button id="btnStart" class="bigBtn">开 始 比 赛</button>
+      <div class="tip">提示：答错不会失去包子，但会换新题并浪费时间 —— 抢答要准！</div>
+    </div>
+
+    <div id="result" class="card hidden">
+      <h1 id="resultTitle">比赛结束</h1>
+      <div id="podium"></div>
+      <div id="rankList"></div>
+      <div class="resBtns">
+        <button id="btnAgain" class="bigBtn">再 来 一 局</button>
+        <button id="btnBack" class="bigBtn ghost">返 回 设 置</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="js/questions.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
