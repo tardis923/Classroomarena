@@ -62,14 +62,20 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 /* 关键：覆盖层铺满整屏，若不关闭命中测试会把四个答题区的点击全部吃掉 */
 #overlay { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
 #overlay .card { pointer-events: auto; }
+/* 卡片用弹性布局：头尾固定，中间可滚动 —— 保证「开始战斗」按钮永远露在外面 */
 .card { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
-        width: 1500px; max-height: 1000px; overflow: auto; background: #241a3d;
-        border-radius: 22px; padding: 26px 34px; color: #fff; box-shadow: 0 18px 60px rgba(0,0,0,.5); }
+        width: 1500px; max-height: 1010px; display: flex; flex-direction: column; overflow: hidden;
+        background: #241a3d; border-radius: 22px; padding: 20px 30px; color: #fff;
+        box-shadow: 0 18px 60px rgba(0,0,0,.5); }
 .card.hidden { display: none; }
-.card h1 { font-size: 44px; font-weight: 700; text-align: center; margin-bottom: 6px; }
-.card .sub { font-size: 19px; color: #b9aed6; text-align: center; margin-bottom: 18px; line-height: 1.5; }
+.cardHead { flex: 0 0 auto; }
+.cardBody { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+.cardFoot { flex: 0 0 auto; padding-top: 12px; }
+.cardFoot .bigBtn, .cardFoot .resBtns { margin-top: 0; }
+.card h1 { font-size: 40px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+.card .sub { font-size: 18px; color: #b9aed6; text-align: center; margin-bottom: 12px; line-height: 1.5; }
 
-.setRow { margin-bottom: 14px; }
+.setRow { margin-bottom: 10px; }
 .setLabel { font-size: 21px; font-weight: 700; color: #ffd45e; margin-bottom: 8px; }
 .opts { display: flex; gap: 10px; flex-wrap: wrap; }
 .opt { border: 2px solid rgba(255,255,255,.18); background: #322650; color: #fff;
@@ -79,19 +85,19 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .opt .small { display: block; font-size: 14px; font-weight: 400; opacity: .8; margin-top: 2px; }
 
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.fld { background: #322650; border-radius: 12px; padding: 10px 14px; }
-.fld label { display: block; font-size: 16px; color: #b9aed6; margin-bottom: 5px; }
-.fld input { width: 100%; height: 40px; font-size: 22px; font-weight: 700; text-align: center;
+.fld { background: #322650; border-radius: 12px; padding: 8px 12px; }
+.fld label { display: block; font-size: 15px; color: #b9aed6; margin-bottom: 4px; }
+.fld input { width: 100%; height: 36px; font-size: 21px; font-weight: 700; text-align: center;
              border: none; border-radius: 8px; background: #1a1330; color: #fff; font-family: inherit; }
 
-.bigBtn { display: block; width: 100%; height: 78px; margin-top: 18px; border: none;
+.bigBtn { display: block; width: 100%; height: 72px; margin-top: 18px; border: none;
           border-radius: 16px; background: #ffd45e; color: #241a3d;
           font-size: 34px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .bigBtn.ghost { background: #4a3f74; color: #fff; height: 62px; font-size: 26px; }
 .bigBtn:active { filter: brightness(.9); }
 .resBtns { display: flex; gap: 14px; margin-top: 18px; }
 
-.tip { font-size: 16px; color: #9a8fbb; text-align: center; margin-top: 12px; line-height: 1.5; }
+.tip { font-size: 16px; color: #9a8fbb; text-align: center; margin-top: 8px; line-height: 1.5; }
 
 /* 结算 */
 #resTitle { font-size: 52px; text-align: center; font-weight: 700; margin-bottom: 14px; }
@@ -111,9 +117,11 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 
   <div id="overlay">
     <div id="setup" class="card">
-      <h1>四人争霸赛 · 团队闯关</h1>
-      <p class="sub">四名魔法师轮流答题释放技能，合力打倒大魔王。答对才能出手，答错可以重来或跳过。</p>
-
+      <div class="cardHead">
+        <h1>四人争霸赛 · 团队闯关</h1>
+        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），合力打倒大魔王。答对才能释放技能，答错可以重来或换一题。</p>
+      </div>
+      <div class="cardBody">
       <div class="setRow">
         <div class="setLabel">题库（决定答题方式）</div>
         <div class="opts" id="optSubj"></div>
@@ -138,18 +146,24 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         <div class="setLabel">我方设定</div>
         <div class="grid4" id="fldHero"></div>
       </div>
-
-      <button id="btnStart" class="bigBtn">开 始 战 斗</button>
-      <div class="tip">提示：轮到谁，谁的答题区就亮起来；其余三个会自动变暗，互不干扰。</div>
+      </div>
+      <div class="cardFoot">
+        <button id="btnStart" class="bigBtn">开 始 战 斗</button>
+        <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血，累计答对 10 次全队一起回血。</div>
+      </div>
     </div>
 
     <div id="result" class="card hidden">
-      <div id="resTitle">战斗结束</div>
-      <div id="resSum" class="sumline"></div>
-      <div class="statGrid" id="resGrid"></div>
-      <div class="resBtns">
-        <button id="btnAgain" class="bigBtn">再 来 一 局</button>
-        <button id="btnBack" class="bigBtn ghost">返 回 设 置</button>
+      <div class="cardHead"><div id="resTitle">战斗结束</div></div>
+      <div class="cardBody">
+        <div id="resSum" class="sumline"></div>
+        <div class="statGrid" id="resGrid"></div>
+      </div>
+      <div class="cardFoot">
+        <div class="resBtns">
+          <button id="btnAgain" class="bigBtn">再 来 一 局</button>
+          <button id="btnBack" class="bigBtn ghost">返 回 设 置</button>
+        </div>
       </div>
     </div>
   </div>
@@ -171,20 +185,24 @@ var CFG = {
   subject: 'math',   // math | chinese | english
   level: 2,          // 数学难度 1-5
 
-  bossHp: 1500,
+  bossHp: 2400,
   bossAtk: 50,
-  meteorEvery: 8,    // 每几回合一次大招
+  bossAtkEvery: 8,   // 秒：Boss 普通攻击间隔
+  meteorEvery: 45,   // 秒：天降陨石间隔
   meteorDmg: 80,
 
   heroHp: 200,
   dmgThunder: 95,    // 雷电：单体高伤害
   dmgFire: 62,       // 火焰弹
-  burnDmg: 26,       // 灼烧：每回合持续掉血
-  burnTurns: 3,
+  burnDmg: 26,       // 灼烧：每次结算掉血
+  burnTurns: 3,      // 灼烧：结算次数
+  burnTickSec: 2,    // 灼烧：每隔几秒结算一次
   dmgIce: 58,        // 冰霜
-  freezeTurns: 1,    // 冻结：Boss 停顿回合数
-  freezeImmune: 2,   // 被冻结后，Boss 获得几回合冻结免疫（防止无限冻）
-  healAmt: 80        // 治疗
+  freezeSec: 5,      // 冻结：Boss 停手几秒
+  freezeImmuneSec: 12, // 冻结结束后，Boss 获得几秒冻结免疫（防止无限冻）
+  healAmt: 80,       // 治疗师：单体治疗量
+  healGroupEvery: 10,// 治疗师：累计答对几次触发一次全体治疗
+  healGroupAmt: 120  // 治疗师：全体治疗量
 };
 
 /* Boss 三阶段：体型变大、攻击力提升、攻击频率下降、外观与名称变化 */
@@ -200,7 +218,7 @@ var PHASES = [
 /* 四名角色 */
 var HEROES = [
   { cls: '治疗师',   name: '莉莉', skill: '治愈之光', key: 'heal',
-    desc: '为最虚弱队友回血', robe: '#3fae6a', dark: '#24704a', orb: '#7ff0a8', tone: 392 },
+    desc: '最虚弱回血 · 10次全队', robe: '#3fae6a', dark: '#24704a', orb: '#7ff0a8', tone: 392 },
   { cls: '雷电法师', name: '雷恩', skill: '落雷',     key: 'thunder',
     desc: '单体高伤害',       robe: '#5b7ce0', dark: '#33509c', orb: '#cfe3ff', tone: 300 },
   { cls: '火系法师', name: '炎心', skill: '火焰弹',   key: 'fire',
@@ -358,7 +376,7 @@ function genQuestion() {
 }
 function answerMode() { return CFG.subject === 'math' ? 'num' : 'opt'; }
 
-/* ============================ 战斗状态 ============================ */
+/* ============================ 战斗状态（自由攻击） ============================ */
 var B = null;
 var timers = [];
 function after(sec, fn) { timers.push({ t: sec, fn: fn }); }
@@ -379,25 +397,38 @@ var BOSS_X = 1480, BOSS_Y = 400;
 function newBattle() {
   clearTimers();
   B = {
-    over: false, win: false, round: 1, cursor: 0, active: -1, stage: 'hero',
+    over: false, win: false, paused: false, elapsed: 0,
     boss: {
       hp: CFG.bossHp, max: CFG.bossHp, phase: 0, name: PHASES[0].name,
-      burn: 0, burnT: 0, frozen: 0, immune: 0, hitT: 0, shake: 0, morph: 0, atkT: 0, bob: 0
+      burn: 0, burnT: 0, burnTick: 0, frozen: 0, immune: 0,
+      hitT: 0, shake: 0, morph: 0, atkT: 0, bob: 0
     },
     heroes: HEROES.map(function (h, i) {
       return {
         i: i, cls: h.cls, name: h.name, key: h.key, ref: h,
-        hp: CFG.heroHp, max: CFG.heroHp, alive: true, hitT: 0, castT: 0, glow: 0
+        hp: CFG.heroHp, max: CFG.heroHp, alive: true,
+        hitT: 0, castT: 0, glow: 0,
+        q: null, input: '', locked: false, wrongT: 0, healCount: 0
       };
     }),
-    q: null, input: '', locked: true, wrongT: 0, meteorWarn: false,
+    atkCd: CFG.bossAtkEvery, meteorCd: CFG.meteorEvery, meteorWarn: false,
     fx: [], floats: [], banner: '', bannerT: 0,
     stats: {
       start: Date.now(), ms: 0,
       per: HEROES.map(function () { return { right: 0, wrong: 0, cast: 0, skip: 0 }; })
     }
   };
-  nextTurn();
+  for (var i = 0; i < 4; i++) giveQuestion(B.heroes[i]);
+  renderPanels();
+}
+
+/* 回到设置页：暂停出题与计时，只保留画面预览 */
+function parkBattle() {
+  clearTimers();
+  if (!B) return;
+  B.paused = true;
+  for (var i = 0; i < 4; i++) { B.heroes[i].q = null; B.heroes[i].locked = true; B.heroes[i].input = ''; }
+  renderPanels();
 }
 
 function aliveHeroes() {
@@ -410,106 +441,118 @@ function weakestHero() {
     var h = B.heroes[i]; if (!h.alive) continue;
     if (!best || h.hp / h.max < best.hp / best.max) best = h;
   }
-  return best || B.heroes[0];
+  return best || null;
 }
 
-/* ---------- 回合推进 ---------- */
-function nextTurn() {
-  if (!B || B.over) return;
-  while (B.cursor < 4 && !B.heroes[B.cursor].alive) B.cursor++;
-  if (B.cursor >= 4) { B.cursor = 0; bossTurn(); return; }
-  B.active = B.cursor;
-  B.stage = 'hero';
-  B.q = genQuestion();
-  B.input = '';
-  B.locked = false;
-  B.wrongT = 0;
+/* ---------- 出题：四个人各自独立，答完立刻来新题 ---------- */
+function giveQuestion(h) {
+  if (!h || !h.alive || B.over || B.paused) return;
+  h.q = genQuestion(); h.input = ''; h.locked = false; h.wrongT = 0;
   renderPanels();
-}
-function advance() {
-  if (!B || B.over) return;
-  B.active = -1;
-  B.cursor++;
-  nextTurn();
 }
 
 /* ---------- 答题 ---------- */
-function checkAnswer(val) {
-  if (!B || B.over || B.locked || B.active < 0 || !B.q) return;
-  var h = B.heroes[B.active];
-  if (val === B.q.ans) {
-    B.locked = true;
-    B.stats.per[B.active].right++;
-    B.stats.per[B.active].cast++;
+function checkAnswer(i, val) {
+  if (!B || B.over || B.paused) return;
+  var h = B.heroes[i];
+  if (!h || !h.alive || h.locked || !h.q) return;
+  if (val === h.q.ans) {
+    h.locked = true;
+    B.stats.per[i].right++;
+    B.stats.per[i].cast++;
     sfx('right');
     renderPanels();
     castSkill(h);
   } else {
-    B.stats.per[B.active].wrong++;
-    B.wrongT = 1.4;
-    B.input = '';
+    B.stats.per[i].wrong++;
+    h.wrongT = 1.4;
+    h.input = '';
     sfx('wrong');
     renderPanels();
   }
 }
-function skipTurn() {
-  if (!B || B.over || B.locked || B.active < 0) return;
-  B.locked = true;
-  B.stats.per[B.active].skip++;
-  banner(B.heroes[B.active].name + ' 跳过了本回合');
+function skipQuestion(i) {
+  if (!B || B.over || B.paused) return;
+  var h = B.heroes[i];
+  if (!h || !h.alive || h.locked) return;
+  B.stats.per[i].skip++;
   sfx('click');
+  giveQuestion(h);
   renderPanels();
-  after(0.7, advance);
 }
 
 /* ---------- 释放技能 ---------- */
 function castSkill(h) {
   h.castT = 0.9;
   var from = heroPt(h.i), to = { x: BOSS_X - 60, y: BOSS_Y };
+  var back = 1.15;                       /* 释放完多久给下一题 */
+
   if (h.key === 'thunder') {
     B.fx.push({ type: 'thunder', t: 0, dur: 0.9, from: from, to: to });
     sfx('thunder');
     after(0.34, function () { damageBoss(CFG.dmgThunder, 'thunder'); });
+
   } else if (h.key === 'fire') {
     B.fx.push({ type: 'fire', t: 0, dur: 0.9, from: from, to: to });
     sfx('fire');
     after(0.34, function () {
       damageBoss(CFG.dmgFire, 'fire');
-      B.boss.burn = CFG.burnDmg; B.boss.burnT = CFG.burnTurns;
-      floatText(to.x, to.y - 150, '灼烧 ' + CFG.burnTurns + ' 回合', '#ff9a4a');
+      B.boss.burn = CFG.burnDmg;
+      B.boss.burnT = CFG.burnTurns * CFG.burnTickSec;
+      B.boss.burnTick = CFG.burnTickSec;
+      floatText(to.x, to.y - 150, '灼烧中！', '#ff9a4a');
     });
+
   } else if (h.key === 'ice') {
     B.fx.push({ type: 'ice', t: 0, dur: 0.9, from: from, to: to });
     sfx('ice');
     after(0.34, function () {
       damageBoss(CFG.dmgIce, 'ice');
-      if (B.boss.immune > 0) {                 /* Boss 有冻结免疫，冻不住 */
+      if (B.boss.immune > 0 || B.boss.frozen > 0) {   /* Boss 有冻结免疫，冻不住 */
         floatText(to.x, to.y - 150, '冻结被抵抗！', '#ffd45e');
       } else {
-        B.boss.frozen = CFG.freezeTurns;
-        B.boss.immune = CFG.freezeTurns + CFG.freezeImmune;
-        floatText(to.x, to.y - 150, '冻结！', '#8fe6ff');
+        B.boss.frozen = CFG.freezeSec;
+        B.boss.immune = CFG.freezeSec + CFG.freezeImmuneSec;
+        floatText(to.x, to.y - 150, '冻结 ' + CFG.freezeSec + ' 秒', '#8fe6ff');
       }
     });
-  } else {                                   /* 治疗：自动给血量最低的队友 */
-    var t = weakestHero();
-    B.fx.push({ type: 'heal', t: 0, dur: 1.0, from: from, to: heroPt(t.i) });
+
+  } else {                               /* 治疗师：给血量最少的队友回血；累计答对 N 次，全队回血 */
+    h.healCount++;
+    var group = CFG.healGroupEvery > 0 && (h.healCount % CFG.healGroupEvery === 0);
+    var list;
+    if (group) list = aliveHeroes();
+    else { var w = weakestHero(); list = w ? [w] : []; }
+    if (!list.length) { after(0.5, function () { giveQuestion(h); }); return; }
+
+    var amt = group ? CFG.healGroupAmt : CFG.healAmt;
     sfx('heal');
-    after(0.34, function () {
-      var amt = Math.min(CFG.healAmt, t.max - t.hp);
-      if (amt <= 0) {
-        t.glow = 0.8;
-        floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '满血', '#7ff0a8');
-        banner('大家都是满血，' + h.name + ' 本次治疗没有消耗');
-      } else {
-        t.hp += amt; if (t.hp > t.max) t.hp = t.max;
+    back = group ? 1.75 : 1.15;
+
+    list.forEach(function (t, k) {
+      var dly = 0.34 + (group ? k * 0.09 : 0);
+      B.fx.push({ type: 'heal', t: 0, dur: 1.0, from: from, to: heroPt(t.i), delay: group ? k * 0.09 : 0 });
+      after(dly, function () {
+        if (!t.alive || B.over) return;
+        var real = Math.min(amt, t.max - t.hp);
         t.glow = 1.0;
-        floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '+' + amt, '#7ff0a8');
-        banner(h.name + ' 为 ' + t.name + ' 回复 ' + amt + ' 点血量');
-      }
+        if (real <= 0) {
+          floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '满血', '#7ff0a8');
+          if (!group) banner('大家都是满血，' + h.name + ' 本次治疗没有消耗');
+        } else {
+          t.hp += real; if (t.hp > t.max) t.hp = t.max;
+          floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '+' + real, '#7ff0a8');
+          if (!group) banner(h.name + ' 为 ' + t.name + ' 回复 ' + real + ' 点血量');
+        }
+      });
     });
+
+    if (group) {
+      banner('★ 治愈之光 · 全队回复 ' + CFG.healGroupAmt + ' 点血量！（' + h.name + ' 累计答对 ' + h.healCount + ' 题）');
+      sfx('win');
+    }
   }
-  after(1.6, advance);
+  after(back, function () { giveQuestion(h); });
 }
 
 /* ---------- 伤害 / 治疗 ---------- */
@@ -531,6 +574,7 @@ function hurtHero(h, d) {
   floatText(heroPt(h.i).x + 40, heroPt(h.i).y - 40, '-' + d, '#ff7a6a');
   if (h.hp <= 0) {
     h.alive = false; sfx('dead');
+    h.q = null; h.locked = true; h.input = '';
     banner(h.name + ' 倒下了！');
   }
   renderPanels();
@@ -551,50 +595,60 @@ function checkPhase() {
   }
 }
 
-/* ---------- Boss 行动 ---------- */
-function bossTurn() {
-  if (!B || B.over) return;
-  B.stage = 'boss'; B.active = -1;
-  renderPanels();
-  after(0.7, function () {
-    if (B.over) return;
-    var ph = PHASES[B.boss.phase];
-    if (B.boss.immune > 0) B.boss.immune--;
-    if (B.boss.frozen > 0) {
-      B.boss.frozen--;
-      floatText(BOSS_X, BOSS_Y - 170, '冻结中…', '#8fe6ff');
-      banner('Boss 被冻结，本回合无法行动！');
-      after(1.1, endBossTurn);
-      return;
+/* ---------- Boss 计时行动（脱离回合，按秒出手） ---------- */
+function tickBoss(dt) {
+  if (!B || B.over || B.paused) return;
+  var bs = B.boss;
+
+  if (bs.frozen > 0) { bs.frozen -= dt; if (bs.frozen < 0) bs.frozen = 0; }
+  if (bs.immune > 0) { bs.immune -= dt; if (bs.immune < 0) bs.immune = 0; }
+
+  if (bs.burnT > 0) {                        /* 灼烧：按秒跳伤害 */
+    bs.burnT -= dt; bs.burnTick -= dt;
+    if (bs.burnTick <= 0) {
+      bs.burnTick = CFG.burnTickSec;
+      var bd = bs.burn;
+      bs.hp -= bd; if (bs.hp < 0) bs.hp = 0;
+      bs.hitT = 0.35;
+      floatText(BOSS_X, BOSS_Y + 150, '灼烧 -' + bd, '#ff9a4a');
+      checkPhase();
     }
-    if (B.round % CFG.meteorEvery === 0) meteorAttack(ph);
-    else normalAttack(ph);
-  });
+    if (bs.burnT <= 0) { bs.burnT = 0; bs.burn = 0; }
+    if (bs.hp <= 0) { after(0.6, win); return; }
+  }
+
+  if (bs.frozen > 0) return;                 /* 冻结期间 Boss 完全停手 */
+
+  B.atkCd -= dt;
+  if (B.atkCd <= 0) { B.atkCd = CFG.bossAtkEvery; normalAttack(); }
+
+  B.meteorCd -= dt;
+  if (B.meteorCd <= 0) { B.meteorCd = CFG.meteorEvery; meteorAttack(); }
 }
 
-function normalAttack(ph) {
+function normalAttack() {
+  if (!B || B.over) return;
+  var ph = PHASES[B.boss.phase];
   var alive = aliveHeroes();
-  if (!alive.length) { endBossTurn(); return; }
-  if (Math.random() > ph.atkChance) {
-    banner('Boss 正在蓄力，本回合没有出手');
-    after(1.0, endBossTurn);
-    return;
-  }
+  if (!alive.length) return;
+  if (Math.random() > ph.atkChance) { banner('Boss 正在蓄力，这次没有出手'); return; }
   var t = alive[ri(0, alive.length - 1)];
   var dmg = Math.round(CFG.bossAtk * ph.atkMul);
   B.boss.atkT = 0.65;
   B.fx.push({ type: 'bossatk', t: 0, dur: 0.8, from: { x: BOSS_X - 120, y: BOSS_Y }, to: heroPt(t.i) });
   after(0.42, function () { sfx('hit'); hurtHero(t, dmg); });
-  after(1.4, endBossTurn);
 }
 
-function meteorAttack(ph) {
+function meteorAttack() {
+  if (!B || B.over) return;
+  var ph = PHASES[B.boss.phase];
   B.meteorWarn = true;
   banner('陨石来袭！大家小心！');
   sfx('warn');
   B.fx.push({ type: 'warn', t: 0, dur: 1.5 });
   after(1.5, function () {
     B.meteorWarn = false;
+    if (B.over) return;
     sfx('meteor');
     var dmg = Math.round(CFG.meteorDmg * ph.meteorMul);
     var alive = aliveHeroes();
@@ -602,28 +656,7 @@ function meteorAttack(ph) {
       B.fx.push({ type: 'meteor', t: 0, dur: 0.9, x: heroPt(h.i).x + 30, y: heroPt(h.i).y, delay: k * 0.13 });
       after(0.62 + k * 0.13, function () { hurtHero(h, dmg); });
     });
-    after(2.1, endBossTurn);
   });
-}
-
-function endBossTurn() {
-  if (!B || B.over) return;
-  if (B.boss.burnT > 0) {
-    B.boss.burnT--;
-    var bd = B.boss.burn;
-    B.boss.hp -= bd; if (B.boss.hp < 0) B.boss.hp = 0;
-    B.boss.hitT = 0.35;
-    floatText(BOSS_X, BOSS_Y + 150, '灼烧 -' + bd, '#ff9a4a');
-    checkPhase();
-    if (B.boss.hp <= 0) { after(0.6, win); return; }
-    after(0.9, finishRound);
-  } else finishRound();
-}
-function finishRound() {
-  if (B.over) return;
-  B.round++;
-  B.cursor = 0;
-  nextTurn();
 }
 
 /* ---------- 胜负 ---------- */
@@ -633,14 +666,14 @@ function checkLose() {
 }
 function win() {
   if (B.over) return;
-  B.over = true; B.win = true; B.stage = 'over';
+  B.over = true; B.win = true;
   B.stats.ms = Date.now() - B.stats.start;
   B.fx.push({ type: 'winburst', t: 0, dur: 2.0 });
   sfx('win'); after(1.2, showResult);
 }
 function lose() {
   if (B.over) return;
-  B.over = true; B.win = false; B.stage = 'over';
+  B.over = true; B.win = false;
   B.stats.ms = Date.now() - B.stats.start;
   sfx('lose'); after(1.0, showResult);
 }
@@ -699,21 +732,40 @@ function drawTopBar(c) {
   c.fillStyle = 'rgba(10,7,22,.78)'; c.fillRect(0, 0, W, 76);
   c.fillStyle = 'rgba(255,255,255,.10)'; c.fillRect(0, 74, W, 2);
 
-  /* 左：回合 + 当前行动者 */
-  txt(c, '第 ' + B.round + ' 回合', 30, 38, 30, '#ffd45e');
-  var who = B.active >= 0 ? B.heroes[B.active].name + ' 行动中'
-    : (B.stage === 'boss' ? 'Boss 行动中' : (B.over ? '战斗结束' : '准备中'));
-  txt(c, who, 210, 38, 24, '#fff');
+  /* 左：模式 + 用时 + Boss 出手倒计时 */
+  var bs = B.boss;
+  var sec = Math.floor(B.elapsed);
+  txt(c, '自 由 攻 击', 24, 24, 26, '#ffd45e');
+  txt(c, '用时 ' + Math.floor(sec / 60) + ' 分 ' + (sec % 60) + ' 秒', 24, 56, 19, '#b9aed6');
+  var nxt;
+  if (B.over) nxt = '战斗结束';
+  else if (bs.frozen > 0) nxt = 'Boss 冻结中 ' + bs.frozen.toFixed(1) + 's';
+  else nxt = 'Boss 出手倒计时 ' + Math.max(0, B.atkCd).toFixed(1) + 's';
+  txt(c, nxt, 250, 38, 22, (nxt.indexOf('冻结') >= 0) ? '#8fe6ff' : '#ff9a9a');
 
   /* 中：Boss 名 + 血条 */
-  var bx = 560, bw = 820;
-  txt(c, B.boss.name, bx, 22, 24, '#ff9a9a');
-  var r = Math.max(0, B.boss.hp / B.boss.max);
+  var bx = 560, bw = 800;
+  txt(c, bs.name, bx, 22, 24, '#ff9a9a');
+  var r = Math.max(0, bs.hp / bs.max);
   c.fillStyle = '#2a1c3d'; rr(c, bx, 34, bw, 30, 8); c.fill();
   var grd = c.createLinearGradient(bx, 0, bx + bw, 0);
   grd.addColorStop(0, '#e0453a'); grd.addColorStop(1, '#ff8a5c');
   c.fillStyle = grd; rr(c, bx + 2, 36, Math.max(0, (bw - 4) * r), 26, 6); c.fill();
-  txt(c, B.boss.hp + ' / ' + B.boss.max, bx + bw / 2, 49, 20, '#fff', 'center');
+  txt(c, bs.hp + ' / ' + bs.max, bx + bw / 2, 49, 20, '#fff', 'center');
+
+  /* 状态标签：灼烧 / 冻结 / 冻结免疫 */
+  var sx = bx + bw + 26;
+  if (bs.burnT > 0) {
+    c.fillStyle = '#e0642c'; rr(c, sx, 20, 92, 34, 8); c.fill();
+    txt(c, '灼烧', sx + 46, 37, 19, '#fff', 'center'); sx += 100;
+  }
+  if (bs.frozen > 0) {
+    c.fillStyle = '#3fa8c4'; rr(c, sx, 20, 92, 34, 8); c.fill();
+    txt(c, '冻结', sx + 46, 37, 19, '#fff', 'center'); sx += 100;
+  } else if (bs.immune > 0) {
+    c.fillStyle = '#7a6a9a'; rr(c, sx, 20, 116, 34, 8); c.fill();
+    txt(c, '冻结免疫', sx + 58, 37, 18, '#fff', 'center'); sx += 124;
+  }
 
   /* 右：阶段 + 陨石倒计时 */
   var px = 1450;
@@ -723,9 +775,8 @@ function drawTopBar(c) {
     rr(c, px + i * 46, 20, 38, 36, 8); c.fill();
     txt(c, 'P' + (i + 1), px + i * 46 + 19, 38, 19, on ? '#241a3d' : '#8d84a8', 'center');
   }
-  var left = CFG.meteorEvery - (B.round % CFG.meteorEvery);
-  if (left === CFG.meteorEvery) left = 0;
-  txt(c, left === 0 ? '陨石即将来临！' : ('陨石倒计时 ' + left + ' 回合'), 1620, 62, 18, left <= 2 ? '#ff7a6a' : '#b9aed6');
+  var ml = Math.max(0, B.meteorCd);
+  txt(c, ml < 5 ? '陨石即将来临！' : ('陨石倒计时 ' + ml.toFixed(0) + ' 秒'), 1620, 62, 18, ml < 8 ? '#ff7a6a' : '#b9aed6');
 }
 
 /* ---------- 角色卡 ---------- */
@@ -800,7 +851,7 @@ function drawMage(c, cx, footY, h, s, castP, dim) {
 
 function drawHeroCard(c, h) {
   var i = h.i, y = cardY(i);
-  var isAct = (B.active === i);
+  var isAct = (h.castT > 0);                   /* 正在释放技能时高亮 */
   /* 卡片底 */
   c.fillStyle = isAct ? 'rgba(255,212,94,.16)' : 'rgba(0,0,0,.34)';
   rr(c, CARD_X, y, CARD_W, CARD_H, 14); c.fill();
@@ -836,7 +887,9 @@ function drawHeroCard(c, h) {
   c.fillStyle = 'rgba(255,255,255,.10)'; rr(c, hx, sy, hw, 30, 8); c.fill();
   c.fillStyle = h.ref.robe; rr(c, hx + 5, sy + 5, 20, 20, 5); c.fill();
   txt(c, h.ref.skill, hx + 34, sy + 15, 20, '#ffe9b0');
-  txt(c, h.ref.desc, hx + hw - 8, sy + 15, 16, '#b9aed6', 'right');
+  var dsc = h.ref.desc;
+  if (h.key === 'heal') dsc = '全队治疗 ' + (h.healCount % CFG.healGroupEvery) + '/' + CFG.healGroupEvery;
+  txt(c, dsc, hx + hw - 8, sy + 15, 16, '#b9aed6', 'right');
 
   if (!h.alive) {
     c.fillStyle = 'rgba(0,0,0,.45)'; rr(c, CARD_X, y, CARD_W, CARD_H, 14); c.fill();
@@ -1175,10 +1228,12 @@ var LEVELS = [
   { id: 5, name: '五年级', desc: '大数混合运算' }
 ];
 var FIELDS = {
-  fldBoss: [['bossHp', 'Boss 血量'], ['bossAtk', 'Boss 攻击力'], ['meteorEvery', '大招间隔（回合）'], ['meteorDmg', '大招全体伤害']],
-  fldSkill: [['dmgThunder', '雷电伤害'], ['dmgFire', '火焰伤害'], ['dmgIce', '冰霜伤害'], ['healAmt', '治疗量'],
-             ['freezeTurns', '冻结回合数']],
-  fldHero: [['heroHp', '角色血量'], ['burnDmg', '灼烧每回合'], ['burnTurns', '灼烧回合数'], ['freezeImmune', '冻结免疫回合']]
+  fldBoss: [['bossHp', 'Boss 血量'], ['bossAtk', 'Boss 攻击力'], ['bossAtkEvery', 'Boss 出手间隔（秒）'],
+            ['meteorEvery', '大招间隔（秒）'], ['meteorDmg', '大招全体伤害']],
+  fldSkill: [['dmgThunder', '雷电伤害'], ['dmgFire', '火焰伤害'], ['dmgIce', '冰霜伤害'],
+             ['healAmt', '单体治疗量'], ['healGroupEvery', '全队治疗：答对几次'], ['healGroupAmt', '全队治疗量'],
+             ['freezeSec', '冻结秒数'], ['freezeImmuneSec', '冻结免疫秒数']],
+  fldHero: [['heroHp', '角色血量'], ['burnDmg', '灼烧每次伤害'], ['burnTurns', '灼烧次数'], ['burnTickSec', '灼烧间隔（秒）']]
 };
 
 function mkOpts(boxId, list, cur, onPick) {
@@ -1216,15 +1271,18 @@ function buildSetup() {
   document.getElementById('rowLevel').style.display = (CFG.subject === 'math') ? '' : 'none';
 }
 function readCfg() {
-  var keys = ['bossHp', 'bossAtk', 'meteorEvery', 'meteorDmg', 'dmgThunder', 'dmgFire',
-    'dmgIce', 'healAmt', 'heroHp', 'burnDmg', 'burnTurns', 'freezeTurns', 'freezeImmune'];
+  var keys = ['bossHp', 'bossAtk', 'bossAtkEvery', 'meteorEvery', 'meteorDmg', 'dmgThunder', 'dmgFire',
+    'dmgIce', 'healAmt', 'healGroupEvery', 'healGroupAmt',
+    'heroHp', 'burnDmg', 'burnTurns', 'burnTickSec', 'freezeSec', 'freezeImmuneSec'];
   keys.forEach(function (k) {
     var el = document.getElementById('cf_' + k);
     if (!el) return;
     var v = parseInt(el.value, 10);
     if (!isNaN(v) && v > 0) CFG[k] = v;
   });
-  if (CFG.meteorEvery < 1) CFG.meteorEvery = 1;
+  if (CFG.meteorEvery < 5) CFG.meteorEvery = 5;
+  if (CFG.bossAtkEvery < 2) CFG.bossAtkEvery = 2;
+  if (CFG.healGroupEvery < 1) CFG.healGroupEvery = 1;
 }
 
 /* ============================ 答题区 ============================ */
@@ -1244,20 +1302,21 @@ function keysHTML(i) {
   return h;
 }
 function panelHTML(i) {
-  var h = B.heroes[i];
-  var st = !h.alive ? '阵亡' : (B.active === i ? (B.locked ? '已出手' : '答题中') : '等待');
+  var h = B.heroes[i];                    /* 自由攻击：四人各自一道题，互不干扰 */
+  var st = !h.alive ? '阵亡' : (h.castT > 0 ? '技能释放中' : '答题中');
   var s = '<div class="pHead">' +
     '<span class="pName">' + h.name + '</span>' +
     '<span class="pCls" style="background:' + h.ref.robe + '">' + h.cls + '</span>' +
     '<span class="pStat">' + st + '</span></div>';
   if (!h.alive) return s + '<div class="pQ small">已被击倒，无法行动</div>';
+  if (B.paused) return s + '<div class="pQ small">准备中…</div>';
   if (B.over) return s + '<div class="pQ small">战斗结束</div>';
-  if (B.active !== i || !B.q) return s + '<div class="pQ small">等待轮到你…</div>';
+  if (!h.q || h.locked) return s + '<div class="pQ small">技能释放中，马上来新题…</div>';
 
-  var q = B.q, bad = (B.wrongT > 0 && B.active === i && !B.locked);
+  var q = h.q, bad = (h.wrongT > 0);
   if (q.mode === 'num') {
     s += '<div class="pQ' + (bad ? ' hint' : '') + '">' + esc(bad ? '答错了，再试一次' : q.text) + '</div>';
-    s += '<div class="pAns">' + (B.input === '' ? '?' : esc(B.input)) + '</div>';
+    s += '<div class="pAns">' + (h.input === '' ? '?' : esc(h.input)) + '</div>';
     s += '<div class="pKeys">' + keysHTML(i) + '</div>';
   } else {
     s += '<div class="pQ opt' + (bad ? ' hint' : '') + '">' + esc(bad ? '答错了，再试一次' : q.text) + '</div>';
@@ -1267,7 +1326,7 @@ function panelHTML(i) {
         '<span style="color:#ffd45e">' + 'ABCD'.charAt(k) + '.</span> ' + esc(o) + '</button>';
     });
     s += '</div>';
-    s += '<div class="pSkipRow"><button class="kbtn skip" data-i="' + i + '" data-k="skip" style="width:100%">跳过本回合</button></div>';
+    s += '<div class="pSkipRow"><button class="kbtn skip" data-i="' + i + '" data-k="skip" style="width:100%">换一题</button></div>';
   }
   return s;
 }
@@ -1277,7 +1336,7 @@ function renderPanels() {
     var el = document.getElementById('pcol' + i);
     if (!el) continue;
     var h = B.heroes[i];
-    el.className = 'pcol' + (!h.alive ? ' dead' : (B.active === i ? ' act' : ' wait'));
+    el.className = 'pcol' + (!h.alive ? ' dead' : (h.castT > 0 ? ' act' : ''));
     el.innerHTML = panelHTML(i);
   }
 }
@@ -1299,20 +1358,21 @@ function closestAttr(el, attr) {
 }
 function bindPanels() {
   document.getElementById('panels').addEventListener('pointerdown', function (e) {
-    if (!B || B.over) return;
+    if (!B || B.over || B.paused) return;
     var el = closestAttr(e.target, 'data-i');
     if (!el) return;
     e.preventDefault();
     var i = parseInt(el.getAttribute('data-i'), 10);
-    if (i !== B.active) return;                 // 只有当前行动者的区可操作
+    var h = B.heroes[i];
+    if (!h || !h.alive || h.locked) return;     // 自由攻击：谁的区都能点，各自独立
     var o = el.getAttribute('data-o');
-    if (o !== null) { checkAnswer(o); return; }
+    if (o !== null) { checkAnswer(i, o); return; }
     var k = el.getAttribute('data-k');
-    if (k === null || B.locked) return;
-    if (k === 'clr') { B.input = ''; sfx('click'); renderPanels(); }
-    else if (k === 'ok') { if (B.input !== '') checkAnswer(B.input); }
-    else if (k === 'skip') { skipTurn(); }
-    else if (k >= '0' && k <= '9' && B.input.length < 6) { B.input += k; sfx('click'); renderPanels(); }
+    if (k === null) return;
+    if (k === 'clr') { h.input = ''; sfx('click'); renderPanels(); }
+    else if (k === 'ok') { if (h.input !== '') checkAnswer(i, h.input); }
+    else if (k === 'skip') { skipQuestion(i); }
+    else if (k >= '0' && k <= '9' && h.input.length < 6) { h.input += k; sfx('click'); renderPanels(); }
   });
 }
 
@@ -1324,13 +1384,14 @@ function showResult() {
   var sec = Math.round(B.stats.ms / 1000);
   document.getElementById('resSum').textContent =
     (B.win ? '打倒了 ' + B.boss.name + '！' : 'Boss 还剩 ' + B.boss.hp + ' 点血量') +
-    '　·　总用时 ' + Math.floor(sec / 60) + ' 分 ' + (sec % 60) + ' 秒　·　共 ' + B.round + ' 回合';
+    '　·　总用时 ' + Math.floor(sec / 60) + ' 分 ' + (sec % 60) + ' 秒';
   document.getElementById('resGrid').innerHTML = B.heroes.map(function (h, i) {
     var s = B.stats.per[i];
     return '<div class="statCard"><div class="nm">' + h.name + '</div>' +
       '<div class="cl" style="color:' + h.ref.robe + '">' + h.cls + '</div>' +
       '<div class="ln">答对 ' + s.right + ' 题<br>答错 ' + s.wrong + ' 次<br>' +
-      '释放技能 ' + s.cast + ' 次<br>跳过 ' + s.skip + ' 次</div></div>';
+      '释放技能 ' + s.cast + ' 次<br>跳过 ' + s.skip + ' 次' +
+      (h.key === 'heal' ? '<br>全队治疗 ' + Math.floor(s.right / CFG.healGroupEvery) + ' 次' : '') + '</div></div>';
   }).join('');
   document.getElementById('result').classList.remove('hidden');
 }
@@ -1345,13 +1406,10 @@ function startBattle() {
   sfx('click');
 }
 function backToSetup() {
-  clearTimers();
   document.getElementById('result').classList.add('hidden');
   document.getElementById('setup').classList.remove('hidden');
   newBattle();
-  clearTimers();
-  B.active = -1; B.q = null; B.locked = true;
-  renderPanels();
+  parkBattle();
 }
 
 var last = 0;
@@ -1383,8 +1441,9 @@ function loop(ts) {
         if (h.hitT > 0) h.hitT -= dt;
         if (h.castT > 0) h.castT -= dt;
         if (h.glow > 0) h.glow -= dt * 1.2;
+        if (h.wrongT > 0) { h.wrongT -= dt; if (h.wrongT <= 0) renderPanels(); }
       }
-      if (B.wrongT > 0) { B.wrongT -= dt; if (B.wrongT <= 0) renderPanels(); }
+      if (!B.over && !B.paused) { B.elapsed += dt; tickBoss(dt); }
     }
     render();
   } catch (err) {
@@ -1398,9 +1457,7 @@ buildSetup();
 buildPanels();
 bindPanels();
 newBattle();
-clearTimers();
-B.active = -1; B.q = null; B.locked = true;   // 设置页期间只做预览
-renderPanels();
+parkBattle();                                 // 设置页期间只做画面预览
 fit();
 
 document.getElementById('btnStart').addEventListener('click', startBattle);
