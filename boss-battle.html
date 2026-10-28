@@ -57,6 +57,8 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 
 /* 比大小题：题目行 + 答案框 + 「> < =」三大键 + 确定/换一题 */
 .pQ.cmp { height: 76px; font-size: 36px; letter-spacing: 0; }
+.pQ.cmp .cmpLine { white-space: nowrap; }
+.pQ.cmp .cmpO { font-size: 1.9em; line-height: 1; vertical-align: middle; padding: 0 1px; }
 .pAns.cmp { font-size: 44px; line-height: 1; }
 .pKeys.cmpkeys { grid-template-columns: repeat(3, 1fr); }
 .pKeys.cmpkeys .kbtn.cmpv { height: 96px; font-size: 46px; background: #4a3f74; }
@@ -2048,7 +2050,9 @@ function panelHTML(i) {
 
   var q = h.q, bad = (h.wrongT > 0);
   if (q.mode === 'cmp') {
-    s += '<div class="pQ cmp' + (bad ? ' hint' : '') + '">' + esc(bad ? '比一比，再试一次' : q.text) + '</div>';
+    var ct = esc(bad ? '比一比，再试一次' : q.text)
+               .replace(/\u25CB/g, '<span class="cmpO">\u25CB</span>');
+    s += '<div class="pQ cmp' + (bad ? ' hint' : '') + '"><span class="cmpLine">' + ct + '</span></div>';
     s += '<div class="pAns cmp">' + (h.input === '' ? '?' : (CMP_TXT[h.input] || '?')) + '</div>';
     s += '<div class="pKeys cmpkeys">' + cmpKeysHTML(i) + '</div>';
   } else if (q.mode === 'num') {
