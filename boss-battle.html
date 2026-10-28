@@ -119,7 +119,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
     <div id="setup" class="card">
       <div class="cardHead">
         <h1>四人争霸赛 · 团队闯关</h1>
-        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），合力打倒大魔王。答对才能释放技能，答错可以重来或换一题。</p>
+        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），合力打倒大魔王。Boss 分三阶段变身，题目难度逐级上升；答对才能释放技能，答错可以重来或换一题。</p>
       </div>
       <div class="cardBody">
       <div class="setRow">
@@ -128,7 +128,8 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       </div>
 
       <div class="setRow" id="rowLevel">
-        <div class="setLabel">题目难度</div>
+        <div class="setLabel">题目难度（基准年级）</div>
+        <div class="tip" style="text-align:left;margin:0 0 8px">P1 用所选年级，Boss 每变身一次升一年级：P2 = +1 年级，P3 = +2 年级（封顶六年级）。</div>
         <div class="opts" id="optLevel"></div>
       </div>
 
@@ -149,7 +150,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       </div>
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
-        <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血，累计答对 10 次全队一起回血。</div>
+        <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。</div>
       </div>
     </div>
 
@@ -183,7 +184,7 @@ var ctx = cv.getContext('2d');
 /* ============================ 可配置参数 ============================ */
 var CFG = {
   subject: 'math',   // math | chinese | english
-  level: 2,          // 数学难度 1-5
+  level: 3,          // 数学基准年级 3-6（Boss 每进阶一阶段 +1 年级，封顶 6）
 
   bossHp: 2400,
   bossAtk: 50,
@@ -202,7 +203,9 @@ var CFG = {
   freezeImmuneSec: 12, // 冻结结束后，Boss 获得几秒冻结免疫（防止无限冻）
   healAmt: 80,       // 治疗师：单体治疗量
   healGroupEvery: 10,// 治疗师：累计答对几次触发一次全体治疗
-  healGroupAmt: 120  // 治疗师：全体治疗量
+  healGroupAmt: 120, // 治疗师：全体治疗量
+  shieldAmt: 60,     // 全员满血时，治疗师答对给每人的护盾值
+  shieldMax: 240     // 护盾叠加上限
 };
 
 /* Boss 三阶段：体型变大、攻击力提升、攻击频率下降、外观与名称变化 */
@@ -218,7 +221,7 @@ var PHASES = [
 /* 四名角色 */
 var HEROES = [
   { cls: '治疗师',   name: '莉莉', skill: '治愈之光', key: 'heal',
-    desc: '最虚弱回血 · 10次全队', robe: '#3fae6a', dark: '#24704a', orb: '#7ff0a8', tone: 392 },
+    desc: '回血最虚弱 · 满血套盾', robe: '#3fae6a', dark: '#24704a', orb: '#7ff0a8', tone: 392 },
   { cls: '雷电法师', name: '雷恩', skill: '落雷',     key: 'thunder',
     desc: '单体高伤害',       robe: '#5b7ce0', dark: '#33509c', orb: '#cfe3ff', tone: 300 },
   { cls: '火系法师', name: '炎心', skill: '火焰弹',   key: 'fire',
@@ -280,84 +283,250 @@ function sfx(name) {
 
 /* ============================ 题库 ============================ */
 function ri(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+function secs(t) { return Math.max(0, Math.ceil(t)); }      /* 秒数：向上取整，不显示小数 */
 
-/* 数学口算：返回 {text, ans, mode:'num'} —— 用数字键盘作答 */
-function genMath(lv) {
-  var ops = ['+', '-'];
-  if (lv >= 2) ops.push('*', '/');
-  if (lv >= 4) ops = ['+', '-', '*', '/', '*', '/'];
+/* 数学口算：返回 {text, ans, mode:'num'} —— 用数字键盘作答
+   年级只保留 3~6；全局不含「两位数 × 两位数」，乘法只允许
+   「一位数 × 一位数」或「多位数 × 一位数」。                  */
+function genMath(lv, boost) {
+  lv = Math.max(3, Math.min(6, lv || 3));
+  boost = boost || 0;                        /* 已在六年级还想再难就用它加码 */
+  var a, b, c, q, ans, text, t;
+
+  /* 六年级：两步混合运算 —— 一位数 × 一位数（或整除），再加减一个数 */
+  if (lv === 6) {
+    t = ri(0, 5);
+    a = ri(2, 9); b = ri(2, 9);
+    c = ri(11, 89) + boost * 120;
+    if (t === 0) { ans = a * b + c; text = a + ' \u00D7 ' + b + ' + ' + c; }
+    else if (t === 1) { q = ri(3, Math.max(3, a * b - 2)); ans = a * b - q; text = a + ' \u00D7 ' + b + ' - ' + q; }
+    else if (t === 2) { ans = c + a * b;  text = c + ' + ' + a + ' \u00D7 ' + b; }
+    else if (t === 3) { q = ri(3, 40 + boost * 40); ans = q + c; text = (q * b) + ' \u00F7 ' + b + ' + ' + c; }
+    else if (t === 4) { q = ri(3, 30); ans = c - q;   text = c + ' - ' + (q * b) + ' \u00F7 ' + b; }
+    else               { q = a * b;    ans = c - q;     text = c + ' - ' + a + ' \u00D7 ' + b; }
+    return { text: text + ' = ?', ans: String(ans), mode: 'num' };
+  }
+
+  var ops = lv === 3 ? ['+', '-', '*', '/']
+    : (lv === 4 ? ['+', '-', '*', '/', '*'] : ['+', '-', '*', '/', '*', '/']);
   var op = ops[ri(0, ops.length - 1)];
-  var hi = [20, 50, 99, 200, 400][Math.min(lv, 5) - 1];
-  var a, b, ans;
-  if (op === '+') { a = ri(1, hi); b = ri(1, hi); ans = a + b; }
-  else if (op === '-') { a = ri(2, hi); b = ri(1, a - 1); ans = a - b; }
+  var lo = lv === 3 ? 18 : (lv === 4 ? 120 : 600);
+  var hi = (lv === 3 ? 480 : (lv === 4 ? 2400 : 9800)) + boost * 2000;
+
+  if (op === '+') { a = ri(lo, hi); b = ri(lo, hi); ans = a + b; }
+  else if (op === '-') { a = ri(lo, hi); b = ri(lo, a - 1); ans = a - b; }
   else if (op === '*') {
-    var m = lv <= 2 ? 9 : (lv === 3 ? 9 : (lv === 4 ? 19 : 29));
-    var n = lv <= 3 ? 9 : (lv === 4 ? 9 : 19);
-    a = ri(2, m); b = ri(2, n); ans = a * b;
-  } else {                                   // 除法保证整除
-    var d = ri(2, lv <= 2 ? 9 : (lv === 3 ? 9 : 19));
-    var q = ri(2, lv <= 3 ? 9 : (lv === 4 ? 19 : 29));
-    b = d; a = d * q; ans = q;
+    /* 乘数固定一位数 → 绝不出现两位数 × 两位数 */
+    b = ri(2, 9);
+    var m = (lv === 3 ? 89 : (lv === 4 ? 289 : 899)) + boost * 300;
+    a = ri(2, m);
+    ans = a * b;
+  } else {
+    /* 除法保证整除，除数固定一位数 */
+    b = ri(2, 9);
+    q = ri(2, lv === 3 ? 50 : (lv === 4 ? 98 : 190 + boost * 60));
+    a = b * q; ans = q;
   }
   var sym = op === '*' ? '\u00D7' : (op === '/' ? '\u00F7' : op);
   return { text: a + ' ' + sym + ' ' + b + ' = ?', ans: String(ans), mode: 'num' };
 }
 
-/* 语文题库（ABCD 四选一）—— 示例，可自行往数组里加题 */
+/* 当前题目难度：随 Boss 阶段递增（P1=基准年级，P2=+1，P3=+2，封顶六年级） */
+function battleLevel() {
+  var p = (B && B.boss) ? B.boss.phase : 0;
+  return Math.max(3, Math.min(6, CFG.level + p));
+}
+function battleBoost() {
+  return Math.max(0, CFG.level + ((B && B.boss) ? B.boss.phase : 0) - 6);
+}
+
+/* 语文题库（ABCD 四选一，全部在小学知识范围内）—— 可自行往数组里加题
+   格式：{ q:'题目', o:[四个选项], a:正确答案在 o 中的下标 }        */
 var CN_BANK = [
-  { q: '“守株待兔”比喻的是？', o: ['妄想不劳而获', '行动非常迅速', '团结互助', '勤奋刻苦'], a: 0 },
-  { q: '“画蛇添足”的意思是？', o: ['多此一举', '画得很好', '速度很快', '非常认真'], a: 0 },
-  { q: '“亡羊补牢”下一句是？', o: ['犹未晚也', '为时已晚', '悔之晚矣', '于事无补'], a: 0 },
-  { q: '“春眠不觉晓”下一句是？', o: ['处处闻啼鸟', '更上一层楼', '疑是地上霜', '低头思故乡'], a: 0 },
-  { q: '“欲穷千里目”下一句是？', o: ['更上一层楼', '黄河入海流', '白日依山尽', '千里共婵娟'], a: 0 },
+  /* ===== 古诗文 ===== */
   { q: '“举头望明月”下一句是？', o: ['低头思故乡', '疑是地上霜', '床前明月光', '霜叶红于二月花'], a: 0 },
   { q: '“两个黄鹂鸣翠柳”下一句是？', o: ['一行白鹭上青天', '万条垂下绿丝绦', '孤帆远影碧空尽', '春江水暖鸭先知'], a: 0 },
   { q: '“谁知盘中餐”下一句是？', o: ['粒粒皆辛苦', '汗滴禾下土', '锄禾日当午', '春种一粒粟'], a: 0 },
+  { q: '“春眠不觉晓”下一句是？', o: ['处处闻啼鸟', '更上一层楼', '疑是地上霜', '低头思故乡'], a: 0 },
+  { q: '“欲穷千里目”下一句是？', o: ['更上一层楼', '黄河入海流', '白日依山尽', '千里共婵娟'], a: 0 },
+  { q: '“儿童急走追黄蝶”下一句是？', o: ['飞入菜花无处寻', '忙趁东风放纸鸢', '也傍桑阴学种瓜', '短笛无腔信口吹'], a: 0 },
+  { q: '“小荷才露尖尖角”下一句是？', o: ['早有蜻蜓立上头', '映日荷花别样红', '接天莲叶无穷碧', '两个黄鹂鸣翠柳'], a: 0 },
+  { q: '“停车坐爱枫林晚”下一句是？', o: ['霜叶红于二月花', '一枝红杏出墙来', '万条垂下绿丝绦', '疑是银河落九天'], a: 0 },
+  { q: '“飞流直下三千尺”下一句是？', o: ['疑是银河落九天', '遥看瀑布挂前川', '日照香炉生紫烟', '轻舟已过万重山'], a: 0 },
+  { q: '“两岸猿声啼不住”下一句是？', o: ['轻舟已过万重山', '千里江陵一日还', '朝辞白帝彩云间', '孤帆一片日边来'], a: 0 },
+  { q: '“独在异乡为异客”下一句是？', o: ['每逢佳节倍思亲', '遍插茱萸少一人', '遥知兄弟登高处', '洛阳亲友如相问'], a: 0 },
+  { q: '“爆竹声中一岁除”下一句是？', o: ['春风送暖入屠苏', '总把新桃换旧符', '千门万户曈曈日', '烟花三月下扬州'], a: 0 },
+  { q: '“不知细叶谁裁出”下一句是？', o: ['二月春风似剪刀', '万条垂下绿丝绦', '碧玉妆成一树高', '草长莺飞二月天'], a: 0 },
+  { q: '“慈母手中线”下一句是？', o: ['游子身上衣', '报得三春晖', '临行密密缝', '意恐迟迟归'], a: 0 },
+  { q: '“清明时节雨纷纷”下一句是？', o: ['路上行人欲断魂', '牧童遥指杏花村', '借问酒家何处有', '遍插茱萸少一人'], a: 0 },
+  { q: '《静夜思》的作者是？', o: ['李白', '杜甫', '白居易', '王维'], a: 0 },
+  { q: '《春晓》的作者是？', o: ['孟浩然', '李白', '杜牧', '苏轼'], a: 0 },
+  { q: '“锄禾日当午”的作者是？', o: ['李绅', '李白', '杜甫', '陆游'], a: 0 },
+  { q: '“横看成岭侧成峰”的作者是？', o: ['苏轼', '李白', '王安石', '陆游'], a: 0 },
+
+  /* ===== 成语 ===== */
+  { q: '“守株待兔”比喻的是？', o: ['妄想不劳而获', '行动非常迅速', '团结互助', '勤奋刻苦'], a: 0 },
+  { q: '“画蛇添足”的意思是？', o: ['多此一举', '画得很好', '速度很快', '非常认真'], a: 0 },
+  { q: '“亡羊补牢”下一句是？', o: ['犹未晚也', '为时已晚', '悔之晚矣', '于事无补'], a: 0 },
+  { q: '“四面楚歌”说的是谁的故事？', o: ['项羽', '刘邦', '曹操', '诸葛亮'], a: 0 },
+  { q: '“卧薪尝胆”讲的是哪位君王？', o: ['勾践', '夫差', '秦始皇', '汉武帝'], a: 0 },
+  { q: '“一鸣惊人”中的“鸣”意思是？', o: ['鸟叫', '名人', '明白', '名字'], a: 0 },
+  { q: '“拔苗助长”告诉我们什么道理？', o: ['不能违背事物规律', '要多施肥', '要勤劳动', '要多浇水'], a: 0 },
+  { q: '“狐假虎威”中“假”的意思是？', o: ['借', '真假', '假装', '假如'], a: 0 },
+  { q: '“刻舟求剑”讽刺的是怎样的人？', o: ['不知变通的人', '贪心的人', '懒惰的人', '胆小的人'], a: 0 },
+  { q: '“闻鸡起舞”讲的是谁的故事？', o: ['祖逖', '岳飞', '李白', '曹操'], a: 0 },
+  { q: '“胸有成竹”常用来形容？', o: ['做事前已有通盘考虑', '身体很强壮', '画竹子很慢', '心里很害怕'], a: 0 },
+  { q: '“叶公好龙”比喻的是？', o: ['嘴上爱好并非真爱好', '非常勇敢', '特别喜欢动物', '擅长画画'], a: 0 },
+  { q: '“杯弓蛇影”比喻的是？', o: ['疑神疑鬼、自相惊扰', '喝酒误事', '非常饥饿', '目光短浅'], a: 0 },
+  { q: '“惊弓之鸟”比喻的是？', o: ['受过惊吓遇事害怕', '飞得很快的鸟', '非常勇猛', '善于射箭'], a: 0 },
+  { q: '“画龙点睛”中的“睛”指？', o: ['眼睛', '晴朗', '精华', '精神'], a: 0 },
+  { q: '“井底之蛙”比喻的是？', o: ['见识狭小的人', '很会游泳的人', '勤劳的人', '声音很大的人'], a: 0 },
+
+  /* ===== 近义词 / 反义词 ===== */
   { q: '下列哪个是反义词组合？', o: ['寒冷——炎热', '高兴——快乐', '美丽——漂亮', '安静——宁静'], a: 0 },
   { q: '“安静”的反义词是？', o: ['喧闹', '平静', '温和', '凉爽'], a: 0 },
   { q: '“谦虚”的反义词是？', o: ['骄傲', '认真', '努力', '善良'], a: 0 },
   { q: '“宽阔”的近义词是？', o: ['宽广', '狭窄', '高大', '明亮'], a: 0 },
   { q: '“注视”的近义词是？', o: ['凝视', '忽视', '浏览', '张望'], a: 0 },
-  { q: '“一鸣惊人”中的“鸣”意思是？', o: ['鸟叫', '名人', '明白', '名字'], a: 0 },
-  { q: '“四面楚歌”说的是谁的故事？', o: ['项羽', '刘邦', '曹操', '诸葛亮'], a: 0 },
-  { q: '“卧薪尝胆”讲的是哪位君王？', o: ['勾践', '夫差', '秦始皇', '汉武帝'], a: 0 },
-  { q: '《静夜思》的作者是？', o: ['李白', '杜甫', '白居易', '王维'], a: 0 },
-  { q: '《春晓》的作者是？', o: ['孟浩然', '李白', '杜牧', '苏轼'], a: 0 },
-  { q: '“锄禾日当午”的作者是？', o: ['李绅', '李白', '杜甫', '陆游'], a: 0 },
-  { q: '“儿童急走追黄蝶”下一句是？', o: ['飞入菜花无处寻', '忙趁东风放纸鸢', '也傍桑阴学种瓜', '短笛无腔信口吹'], a: 0 },
+  { q: '“立刻”的近义词是？', o: ['马上', '缓慢', '停止', '结束'], a: 0 },
+  { q: '“节约”的反义词是？', o: ['浪费', '节省', '爱惜', '勤俭'], a: 0 },
+  { q: '“陡峭”的反义词是？', o: ['平坦', '险峻', '笔直', '弯曲'], a: 0 },
+  { q: '“犹豫”的反义词是？', o: ['果断', '迟疑', '徘徊', '踌躇'], a: 0 },
+  { q: '“著名”的近义词是？', o: ['有名', '姓名', '名著', '著作'], a: 0 },
+
+  /* ===== 字词 / 错别字 ===== */
   { q: '下列词语中没有错别字的是？', o: ['兴高采烈', '兴高彩烈', '兴高采列', '幸高采烈'], a: 0 },
   { q: '“的、地、得”中，修饰动词用？', o: ['地', '的', '得', '底'], a: 0 },
+  { q: '“再、在”中，“(  )见”应填？', o: ['再', '在', '载', '栽'], a: 0 },
+  { q: '“一(  )牛”应填的量词是？', o: ['头', '只', '条', '匹'], a: 0 },
+  { q: '“一(  )马”应填的量词是？', o: ['匹', '头', '只', '条'], a: 0 },
+  { q: '“一(  )鱼”应填的量词是？', o: ['条', '头', '匹', '只'], a: 0 },
+  { q: '“一(  )花”应填的量词是？', o: ['朵', '头', '匹', '条'], a: 0 },
+  { q: '“目”字旁的字多和什么有关？', o: ['眼睛', '嘴巴', '耳朵', '手脚'], a: 0 },
+  { q: '“江、河、海”三个字共同的部首是？', o: ['三点水', '木字旁', '提手旁', '单人旁'], a: 0 },
+
+  /* ===== 修辞手法 ===== */
+  { q: '“弯弯的月亮像小船”用了什么修辞？', o: ['比喻', '拟人', '排比', '夸张'], a: 0 },
+  { q: '“小鸟在枝头唱歌”用了什么修辞？', o: ['拟人', '比喻', '反问', '设问'], a: 0 },
+  { q: '“飞流直下三千尺”用了什么修辞？', o: ['夸张', '拟人', '排比', '反问'], a: 0 },
+  { q: '“难道这不是你的错吗？”是什么句？', o: ['反问句', '设问句', '疑问句', '祈使句'], a: 0 },
+  { q: '自问自答的修辞手法叫？', o: ['设问', '反问', '比喻', '夸张'], a: 0 },
+  { q: '“他跑得比兔子还快”用了什么修辞？', o: ['夸张', '拟人', '排比', '反问'], a: 0 },
+
+  /* ===== 文学常识 ===== */
+  { q: '《西游记》的作者是？', o: ['吴承恩', '曹雪芹', '施耐庵', '罗贯中'], a: 0 },
+  { q: '《三国演义》的作者是？', o: ['罗贯中', '吴承恩', '施耐庵', '曹雪芹'], a: 0 },
+  { q: '《草船借箭》出自哪部名著？', o: ['三国演义', '西游记', '水浒传', '红楼梦'], a: 0 },
+  { q: '“孙悟空”出自哪部名著？', o: ['西游记', '水浒传', '红楼梦', '封神演义'], a: 0 },
+  { q: '端午节是为了纪念哪位诗人？', o: ['屈原', '李白', '杜甫', '苏轼'], a: 0 },
+  { q: '“文房四宝”指的是？', o: ['笔墨纸砚', '琴棋书画', '梅兰竹菊', '诗词歌赋'], a: 0 },
+
+  /* ===== 关联词 / 句式 ===== */
   { q: '“他把书看完了”是什么句？', o: ['把字句', '被字句', '疑问句', '感叹句'], a: 0 },
-  { q: '“弯弯的月亮像小船”用了什么修辞？', o: ['比喻', '拟人', '排比', '夸张'], a: 0 }
+  { q: '“书被他看完了”是什么句？', o: ['被字句', '把字句', '疑问句', '感叹句'], a: 0 },
+  { q: '“(  )天下雨，运动会(  )取消了。”应填？', o: ['因为……所以……', '不但……而且……', '虽然……但是……', '即使……也……'], a: 0 },
+  { q: '“他(  )学习好，(  )乐于助人。”应填？', o: ['不但……而且……', '因为……所以……', '虽然……但是……', '只要……就……'], a: 0 },
+  { q: '“(  )明天下雨，我们(  )去爬山。”应填？', o: ['即使……也……', '因为……所以……', '不但……而且……', '只有……才……'], a: 0 },
+  { q: '“难道这不是伟大的奇观吗？”改成陈述句是？', o: ['这是伟大的奇观', '这不是伟大的奇观', '这可能是伟大的奇观', '这是奇观吗'], a: 0 }
 ];
 
-/* 英语题库（ABCD 四选一）—— 示例，可自行往数组里加题 */
+/* 英语题库（ABCD 四选一，全部在小学知识范围内）—— 可自行往数组里加题 */
 var EN_BANK = [
-  { q: 'apple 的中文意思是？', o: ['苹果', '香蕉', '橘子', '葡萄'], a: 0 },
-  { q: 'banana 的中文意思是？', o: ['香蕉', '苹果', '梨', '桃子'], a: 0 },
-  { q: 'teacher 的中文意思是？', o: ['老师', '医生', '学生', '警察'], a: 0 },
-  { q: 'student 的中文意思是？', o: ['学生', '老师', '工人', '司机'], a: 0 },
-  { q: 'water 的中文意思是？', o: ['水', '牛奶', '果汁', '茶'], a: 0 },
-  { q: 'Monday 是星期几？', o: ['星期一', '星期二', '星期三', '星期日'], a: 0 },
+  /* ===== 颜色 ===== */
   { q: '“红色”的英文是？', o: ['red', 'blue', 'green', 'yellow'], a: 0 },
   { q: '“蓝色”的英文是？', o: ['blue', 'red', 'black', 'white'], a: 0 },
+  { q: 'green 的中文意思是？', o: ['绿色', '灰色', '金色', '橙色'], a: 0 },
+  { q: 'yellow 的中文意思是？', o: ['黄色', '黑色', '紫色', '棕色'], a: 0 },
+  { q: '“黑色”的英文是？', o: ['black', 'blank', 'blue', 'bread'], a: 0 },
+  { q: 'white 的中文意思是？', o: ['白色', '粉色', '银色', '米色'], a: 0 },
+
+  /* ===== 动物 ===== */
   { q: '“猫”的英文是？', o: ['cat', 'dog', 'pig', 'duck'], a: 0 },
   { q: '“狗”的英文是？', o: ['dog', 'cat', 'bird', 'fish'], a: 0 },
+  { q: 'rabbit 的中文意思是？', o: ['兔子', '老虎', '猴子', '熊猫'], a: 0 },
+  { q: '“熊猫”的英文是？', o: ['panda', 'tiger', 'monkey', 'elephant'], a: 0 },
+  { q: 'monkey 的中文意思是？', o: ['猴子', '大象', '狮子', '长颈鹿'], a: 0 },
+  { q: 'bird 的中文意思是？', o: ['小鸟', '蜜蜂', '蚂蚁', '蝴蝶'], a: 0 },
+
+  /* ===== 食物 ===== */
+  { q: 'apple 的中文意思是？', o: ['苹果', '香蕉', '橘子', '葡萄'], a: 0 },
+  { q: 'banana 的中文意思是？', o: ['香蕉', '苹果', '梨', '桃子'], a: 0 },
+  { q: '“牛奶”的英文是？', o: ['milk', 'water', 'juice', 'tea'], a: 0 },
+  { q: 'water 的中文意思是？', o: ['水', '牛奶', '果汁', '茶'], a: 0 },
+  { q: '“面包”的英文是？', o: ['bread', 'cake', 'rice', 'egg'], a: 0 },
+  { q: 'rice 的中文意思是？', o: ['米饭', '面条', '饺子', '包子'], a: 0 },
+
+  /* ===== 学习用品 ===== */
   { q: '“书”的英文是？', o: ['book', 'pen', 'bag', 'desk'], a: 0 },
   { q: '“钢笔”的英文是？', o: ['pen', 'pencil', 'ruler', 'eraser'], a: 0 },
+  { q: 'pencil 的中文意思是？', o: ['铅笔', '钢笔', '毛笔', '粉笔'], a: 0 },
+  { q: '“书包”的英文是？', o: ['bag', 'box', 'desk', 'chair'], a: 0 },
+  { q: 'ruler 的中文意思是？', o: ['尺子', '橡皮', '课本', '卷笔刀'], a: 0 },
+
+  /* ===== 人物 / 家庭 ===== */
+  { q: 'teacher 的中文意思是？', o: ['老师', '医生', '学生', '警察'], a: 0 },
+  { q: 'student 的中文意思是？', o: ['学生', '老师', '工人', '司机'], a: 0 },
+  { q: '“妈妈”的英文是？', o: ['mother', 'father', 'sister', 'brother'], a: 0 },
+  { q: '“爸爸”的英文是？', o: ['father', 'mother', 'uncle', 'aunt'], a: 0 },
+  { q: '“医生”的英文是？', o: ['doctor', 'nurse', 'driver', 'farmer'], a: 0 },
+  { q: 'sister 的中文意思是？', o: ['姐妹', '兄弟', '叔叔', '阿姨'], a: 0 },
+
+  /* ===== 身体 ===== */
+  { q: '“眼睛”的英文是？', o: ['eye', 'ear', 'nose', 'mouth'], a: 0 },
+  { q: '“手”的英文是？', o: ['hand', 'head', 'foot', 'leg'], a: 0 },
+  { q: 'ear 的中文意思是？', o: ['耳朵', '眼睛', '鼻子', '嘴巴'], a: 0 },
+  { q: 'foot 的中文意思是？', o: ['脚', '手', '腿', '头'], a: 0 },
+
+  /* ===== 数字 ===== */
   { q: 'one + two = ?', o: ['three', 'four', 'five', 'six'], a: 0 },
+  { q: '“七”的英文是？', o: ['seven', 'six', 'eight', 'nine'], a: 0 },
+  { q: '“十”的英文是？', o: ['ten', 'two', 'twelve', 'twenty'], a: 0 },
+  { q: 'five 的中文意思是？', o: ['五', '四', '九', '十五'], a: 0 },
+  { q: '“十二”的英文是？', o: ['twelve', 'twenty', 'eleven', 'ten'], a: 0 },
+
+  /* ===== 星期 / 月份 ===== */
+  { q: 'Monday 是星期几？', o: ['星期一', '星期二', '星期三', '星期日'], a: 0 },
+  { q: '“星期五”的英文是？', o: ['Friday', 'Tuesday', 'Thursday', 'Sunday'], a: 0 },
+  { q: '“一月”的英文是？', o: ['January', 'June', 'July', 'March'], a: 0 },
+  { q: 'Sunday 是星期几？', o: ['星期日', '星期六', '星期一', '星期五'], a: 0 },
+
+  /* ===== 天气 / 季节 ===== */
+  { q: '“下雨的”英文是？', o: ['rainy', 'windy', 'cloudy', 'snowy'], a: 0 },
+  { q: '“热的”的英文是？', o: ['hot', 'cold', 'cool', 'warm'], a: 0 },
+  { q: '“冬天”的英文是？', o: ['winter', 'summer', 'spring', 'autumn'], a: 0 },
+  { q: 'sunny 的中文意思是？', o: ['晴朗的', '多云的', '有风的', '下雪的'], a: 0 },
+
+  /* ===== 交通 / 地点 ===== */
+  { q: '“学校”的英文是？', o: ['school', 'home', 'park', 'zoo'], a: 0 },
+  { q: '“公共汽车”的英文是？', o: ['bus', 'car', 'bike', 'train'], a: 0 },
+  { q: '“医院”的英文是？', o: ['hospital', 'library', 'cinema', 'museum'], a: 0 },
+  { q: '“飞机”的英文是？', o: ['plane', 'ship', 'taxi', 'boat'], a: 0 },
+
+  /* ===== 日常交际 ===== */
   { q: '“早上好”的英文是？', o: ['Good morning', 'Good night', 'Goodbye', 'Thank you'], a: 0 },
   { q: '“谢谢你”的英文是？', o: ['Thank you', 'Sorry', 'Hello', 'Please'], a: 0 },
   { q: '“对不起”的英文是？', o: ['Sorry', 'Thanks', 'Hello', 'Bye'], a: 0 },
-  { q: '“学校”的英文是？', o: ['school', 'home', 'park', 'zoo'], a: 0 },
-  { q: '“妈妈”的英文是？', o: ['mother', 'father', 'sister', 'brother'], a: 0 },
-  { q: '“爸爸”的英文是？', o: ['father', 'mother', 'uncle', 'aunt'], a: 0 },
-  { q: '“七”的英文是？', o: ['seven', 'six', 'eight', 'nine'], a: 0 },
-  { q: '“十”的英文是？', o: ['ten', 'two', 'twelve', 'twenty'], a: 0 },
-  { q: '“眼睛”的英文是？', o: ['eye', 'ear', 'nose', 'mouth'], a: 0 },
-  { q: '“手”的英文是？', o: ['hand', 'head', 'foot', 'leg'], a: 0 },
-  { q: '“大的”英文是？', o: ['big', 'small', 'long', 'short'], a: 0 }
+  { q: '“再见”的英文是？', o: ['Goodbye', 'Good morning', 'Hello', 'Good night'], a: 0 },
+  { q: '别人说 Thank you，你可以回答？', o: ['You are welcome', 'Thank you', 'I am sorry', 'Good night'], a: 0 },
+  { q: '“你叫什么名字？”英文是？', o: ['What is your name?', 'How are you?', 'How old are you?', 'Where are you?'], a: 0 },
+  { q: '“我今年十岁”英文是？', o: ['I am ten', 'I am fine', 'I am a student', 'I am Tom'], a: 0 },
+
+  /* ===== 基础语法 ===== */
+  { q: 'This is (  ) apple. 应填？', o: ['an', 'a', 'the', '不填'], a: 0 },
+  { q: 'I (  ) a student. 应填？', o: ['am', 'is', 'are', 'be'], a: 0 },
+  { q: 'two books 中 books 是？', o: ['复数', '单数', '不可数', '动词'], a: 0 },
+  { q: '“他”的英文主格是？', o: ['he', 'him', 'his', 'her'], a: 0 },
+  { q: '“她的”英文物主代词是？', o: ['her', 'she', 'hers', 'he'], a: 0 },
+  { q: 'Look (  ) the blackboard. 应填？', o: ['at', 'in', 'on', 'to'], a: 0 },
+  { q: 'I get up (  ) six o’clock. 应填？', o: ['at', 'in', 'on', 'of'], a: 0 },
+  { q: '“我在读书”的现在进行时是？', o: ['I am reading', 'I read', 'I reads', 'I am read'], a: 0 },
+  { q: 'go 的过去式是？', o: ['went', 'goed', 'goes', 'going'], a: 0 },
+  { q: '“我昨天去了公园”英文是？', o: ['I went to the park yesterday', 'I go to the park yesterday', 'I am going to the park', 'I will go to the park'], a: 0 },
+  { q: '“多少个”用英语提问是？', o: ['How many', 'How much', 'How old', 'How long'], a: 0 },
+  { q: 'banana 的复数形式是？', o: ['bananas', 'banana', 'bananes', 'bananaes'], a: 0 },
+  { q: '“我的”英文物主代词是？', o: ['my', 'mine', 'I', 'me'], a: 0 },
+  { q: '“他们在踢足球”英文是？', o: ['They are playing football', 'They play football', 'They is playing football', 'They playing football'], a: 0 },
+  { q: '“书桌上有两支笔”英文是？', o: ['There are two pens on the desk', 'There is two pens on the desk', 'Have two pens on the desk', 'Two pens have on the desk'], a: 0 }
 ];
 
 /* 选择题：随机打乱选项顺序 */
@@ -371,7 +540,7 @@ function genOpts(bank) {
 }
 
 function genQuestion() {
-  if (CFG.subject === 'math') return genMath(CFG.level);
+  if (CFG.subject === 'math') return genMath(battleLevel(), battleBoost());
   return genOpts(CFG.subject === 'chinese' ? CN_BANK : EN_BANK);
 }
 function answerMode() { return CFG.subject === 'math' ? 'num' : 'opt'; }
@@ -406,8 +575,8 @@ function newBattle() {
     heroes: HEROES.map(function (h, i) {
       return {
         i: i, cls: h.cls, name: h.name, key: h.key, ref: h,
-        hp: CFG.heroHp, max: CFG.heroHp, alive: true,
-        hitT: 0, castT: 0, glow: 0,
+        hp: CFG.heroHp, max: CFG.heroHp, alive: true, shield: 0,
+        hitT: 0, castT: 0, glow: 0, shieldT: 0,
         q: null, input: '', locked: false, wrongT: 0, healCount: 0
       };
     }),
@@ -415,7 +584,7 @@ function newBattle() {
     fx: [], floats: [], banner: '', bannerT: 0,
     stats: {
       start: Date.now(), ms: 0,
-      per: HEROES.map(function () { return { right: 0, wrong: 0, cast: 0, skip: 0 }; })
+      per: HEROES.map(function () { return { right: 0, wrong: 0, cast: 0, skip: 0, shield: 0, group: 0 }; })
     }
   };
   for (var i = 0; i < 4; i++) giveQuestion(B.heroes[i]);
@@ -517,39 +686,59 @@ function castSkill(h) {
       }
     });
 
-  } else {                               /* 治疗师：给血量最少的队友回血；累计答对 N 次，全队回血 */
+  } else {                               /* 治疗师 */
     h.healCount++;
-    var group = CFG.healGroupEvery > 0 && (h.healCount % CFG.healGroupEvery === 0);
-    var list;
-    if (group) list = aliveHeroes();
-    else { var w = weakestHero(); list = w ? [w] : []; }
-    if (!list.length) { after(0.5, function () { giveQuestion(h); }); return; }
+    var alive = aliveHeroes();
+    if (!alive.length) { after(0.5, function () { giveQuestion(h); }); return; }
 
-    var amt = group ? CFG.healGroupAmt : CFG.healAmt;
+    /* 全员满血 → 本次治疗改为给全队加护盾（可抵消 Boss 攻击） */
+    var allFull = true;
+    for (var n = 0; n < alive.length; n++) { if (alive[n].hp < alive[n].max) { allFull = false; break; } }
+
+    var group = CFG.healGroupEvery > 0 && (h.healCount % CFG.healGroupEvery === 0);
+    var kind = allFull ? 'shield' : (group ? 'group' : 'single');
+    var amt = (kind === 'single') ? CFG.healAmt : CFG.healGroupAmt;
+    var list = (kind === 'single') ? [weakestHero()] : alive;
+
     sfx('heal');
-    back = group ? 1.75 : 1.15;
+    if (kind === 'shield') sfx('ice');
+    back = (kind === 'single') ? 1.15 : 1.75;
 
     list.forEach(function (t, k) {
-      var dly = 0.34 + (group ? k * 0.09 : 0);
-      B.fx.push({ type: 'heal', t: 0, dur: 1.0, from: from, to: heroPt(t.i), delay: group ? k * 0.09 : 0 });
+      var dly = 0.34 + ((kind === 'single') ? 0 : k * 0.09);
+      B.fx.push({
+        type: 'heal', t: 0, dur: 1.0, from: from, to: heroPt(t.i),
+        delay: (kind === 'single') ? 0 : k * 0.09,
+        tint: (kind === 'shield') ? '#8fe6ff' : '#7ff0a8',
+        tint2: (kind === 'shield') ? '#eafaff' : '#d8ffe8'
+      });
       after(dly, function () {
         if (!t.alive || B.over) return;
-        var real = Math.min(amt, t.max - t.hp);
         t.glow = 1.0;
-        if (real <= 0) {
-          floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '满血', '#7ff0a8');
-          if (!group) banner('大家都是满血，' + h.name + ' 本次治疗没有消耗');
+        if (kind === 'shield') {
+          var add = Math.min(CFG.shieldAmt, CFG.shieldMax - t.shield);
+          if (add <= 0) floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '盾已满', '#8fe6ff');
+          else { t.shield += add; floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '盾+' + add, '#8fe6ff'); }
         } else {
-          t.hp += real; if (t.hp > t.max) t.hp = t.max;
-          floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '+' + real, '#7ff0a8');
-          if (!group) banner(h.name + ' 为 ' + t.name + ' 回复 ' + real + ' 点血量');
+          var real = Math.min(amt, t.max - t.hp);
+          if (real <= 0) {
+            floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '满血', '#7ff0a8');
+            if (kind === 'single') banner('大家都是满血，' + h.name + ' 本次治疗没有消耗');
+          } else {
+            t.hp += real; if (t.hp > t.max) t.hp = t.max;
+            floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '+' + real, '#7ff0a8');
+            if (kind === 'single') banner(h.name + ' 为 ' + t.name + ' 回复 ' + real + ' 点血量');
+          }
         }
       });
     });
 
-    if (group) {
+    if (kind === 'shield') {
+      B.stats.per[h.i].shield++;
+      banner('大家都是满血，' + h.name + ' 给全队套上护盾 +' + CFG.shieldAmt + '！');
+    } else if (kind === 'group') {
+      B.stats.per[h.i].group++;
       banner('★ 治愈之光 · 全队回复 ' + CFG.healGroupAmt + ' 点血量！（' + h.name + ' 累计答对 ' + h.healCount + ' 题）');
-      sfx('win');
     }
   }
   after(back, function () { giveQuestion(h); });
@@ -569,12 +758,18 @@ function damageBoss(d, kind) {
 }
 function hurtHero(h, d) {
   if (!h.alive || B.over) return;
-  h.hp -= d; h.hitT = 0.5;
-  if (h.hp < 0) h.hp = 0;
-  floatText(heroPt(h.i).x + 40, heroPt(h.i).y - 40, '-' + d, '#ff7a6a');
+  var p = heroPt(h.i), abs = 0;
+  if (h.shield > 0) {                        /* 有护盾先扣护盾 */
+    abs = Math.min(h.shield, d);
+    h.shield -= abs; d -= abs;
+  }
+  if (d > 0) { h.hp -= d; if (h.hp < 0) h.hp = 0; }
+  h.hitT = 0.5;
+  if (abs > 0) floatText(p.x + 40, p.y - 40, '护盾 -' + abs, '#8fe6ff');
+  if (d > 0)  floatText(p.x + 40, p.y - 40 - (abs > 0 ? 20 : 0), '-' + d, '#ff7a6a');
   if (h.hp <= 0) {
     h.alive = false; sfx('dead');
-    h.q = null; h.locked = true; h.input = '';
+    h.q = null; h.locked = true; h.input = ''; h.shield = 0;
     banner(h.name + ' 倒下了！');
   }
   renderPanels();
@@ -591,7 +786,7 @@ function checkPhase() {
     B.boss.morph = 1.3;
     B.fx.push({ type: 'morph', t: 0, dur: 1.3, x: BOSS_X, y: BOSS_Y });
     sfx('morph');
-    banner('Boss 变身！' + PHASES[want].name + ' 登场');
+    banner('Boss 变身！' + PHASES[want].name + ' 登场，题目难度提升！');
   }
 }
 
@@ -739,8 +934,8 @@ function drawTopBar(c) {
   txt(c, '用时 ' + Math.floor(sec / 60) + ' 分 ' + (sec % 60) + ' 秒', 24, 56, 19, '#b9aed6');
   var nxt;
   if (B.over) nxt = '战斗结束';
-  else if (bs.frozen > 0) nxt = 'Boss 冻结中 ' + bs.frozen.toFixed(1) + 's';
-  else nxt = 'Boss 出手倒计时 ' + Math.max(0, B.atkCd).toFixed(1) + 's';
+  else if (bs.frozen > 0) nxt = 'Boss 冻结中 ' + secs(bs.frozen) + ' 秒';
+  else nxt = 'Boss 出手倒计时 ' + secs(B.atkCd) + ' 秒';
   txt(c, nxt, 250, 38, 22, (nxt.indexOf('冻结') >= 0) ? '#8fe6ff' : '#ff9a9a');
 
   /* 中：Boss 名 + 血条 */
@@ -753,30 +948,29 @@ function drawTopBar(c) {
   c.fillStyle = grd; rr(c, bx + 2, 36, Math.max(0, (bw - 4) * r), 26, 6); c.fill();
   txt(c, bs.hp + ' / ' + bs.max, bx + bw / 2, 49, 20, '#fff', 'center');
 
-  /* 状态标签：灼烧 / 冻结 / 冻结免疫 */
-  var sx = bx + bw + 26;
-  if (bs.burnT > 0) {
-    c.fillStyle = '#e0642c'; rr(c, sx, 20, 92, 34, 8); c.fill();
-    txt(c, '灼烧', sx + 46, 37, 19, '#fff', 'center'); sx += 100;
-  }
-  if (bs.frozen > 0) {
-    c.fillStyle = '#3fa8c4'; rr(c, sx, 20, 92, 34, 8); c.fill();
-    txt(c, '冻结', sx + 46, 37, 19, '#fff', 'center'); sx += 100;
-  } else if (bs.immune > 0) {
-    c.fillStyle = '#7a6a9a'; rr(c, sx, 20, 116, 34, 8); c.fill();
-    txt(c, '冻结免疫', sx + 58, 37, 18, '#fff', 'center'); sx += 124;
-  }
-
-  /* 右：阶段 + 陨石倒计时 */
-  var px = 1450;
+  /* 右：阶段 P1/P2/P3 */
+  var px = 1372;
   for (var i = 0; i < 3; i++) {
     var on = i <= B.boss.phase;
     c.fillStyle = on ? '#ffd45e' : 'rgba(255,255,255,.16)';
     rr(c, px + i * 46, 20, 38, 36, 8); c.fill();
     txt(c, 'P' + (i + 1), px + i * 46 + 19, 38, 19, on ? '#241a3d' : '#8d84a8', 'center');
   }
+
+  /* 状态标签：灼烧 / 冻结 */
+  var sx = 1520;
+  if (bs.burnT > 0) {
+    c.fillStyle = '#e0642c'; rr(c, sx, 18, 92, 32, 8); c.fill();
+    txt(c, '灼烧', sx + 46, 34, 19, '#fff', 'center'); sx += 100;
+  }
+  if (bs.frozen > 0) {
+    c.fillStyle = '#3fa8c4'; rr(c, sx, 18, 92, 32, 8); c.fill();
+    txt(c, '冻结', sx + 46, 34, 19, '#fff', 'center'); sx += 100;
+  }
+
+  /* 陨石倒计时 */
   var ml = Math.max(0, B.meteorCd);
-  txt(c, ml < 5 ? '陨石即将来临！' : ('陨石倒计时 ' + ml.toFixed(0) + ' 秒'), 1620, 62, 18, ml < 8 ? '#ff7a6a' : '#b9aed6');
+  txt(c, ml < 5 ? '陨石即将来临！' : ('陨石倒计时 ' + secs(ml) + ' 秒'), 1620, 58, 18, ml < 8 ? '#ff7a6a' : '#b9aed6');
 }
 
 /* ---------- 角色卡 ---------- */
@@ -881,6 +1075,23 @@ function drawHeroCard(c, h) {
   if (r < 0.3) { hg = c.createLinearGradient(hx, 0, hx + hw, 0); hg.addColorStop(0, '#c0392b'); hg.addColorStop(1, '#ff7a6a'); }
   c.fillStyle = hg; rr(c, hx + 2, hy + 2, Math.max(0, (hw - 4) * r), 20, 5); c.fill();
   txt(c, h.hp + '/' + h.max, hx + hw / 2, hy + 12, 17, '#fff', 'center');
+
+  /* 护盾值：全员满血时治疗师给的护盾，可以挡 Boss 的攻击 */
+  if (h.shield > 0) {
+    var sx2 = 420, sy2 = y + 14, sw2 = 172, sh2 = 34;
+    c.fillStyle = 'rgba(70,180,235,.24)'; rr(c, sx2, sy2, sw2, sh2, 9); c.fill();
+    c.strokeStyle = '#7fd8ff'; c.lineWidth = 2.5; rr(c, sx2, sy2, sw2, sh2, 9); c.stroke();
+    c.save();
+    c.translate(sx2 + 24, sy2 + 17); c.scale(0.9, 0.9);
+    c.fillStyle = '#bff0ff';
+    c.beginPath();
+    c.moveTo(0, -13); c.lineTo(10, -8); c.lineTo(10, 3);
+    c.quadraticCurveTo(10, 10, 0, 14);
+    c.quadraticCurveTo(-10, 10, -10, 3);
+    c.lineTo(-10, -8); c.closePath(); c.fill();
+    c.restore();
+    txt(c, '护盾 ' + h.shield, sx2 + 104, sy2 + 17, 19, '#eafaff', 'center');
+  }
 
   /* 技能栏 */
   var sy = y + 100;
@@ -1016,9 +1227,8 @@ function drawBoss(c) {
   c.fillStyle = '#e0453a'; rr(c, BOSS_X - 168, by + 2, Math.max(0, 336 * r), 18, 5); c.fill();
   txt(c, '第 ' + (B.boss.phase + 1) + ' 阶段 · ' + ph.name, BOSS_X, by + 44, 22, '#ffd0d0', 'center');
   var st = [];
-  if (B.boss.frozen > 0) st.push('冻结 ' + B.boss.frozen);
-  if (B.boss.immune > 0) st.push('冻结免疫 ' + B.boss.immune);
-  if (B.boss.burnT > 0) st.push('灼烧 ' + B.boss.burnT);
+  if (B.boss.frozen > 0) st.push('冻结 ' + secs(B.boss.frozen) + ' 秒');
+  if (B.boss.burnT > 0) st.push('灼烧 ' + secs(B.boss.burnT) + ' 秒');
   if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, '#ffe08a', 'center');
 }
 
@@ -1081,12 +1291,12 @@ function drawFx(c) {
         var hx2 = lerp(f.from.x, f.to.x, q2) + Math.sin(p * 8 + g2) * 22;
         var hy2 = lerp(f.from.y, f.to.y, q2) + Math.cos(p * 8 + g2) * 18;
         c.globalAlpha = a2 * (1 - g2 / 10);
-        c.fillStyle = g2 % 2 ? '#7ff0a8' : '#d8ffe8';
+        c.fillStyle = g2 % 2 ? (f.tint || '#7ff0a8') : (f.tint2 || '#d8ffe8');
         c.beginPath(); c.arc(hx2, hy2, 12, 0, 6.2832); c.fill();
       }
       if (p > 0.5) {
         c.globalAlpha = (1 - p) * 2;
-        c.strokeStyle = '#7ff0a8'; c.lineWidth = 10;
+        c.strokeStyle = f.tint || '#7ff0a8'; c.lineWidth = 10;
         c.beginPath(); c.arc(f.to.x, f.to.y, 30 + (p - 0.5) * 260, 0, 6.2832); c.stroke();
       }
     } else if (f.type === 'bossatk') {
@@ -1221,19 +1431,20 @@ var SUBJECTS = [
   { id: 'english', name: '英语单词', desc: 'ABCD 四选一' }
 ];
 var LEVELS = [
-  { id: 1, name: '一年级', desc: '20 以内加减' },
-  { id: 2, name: '二年级', desc: '100 以内加减 · 表内乘除' },
-  { id: 3, name: '三年级', desc: '乘法 · 除法整除' },
-  { id: 4, name: '四年级', desc: '两位数乘法 · 除法' },
-  { id: 5, name: '五年级', desc: '大数混合运算' }
+  { id: 3, name: '三年级', desc: '万以内加减 · 多位数×一位数 · 表内乘除' },
+  { id: 4, name: '四年级', desc: '大数加减 · 三位数×一位数 · 除数一位整除' },
+  { id: 5, name: '五年级', desc: '万级大数加减 · 乘除混合（×一位数）' },
+  { id: 6, name: '六年级', desc: '两步混合：(一位数×一位数)±一个数' }
 ];
+
 var FIELDS = {
   fldBoss: [['bossHp', 'Boss 血量'], ['bossAtk', 'Boss 攻击力'], ['bossAtkEvery', 'Boss 出手间隔（秒）'],
             ['meteorEvery', '大招间隔（秒）'], ['meteorDmg', '大招全体伤害']],
   fldSkill: [['dmgThunder', '雷电伤害'], ['dmgFire', '火焰伤害'], ['dmgIce', '冰霜伤害'],
              ['healAmt', '单体治疗量'], ['healGroupEvery', '全队治疗：答对几次'], ['healGroupAmt', '全队治疗量'],
              ['freezeSec', '冻结秒数'], ['freezeImmuneSec', '冻结免疫秒数']],
-  fldHero: [['heroHp', '角色血量'], ['burnDmg', '灼烧每次伤害'], ['burnTurns', '灼烧次数'], ['burnTickSec', '灼烧间隔（秒）']]
+  fldHero: [['heroHp', '角色血量'], ['burnDmg', '灼烧每次伤害'], ['burnTurns', '灼烧次数'], ['burnTickSec', '灼烧间隔（秒）'],
+            ['shieldAmt', '全员满血时给的护盾'], ['shieldMax', '护盾叠加上限']]
 };
 
 function mkOpts(boxId, list, cur, onPick) {
@@ -1273,7 +1484,8 @@ function buildSetup() {
 function readCfg() {
   var keys = ['bossHp', 'bossAtk', 'bossAtkEvery', 'meteorEvery', 'meteorDmg', 'dmgThunder', 'dmgFire',
     'dmgIce', 'healAmt', 'healGroupEvery', 'healGroupAmt',
-    'heroHp', 'burnDmg', 'burnTurns', 'burnTickSec', 'freezeSec', 'freezeImmuneSec'];
+    'heroHp', 'burnDmg', 'burnTurns', 'burnTickSec', 'freezeSec', 'freezeImmuneSec',
+    'shieldAmt', 'shieldMax'];
   keys.forEach(function (k) {
     var el = document.getElementById('cf_' + k);
     if (!el) return;
@@ -1304,6 +1516,7 @@ function keysHTML(i) {
 function panelHTML(i) {
   var h = B.heroes[i];                    /* 自由攻击：四人各自一道题，互不干扰 */
   var st = !h.alive ? '阵亡' : (h.castT > 0 ? '技能释放中' : '答题中');
+  if (h.alive && h.shield > 0) st += ' · 盾' + h.shield;
   var s = '<div class="pHead">' +
     '<span class="pName">' + h.name + '</span>' +
     '<span class="pCls" style="background:' + h.ref.robe + '">' + h.cls + '</span>' +
@@ -1391,7 +1604,7 @@ function showResult() {
       '<div class="cl" style="color:' + h.ref.robe + '">' + h.cls + '</div>' +
       '<div class="ln">答对 ' + s.right + ' 题<br>答错 ' + s.wrong + ' 次<br>' +
       '释放技能 ' + s.cast + ' 次<br>跳过 ' + s.skip + ' 次' +
-      (h.key === 'heal' ? '<br>全队治疗 ' + Math.floor(s.right / CFG.healGroupEvery) + ' 次' : '') + '</div></div>';
+      (h.key === 'heal' ? '<br>全队治疗 ' + s.group + ' 次<br>套护盾 ' + s.shield + ' 次' : '') + '</div></div>';
   }).join('');
   document.getElementById('result').classList.remove('hidden');
 }
