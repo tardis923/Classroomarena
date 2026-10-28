@@ -34,7 +34,7 @@
   var W = 1920, H = 1080;
 
   var state = 'setup';           // setup | count | play | pause | over
-  var cfg = { buns: 10, level: 1, theme: 'forest', mode: 'eat', names: [] };
+  var cfg = { buns: 10, level: 0, theme: 'forest', mode: 'eat', names: [] };
   var players = [];
   var startMs = 0, pausedMs = 0, elapsed = 0;
 
@@ -55,13 +55,14 @@
   var MODES = [
     { id: 'eat', name: '吃食物大赛', desc: '答对就开吃，先吃完者获胜' },
     { id: 'race', name: '赛道竞速', desc: '答对向前冲，先到终点者获胜' },
-    { id: 'team', name: '团队闯关', desc: '四人合力打倒大魔王，共 ' + TEAM_MAX_LEVEL + ' 关（进阶版在「团队合作知识闯关」里）' }
+    { id: 'team', name: '团队闯关', desc: '四人合力打倒大魔王，共 ' + TEAM_MAX_LEVEL + ' 关 · 唯一能攒班级魔力的模式' }
   ];
 
   var TIPS = {
     eat: '提示：答错不会失去食物，但会换新题并浪费时间 —— 抢答要准！',
     race: '提示：答对立刻冲出一段，答错原地打滑 —— 又快又准才能夺冠！',
-    team: '提示：四个人的题目全班都能看到，可以一起算！答对一题扣魔王一点血。'
+    team: '提示：四个人的题目全班都能看到，可以一起算！答对一题扣魔王一点血。' +
+      '只有本模式攒魔力：基础题 0.5 点/题，提高题 1 点/题；攒够 30 点才能去打进阶版。'
   };
 
   var BUN_LABEL = {
@@ -102,7 +103,8 @@
       if (s) {
         var o = JSON.parse(s);
         if (o && typeof o === 'object') {
-          if (typeof o.pool === 'number' && isFinite(o.pool) && o.pool >= 0) d.pool = Math.floor(o.pool);
+          /* pool 允许小数：基础难度一题 0.5 点 */
+          if (typeof o.pool === 'number' && isFinite(o.pool) && o.pool >= 0) d.pool = Math.round(o.pool * 10) / 10;
           if (typeof o.need === 'number' && isFinite(o.need) && o.need >= 1) d.need = Math.floor(o.need);
           d.on = o.on ? 1 : 0;
         }
@@ -114,16 +116,33 @@
     try { window.localStorage.setItem(ENERGY_KEY, JSON.stringify(d)); return true; }
     catch (e) { return false; }
   }
-  function renderEnergyResult(totalRight, gain, ed) {
+  /* 魔力点数可能是 0.5 的小数：3 显示成「3」，3.5 显示成「3.5」 */
+  function eNum(x) {
+    var v = Math.round(x * 10) / 10;
+    return (v === Math.floor(v)) ? String(Math.floor(v)) : v.toFixed(1);
+  }
+  /* earned: 本局是否产魔力（只有团队闯关产）  poolAfter: 清零前算出来的池子  cleared: 是否已清零 */
+  function renderEnergyResult(totalRight, gain, ed, earned, poolAfter, cleared) {
     var eb = $('energyBox');
     if (eb) {
-      var html = '<div class="eGain">本局四人共答对 ' + totalRight + ' 题　→　获得 <b>+' + gain + '</b> 点魔力</div>';
-      if (!ed.on) html += '<div class="ePool">魔力门槛已由老师关闭，可随时挑战大魔王</div>';
-      else {
-        html += '<div class="ePool">班级魔力池：<b>' + ed.pool + '</b> / ' + ed.need + ' 点' +
-          (ed.pool >= ed.need
-            ? '<span class="eOk">魔力充足，可以去挑战大魔王！</span>'
-            : '<span class="eNo">还差 ' + (ed.need - ed.pool) + ' 点才能挑战大魔王</span>') + '</div>';
+      var per = QGen.energyPer(cfg.level);
+      var html = '';
+      if (!earned) {
+        html += '<div class="eGain">本局四人共答对 ' + totalRight + ' 题 · <b>本模式不产魔力</b></div>';
+        html += '<div class="ePool eTip2">只有「<b>团队闯关</b>」能攒魔力，想挑战大魔王请切到该模式再玩一局。</div>';
+      } else {
+        html += '<div class="eGain">本局四人共答对 ' + totalRight + ' 题（' +
+          QGen.LEVELS[cfg.level].name + '题 ' + eNum(per) + ' 点/题）　→　获得 <b>+' + eNum(gain) + '</b> 点魔力</div>';
+        if (!ed.on) {
+          html += '<div class="ePool">魔力门槛已由老师关闭，可随时挑战大魔王</div>';
+        } else if (cleared) {
+          html += '<div class="ePool">本局攒到 <b>' + eNum(poolAfter) + '</b> / ' + ed.need +
+            ' 点，<span class="eNo">没攒够 ' + ed.need + ' 点，魔力已清零</span></div>';
+          html += '<div class="ePool" style="font-size:19px">换下一批学生上台，从 0 点重新开始攒。</div>';
+        } else {
+          html += '<div class="ePool">班级魔力池：<b>' + eNum(ed.pool) + '</b> / ' + ed.need + ' 点' +
+            '<span class="eOk">魔力充足，可以去挑战大魔王！</span></div>';
+        }
       }
       eb.innerHTML = html;
     }
@@ -131,7 +150,7 @@
     if (bb) {
       var can = !ed.on || ed.pool >= ed.need;
       if (can) { bb.classList.remove('locked'); bb.textContent = '挑 战 大 魔 王 →'; }
-      else { bb.classList.add('locked'); bb.textContent = '魔 力 不 足 ' + ed.pool + '/' + ed.need; }
+      else { bb.classList.add('locked'); bb.textContent = '魔 力 不 足 ' + eNum(ed.pool) + '/' + ed.need; }
     }
   }
 
@@ -742,15 +761,21 @@
       else if (tied) $('resultTitle').textContent = topNames.join('、') + ' 并列第一！';
       else $('resultTitle').textContent = ranked[0].name + ' ' + verb + '！';
     }
-    /* ---- 魔力结算：每答对 1 题 = 1 点，不设单局上限 ----
-       数量设 5 一局约 16 点（半张票），设 20 一局可拿 60+ 点（两票）。
-       开局就点「提前结算」只能拿 0 点，刷分被堵死。              */
+    /* ---- 魔力结算 ----
+       ① 只有「团队闯关」产魔力（进阶版同样是团队合力打魔王）
+       ② 基础题 0.5 点/题，提高题 1 点/题，不设单局上限；开局就点「提前结算」只能拿 0 点
+       ③ 本局结束后仍不满 30 点 → 清零，换下一批学生从 0 开始攒               */
     var totalRight = 0;
     for (var k = 0; k < players.length; k++) totalRight += (players[k].eaten || 0);
     var ed = loadEnergy();
-    var gain = totalRight;
-    if (gain > 0) { ed.pool += gain; saveEnergy(ed); }
-    renderEnergyResult(totalRight, gain, ed);
+    var earned = (cfg.mode === 'team');
+    var gain = earned ? totalRight * QGen.energyPer(cfg.level) : 0;
+    if (gain > 0) ed.pool = Math.round((ed.pool + gain) * 10) / 10;
+    var poolAfter = ed.pool;
+    var cleared = false;
+    if (earned && ed.on && ed.pool < ed.need) { ed.pool = 0; cleared = true; }
+    saveEnergy(ed);
+    renderEnergyResult(totalRight, gain, ed, earned, poolAfter, cleared);
 
     $('setup').classList.add('hidden');
     $('result').classList.remove('hidden');

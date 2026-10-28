@@ -205,7 +205,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       </div>
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
-        <button id="btnToArena" class="bigBtn ghost gone">先去「四人争霸赛」攒魔力 →</button>
+        <button id="btnToArena" class="bigBtn ghost gone">先去「四人争霸赛」玩团队闯关攒魔力 →</button>
         <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。</div>
       </div>
     </div>
@@ -223,7 +223,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         </div>
 
         <div class="setRow">
-          <div class="setLabel">开战消耗魔力点数（学生在「四人争霸赛」里每答对 1 题得 1 点）</div>
+          <div class="setLabel">开战消耗魔力点数（在「四人争霸赛 · 团队闯关」里攒：基础题 0.5 点/题，提高题 1 点/题）</div>
           <div class="grid4" id="fldEnergy"></div>
         </div>
 
@@ -401,7 +401,8 @@ function loadEnergy() {
     if (s) {
       var o = JSON.parse(s);
       if (o && typeof o === 'object') {
-        if (typeof o.pool === 'number' && isFinite(o.pool) && o.pool >= 0) d.pool = Math.floor(o.pool);
+        /* pool 允许小数：四人争霸赛基础难度一题 0.5 点 */
+        if (typeof o.pool === 'number' && isFinite(o.pool) && o.pool >= 0) d.pool = Math.round(o.pool * 10) / 10;
         if (typeof o.need === 'number' && isFinite(o.need) && o.need >= 1) d.need = Math.floor(o.need);
         d.on = o.on ? 1 : 0;
       }
@@ -412,6 +413,11 @@ function loadEnergy() {
 function saveEnergy(d) {
   try { window.localStorage.setItem(ENERGY_KEY, JSON.stringify(d)); return true; }
   catch (e) { return false; }
+}
+/* 魔力点数可能是 0.5 的小数：3 显示成「3」，3.5 显示成「3.5」 */
+function eNum(x) {
+  var v = Math.round(x * 10) / 10;
+  return (v === Math.floor(v)) ? String(Math.floor(v)) : v.toFixed(1);
 }
 
 /* ---------- 轻提示 ---------- */
@@ -1940,11 +1946,11 @@ function renderEnergy() {
   var pct = Math.min(100, d.pool / CFG.energyNeed * 100);
   var ok = d.pool >= CFG.energyNeed;
   el.innerHTML =
-    '<div class="eLine">班级魔力 <b>' + d.pool + '</b> / ' + CFG.energyNeed + ' 点</div>' +
+    '<div class="eLine">班级魔力 <b>' + eNum(d.pool) + '</b> / ' + CFG.energyNeed + ' 点</div>' +
     '<div class="eTrack"><div class="eFill' + (ok ? ' ok' : '') + '" style="width:' + pct + '%"></div></div>' +
     '<div class="eTip' + (ok ? ' ok' : '') + '">' +
     (ok ? '魔力充足！开战会消耗 ' + CFG.energyNeed + ' 点班级魔力。'
-        : '还差 ' + (CFG.energyNeed - d.pool) + ' 点魔力才能挑战 —— 先去「四人争霸赛」打一局，每答对 1 题得 1 点。') +
+        : '还差 ' + eNum(CFG.energyNeed - d.pool) + ' 点魔力才能挑战 —— 去「四人争霸赛」选<b>团队闯关</b>模式：基础题 0.5 点/题，提高题 1 点/题。') +
     '</div>';
 }
 function energyLocked() { return !!CFG.energyOn && loadEnergy().pool < CFG.energyNeed; }
@@ -2149,7 +2155,7 @@ function startBattle() {
       syncEnergyUI();
       return;
     }
-    d.pool -= CFG.energyNeed;
+    d.pool = Math.round((d.pool - CFG.energyNeed) * 10) / 10;
     d.need = CFG.energyNeed; d.on = 1;
     saveEnergy(d);
   }

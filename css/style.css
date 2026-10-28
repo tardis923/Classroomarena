@@ -245,10 +245,11 @@ html, body {
 .rankRow .st { flex: 1; text-align: left; color: #7a4f1a; font-size: 21px; }
 
 /* ---------- 结算页：加入魔力区后内容更高，压缩留白保证底部按钮完整可见 ---------- */
-#result { padding: 26px 60px 30px; }
+#result { padding: 24px 60px 26px; }
 #result #podium { margin: 6px 0 14px; }
 #result #rankList { gap: 6px; }
-#result .rankRow { padding: 8px 18px; }
+#result .rankRow { padding: 7px 18px; }
+#result .energyBox .eTip2 { font-size: 20px; margin-top: 5px; }
 #result .energyBox { margin-top: 10px; padding: 9px 20px; }
 #result .energyBox .ePool { margin-top: 3px; }
 #result .bigBtn.bossBtn { margin-top: 10px; padding: 15px 70px; font-size: 34px; }
