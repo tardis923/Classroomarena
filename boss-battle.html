@@ -205,7 +205,9 @@ var CFG = {
   healGroupEvery: 10,// 治疗师：累计答对几次触发一次全体治疗
   healGroupAmt: 120, // 治疗师：全体治疗量
   shieldAmt: 60,     // 全员满血时，治疗师答对给每人的护盾值
-  shieldMax: 240     // 护盾叠加上限
+  shieldMax: 240,    // 护盾叠加上限
+  wrongToHeal: 2,   // 我方每累计答错几题，Boss 回血一次
+  bossHealPct: 10    // 每次回复总血量的百分之几
 };
 
 /* Boss 三阶段：体型变大、攻击力提升、攻击频率下降、外观与名称变化 */
@@ -607,7 +609,7 @@ function newBattle() {
         i: i, cls: h.cls, name: h.name, key: h.key, ref: h,
         hp: CFG.heroHp, max: CFG.heroHp, alive: true, shield: 0,
         hitT: 0, castT: 0, glow: 0, shieldT: 0,
-        q: null, input: '', locked: false, wrongT: 0, healCount: 0
+        q: null, input: '', locked: false, wrongT: 0, healCount: 0, wrongRun: 0
       };
     }),
     atkCd: CFG.bossAtkEvery, meteorCd: CFG.meteorEvery, meteorWarn: false,
@@ -662,13 +664,34 @@ function checkAnswer(i, val) {
     sfx('right');
     renderPanels();
     castSkill(h);
-  } else {
+  } else {                               /* 答错：题目直接刷新 */
     B.stats.per[i].wrong++;
-    h.wrongT = 1.4;
+    h.wrongRun++;
     h.input = '';
+    h.wrongT = 0.6;
+    h.hitT = 0.4;
     sfx('wrong');
+    floatText(heroPt(i).x, heroPt(i).y - 40, '答错了，换一题', '#ff8a6a');
+    h.locked = true;                       /* 短暂锁定，防止连点误触 */
     renderPanels();
+    after(0.55, function () {
+      if (B.over || !h.alive) return;
+      if (h.wrongRun % CFG.wrongToHeal === 0) bossRegen(h);
+      giveQuestion(h);
+    });
   }
+}
+
+/* 我方答错累积到指定次数 → Boss 回复总血量的一定百分比 */
+function bossRegen(h) {
+  if (!B || B.over) return;
+  var add = Math.round(B.boss.max * CFG.bossHealPct / 100);
+  if (add <= 0 || B.boss.hp >= B.boss.max) return;
+  B.boss.hp = Math.min(B.boss.max, B.boss.hp + add);
+  B.fx.push({ type: 'heal', t: 0, dur: 1.0, from: { x: BOSS_X, y: BOSS_Y - 120 }, to: { x: BOSS_X, y: BOSS_Y } });
+  floatText(BOSS_X, BOSS_Y - 170, '回血 +' + add, '#7ff0a8');
+  banner(h.name + ' 累计答错 ' + CFG.wrongToHeal + ' 题，Boss 回复 ' + add + ' 点血量！');
+  sfx('heal');
 }
 function skipQuestion(i) {
   if (!B || B.over || B.paused) return;
@@ -759,6 +782,7 @@ function castSkill(h) {
             floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '+' + real, '#7ff0a8');
             if (kind === 'single') banner(h.name + ' 为 ' + t.name + ' 回复 ' + real + ' 点血量');
           }
+          renderPanels();
         }
       });
     });
@@ -1474,7 +1498,8 @@ var FIELDS = {
              ['healAmt', '单体治疗量'], ['healGroupEvery', '全队治疗：答对几次'], ['healGroupAmt', '全队治疗量'],
              ['freezeSec', '冻结秒数'], ['freezeImmuneSec', '冻结免疫秒数']],
   fldHero: [['heroHp', '角色血量'], ['burnDmg', '灼烧每次伤害'], ['burnTurns', '灼烧次数'], ['burnTickSec', '灼烧间隔（秒）'],
-            ['shieldAmt', '全员满血时给的护盾'], ['shieldMax', '护盾叠加上限']]
+            ['shieldAmt', '全员满血时给的护盾'], ['shieldMax', '护盾叠加上限'],
+            ['wrongToHeal', '答错几题 Boss 回血'], ['bossHealPct', 'Boss 每次回血%']]
 };
 
 function mkOpts(boxId, list, cur, onPick) {
@@ -1515,7 +1540,7 @@ function readCfg() {
   var keys = ['bossHp', 'bossAtk', 'bossAtkEvery', 'meteorEvery', 'meteorDmg', 'dmgThunder', 'dmgFire',
     'dmgIce', 'healAmt', 'healGroupEvery', 'healGroupAmt',
     'heroHp', 'burnDmg', 'burnTurns', 'burnTickSec', 'freezeSec', 'freezeImmuneSec',
-    'shieldAmt', 'shieldMax'];
+    'shieldAmt', 'shieldMax', 'wrongToHeal', 'bossHealPct'];
   keys.forEach(function (k) {
     var el = document.getElementById('cf_' + k);
     if (!el) return;
@@ -1547,6 +1572,7 @@ function panelHTML(i) {
   var h = B.heroes[i];                    /* 自由攻击：四人各自一道题，互不干扰 */
   var st = !h.alive ? '阵亡' : (h.castT > 0 ? '技能释放中' : '答题中');
   if (h.alive && h.shield > 0) st += ' · 盾' + h.shield;
+  if (h.alive && h.wrongRun > 0) st += ' · 错' + h.wrongRun;
   var s = '<div class="pHead">' +
     '<span class="pName">' + h.name + '</span>' +
     '<span class="pCls" style="background:' + h.ref.robe + '">' + h.cls + '</span>' +
@@ -1554,7 +1580,8 @@ function panelHTML(i) {
   if (!h.alive) return s + '<div class="pQ small">已被击倒，无法行动</div>';
   if (B.paused) return s + '<div class="pQ small">准备中…</div>';
   if (B.over) return s + '<div class="pQ small">战斗结束</div>';
-  if (!h.q || h.locked) return s + '<div class="pQ small">技能释放中，马上来新题…</div>';
+  if (!h.q || h.locked) return s + '<div class="pQ small">' +
+    (h.wrongT > 0 ? '答错了，正在换一题…' : '技能释放中，马上来新题…') + '</div>';
 
   var q = h.q, bad = (h.wrongT > 0);
   if (q.mode === 'num') {
