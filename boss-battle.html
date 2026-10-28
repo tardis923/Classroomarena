@@ -286,49 +286,79 @@ function ri(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
 function secs(t) { return Math.max(0, Math.ceil(t)); }      /* 秒数：向上取整，不显示小数 */
 
 /* 数学口算：返回 {text, ans, mode:'num'} —— 用数字键盘作答
-   年级只保留 3~6；全局不含「两位数 × 两位数」，乘法只允许
-   「一位数 × 一位数」或「多位数 × 一位数」。                  */
+   题型按年级「累加」，后面年级包含前面所有题型：
+     三年级：A 三个两位数相加减 / B 乘法口诀 ± 一个数
+     四年级：＋ C 除法（整除）
+     五年级：＋ D 两位数×一位数 ± 一个数（可带除法）
+     六年级：＋ E 三位数÷一位数 ± 一个数
+   所有除法一律整除，绝不出现小数点。                        */
 function genMath(lv, boost) {
   lv = Math.max(3, Math.min(6, lv || 3));
-  boost = boost || 0;                        /* 已在六年级还想再难就用它加码 */
-  var a, b, c, q, ans, text, t;
+  boost = boost || 0;                     /* 已封顶六年级还想再难，就靠它加码 */
+  var a, b, c, d, q, m1, ans, text, guard;
+  var hi2 = 99 + boost * 60;               /* 两位数上限（封顶后逐步加大） */
+  var ch  = 90 + boost * 90;                /* 尾随「一个数」的上限 */
 
-  /* 六年级：两步混合运算 —— 一位数 × 一位数（或整除），再加减一个数 */
-  if (lv === 6) {
-    t = ri(0, 5);
-    a = ri(2, 9); b = ri(2, 9);
-    c = ri(11, 89) + boost * 120;
-    if (t === 0) { ans = a * b + c; text = a + ' \u00D7 ' + b + ' + ' + c; }
-    else if (t === 1) { q = ri(3, Math.max(3, a * b - 2)); ans = a * b - q; text = a + ' \u00D7 ' + b + ' - ' + q; }
-    else if (t === 2) { ans = c + a * b;  text = c + ' + ' + a + ' \u00D7 ' + b; }
-    else if (t === 3) { q = ri(3, 40 + boost * 40); ans = q + c; text = (q * b) + ' \u00F7 ' + b + ' + ' + c; }
-    else if (t === 4) { q = ri(3, 30); ans = c - q;   text = c + ' - ' + (q * b) + ' \u00F7 ' + b; }
-    else               { q = a * b;    ans = c - q;     text = c + ' - ' + a + ' \u00D7 ' + b; }
+  var pool = [1, 2];
+  if (lv >= 4) pool.push(3);
+  if (lv >= 5) pool.push(4);
+  if (lv >= 6) pool.push(5);
+  var t = pool[ri(0, pool.length - 1)];
+
+  /* ---- A：三个两位数相加减（中间结果不出现负数） ---- */
+  if (t === 1) {
+    guard = 0;
+    do {
+      a = ri(10, hi2); b = ri(10, hi2); c = ri(10, hi2);
+      var s1 = Math.random() < 0.5 ? 1 : -1;
+      var s2 = Math.random() < 0.5 ? 1 : -1;
+      m1  = a + s1 * b;
+      ans = m1 + s2 * c;
+      text = a + (s1 > 0 ? ' + ' : ' - ') + b + (s2 > 0 ? ' + ' : ' - ') + c;
+      guard++;
+    } while ((m1 < 0 || ans < 0) && guard < 40);
     return { text: text + ' = ?', ans: String(ans), mode: 'num' };
   }
 
-  var ops = lv === 3 ? ['+', '-', '*', '/']
-    : (lv === 4 ? ['+', '-', '*', '/', '*'] : ['+', '-', '*', '/', '*', '/']);
-  var op = ops[ri(0, ops.length - 1)];
-  var lo = lv === 3 ? 18 : (lv === 4 ? 120 : 600);
-  var hi = (lv === 3 ? 480 : (lv === 4 ? 2400 : 9800)) + boost * 2000;
-
-  if (op === '+') { a = ri(lo, hi); b = ri(lo, hi); ans = a + b; }
-  else if (op === '-') { a = ri(lo, hi); b = ri(lo, a - 1); ans = a - b; }
-  else if (op === '*') {
-    /* 乘数固定一位数 → 绝不出现两位数 × 两位数 */
+  /* ---- B / D：乘法 ± 一个数（口诀乘法 / 两位数×一位数） ---- */
+  if (t === 2 || t === 4) {
     b = ri(2, 9);
-    var m = (lv === 3 ? 89 : (lv === 4 ? 289 : 899)) + boost * 300;
-    a = ri(2, m);
-    ans = a * b;
-  } else {
-    /* 除法保证整除，除数固定一位数 */
-    b = ri(2, 9);
-    q = ri(2, lv === 3 ? 50 : (lv === 4 ? 98 : 190 + boost * 60));
-    a = b * q; ans = q;
+    a = (t === 2) ? ri(2, 9) : ri(10, Math.min(hi2, 99));
+    var prod = a * b;
+    if (Math.random() < 0.5) {
+      c = ri(3, ch); ans = prod + c;
+      text = a + ' \u00D7 ' + b + ' + ' + c;
+    } else {
+      c = ri(3, Math.max(3, prod - 1)); ans = prod - c;
+      text = a + ' \u00D7 ' + b + ' - ' + c;
+    }
+    return { text: text + ' = ?', ans: String(ans), mode: 'num' };
   }
-  var sym = op === '*' ? '\u00D7' : (op === '/' ? '\u00F7' : op);
-  return { text: a + ' ' + sym + ' ' + b + ' = ?', ans: String(ans), mode: 'num' };
+
+  /* ---- C / E：除法（整除，没有小数） ---- */
+  var d = ri(2, 9);
+  if (lv >= 6 && Math.random() < 0.6) {
+    /* 六年级：三位数 ÷ 一位数，再加减一个数 */
+    var qmin = Math.max(20, Math.ceil(100 / d));
+    var qmax = Math.min(120, Math.floor(999 / d));
+    q = ri(qmin, Math.max(qmin, qmax));
+    a = d * q;
+    if (Math.random() < 0.5) {
+      c = ri(5, ch); ans = q + c;
+      text = a + ' \u00F7 ' + d + ' + ' + c;
+    } else {
+      c = ri(5, Math.max(5, q - 1)); ans = q - c;
+      text = a + ' \u00F7 ' + d + ' - ' + c;
+    }
+  } else {
+    /* 四、五年级：两位数（或三位数）÷ 一位数，整除 */
+    var qm = Math.max(2, Math.floor(hi2 / d));
+    q = ri(2, Math.min(qm, 20));
+    a = d * q;
+    ans = q;
+    text = a + ' \u00F7 ' + d;
+  }
+  return { text: text + ' = ?', ans: String(ans), mode: 'num' };
 }
 
 /* 当前题目难度：随 Boss 阶段递增（P1=基准年级，P2=+1，P3=+2，封顶六年级） */
@@ -1431,10 +1461,10 @@ var SUBJECTS = [
   { id: 'english', name: '英语单词', desc: 'ABCD 四选一' }
 ];
 var LEVELS = [
-  { id: 3, name: '三年级', desc: '万以内加减 · 多位数×一位数 · 表内乘除' },
-  { id: 4, name: '四年级', desc: '大数加减 · 三位数×一位数 · 除数一位整除' },
-  { id: 5, name: '五年级', desc: '万级大数加减 · 乘除混合（×一位数）' },
-  { id: 6, name: '六年级', desc: '两步混合：(一位数×一位数)±一个数' }
+  { id: 3, name: '三年级', desc: '三个两位数相加减 · 乘法口诀±一个数' },
+  { id: 4, name: '四年级', desc: '三年级题型 ＋ 整除除法' },
+  { id: 5, name: '五年级', desc: '四年级题型 ＋ 两位数×一位数±一个数' },
+  { id: 6, name: '六年级', desc: '五年级题型 ＋ 三位数÷一位数±一个数' }
 ];
 
 var FIELDS = {
