@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>四人争霸赛 · 团队闯关</title>
+<style>
+/* ================= 基础 ================= */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0a18; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: none; overscroll-behavior: none; user-select: none; }
+
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: #171029; }
+
+/* ================= 上方：战斗区 ================= */
+#arena { display: block; width: 1920px; height: 720px; }
+
+/* ================= 下方：四个答题区 ================= */
+#panels { width: 1920px; height: 360px; display: flex; }
+.pcol { width: 480px; height: 360px; padding: 8px 12px 10px; position: relative;
+        border-left: 3px solid rgba(255,255,255,.10); transition: opacity .2s; }
+.pcol:first-child { border-left: none; }
+.pcol.wait { opacity: .38; }
+.pcol.act  { background: rgba(255,255,255,.07); }
+.pcol.dead { opacity: .3; filter: grayscale(1); }
+
+.pHead { height: 30px; display: flex; align-items: center; gap: 8px; }
+.pName { font-size: 20px; font-weight: 700; color: #fff; }
+.pCls  { font-size: 15px; font-weight: 700; padding: 1px 8px; border-radius: 99px; color: #12101c; }
+.pStat { margin-left: auto; font-size: 15px; font-weight: 700; color: #ffd45e; }
+
+.pQ { height: 56px; display: flex; align-items: center; justify-content: center;
+      font-size: 38px; font-weight: 700; color: #fff; letter-spacing: 1px;
+      background: rgba(0,0,0,.28); border-radius: 10px; margin: 4px 0; }
+.pQ.small { font-size: 26px; line-height: 1.2; padding: 0 8px; text-align: center; }
+.pQ.opt   { height: 72px; font-size: 24px; line-height: 1.25; padding: 4px 10px; text-align: center; }
+.pQ.hint  { color: #ff8a6a; }
+
+.pAns { height: 38px; display: flex; align-items: center; justify-content: center;
+        font-size: 28px; font-weight: 700; color: #ffe27a;
+        border: 3px dashed rgba(255,255,255,.35); border-radius: 10px; background: rgba(0,0,0,.2); }
+
+.pKeys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 5px; }
+.kbtn { height: 44px; border: none; border-radius: 10px; font-size: 24px; font-weight: 700;
+        background: #39305a; color: #fff; cursor: pointer; font-family: inherit; }
+.kbtn:active { background: #5a4c85; }
+.kbtn.num { background: #4a3f74; font-size: 27px; }
+.kbtn.ok  { background: #2f9e63; }
+.kbtn.clr { background: #a4572b; font-size: 21px; }
+.kbtn.skip{ background: #6b6b6b; font-size: 19px; }
+
+.pOpts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.obtn { height: 84px; border: none; border-radius: 12px; font-size: 23px; font-weight: 700;
+        background: #4a3f74; color: #fff; cursor: pointer; font-family: inherit;
+        line-height: 1.25; padding: 6px; overflow: hidden; }
+.obtn:active { background: #6d5ba6; }
+
+.pSkipRow { margin-top: 6px; height: 34px; }
+.pSkipRow .kbtn { height: 34px; }
+
+/* ================= 覆盖层 ================= */
+#overlay { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+.card { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+        width: 1500px; max-height: 1000px; overflow: auto; background: #241a3d;
+        border-radius: 22px; padding: 26px 34px; color: #fff; box-shadow: 0 18px 60px rgba(0,0,0,.5); }
+.card.hidden { display: none; }
+.card h1 { font-size: 44px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+.card .sub { font-size: 19px; color: #b9aed6; text-align: center; margin-bottom: 18px; line-height: 1.5; }
+
+.setRow { margin-bottom: 14px; }
+.setLabel { font-size: 21px; font-weight: 700; color: #ffd45e; margin-bottom: 8px; }
+.opts { display: flex; gap: 10px; flex-wrap: wrap; }
+.opt { border: 2px solid rgba(255,255,255,.18); background: #322650; color: #fff;
+       border-radius: 12px; padding: 10px 18px; font-size: 20px; font-weight: 700;
+       cursor: pointer; font-family: inherit; }
+.opt.on { background: #ffd45e; color: #241a3d; border-color: #ffd45e; }
+.opt .small { display: block; font-size: 14px; font-weight: 400; opacity: .8; margin-top: 2px; }
+
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.fld { background: #322650; border-radius: 12px; padding: 10px 14px; }
+.fld label { display: block; font-size: 16px; color: #b9aed6; margin-bottom: 5px; }
+.fld input { width: 100%; height: 40px; font-size: 22px; font-weight: 700; text-align: center;
+             border: none; border-radius: 8px; background: #1a1330; color: #fff; font-family: inherit; }
+
+.bigBtn { display: block; width: 100%; height: 78px; margin-top: 18px; border: none;
+          border-radius: 16px; background: #ffd45e; color: #241a3d;
+          font-size: 34px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.bigBtn.ghost { background: #4a3f74; color: #fff; height: 62px; font-size: 26px; }
+.bigBtn:active { filter: brightness(.9); }
+.resBtns { display: flex; gap: 14px; margin-top: 18px; }
+
+.tip { font-size: 16px; color: #9a8fbb; text-align: center; margin-top: 12px; line-height: 1.5; }
+
+/* 结算 */
+#resTitle { font-size: 52px; text-align: center; font-weight: 700; margin-bottom: 14px; }
+.statGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+.statCard { background: #322650; border-radius: 12px; padding: 12px; text-align: center; }
+.statCard .nm { font-size: 22px; font-weight: 700; }
+.statCard .cl { font-size: 15px; color: #b9aed6; margin: 2px 0 8px; }
+.statCard .ln { font-size: 16px; color: #ddd; line-height: 1.7; }
+.sumline { text-align: center; font-size: 21px; color: #ffd45e; margin-top: 14px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <canvas id="arena" width="1920" height="720"></canvas>
+  <div id="panels"></div>
+
+  <div id="overlay">
+    <div id="setup" class="card">
+      <h1>四人争霸赛 · 团队闯关</h1>
+      <p class="sub">四名魔法师轮流答题释放技能，合力打倒大魔王。答对才能出手，答错可以重来或跳过。</p>
+
+      <div class="setRow">
+        <div class="setLabel">题库（决定答题方式）</div>
+        <div class="opts" id="optSubj"></div>
+      </div>
+
+      <div class="setRow" id="rowLevel">
+        <div class="setLabel">题目难度</div>
+        <div class="opts" id="optLevel"></div>
+      </div>
+
+      <div class="setRow">
+        <div class="setLabel">Boss 设定</div>
+        <div class="grid4" id="fldBoss"></div>
+      </div>
+
+      <div class="setRow">
+        <div class="setLabel">技能数值</div>
+        <div class="grid4" id="fldSkill"></div>
+      </div>
+
+      <div class="setRow">
+        <div class="setLabel">我方设定</div>
+        <div class="grid4" id="fldHero"></div>
+      </div>
+
+      <button id="btnStart" class="bigBtn">开 始 战 斗</button>
+      <div class="tip">提示：轮到谁，谁的答题区就亮起来；其余三个会自动变暗，互不干扰。</div>
+    </div>
+
+    <div id="result" class="card hidden">
+      <div id="resTitle">战斗结束</div>
+      <div id="resSum" class="sumline"></div>
+      <div class="statGrid" id="resGrid"></div>
+      <div class="resBtns">
+        <button id="btnAgain" class="bigBtn">再 来 一 局</button>
+        <button id="btnBack" class="bigBtn ghost">返 回 设 置</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================================
+   四人争霸赛 · 团队闯关   单文件版
+   无外部依赖，双击即可运行。所有角色 / Boss / 特效均为 Canvas 程序化绘制。
+   ========================================================================= */
+
+var W = 1920, H = 1080, AH = 720;          // 舞台宽高 / 战斗区高
+var cv = document.getElementById('arena');
+var ctx = cv.getContext('2d');
+
+/* ============================ 可配置参数 ============================ */
+var CFG = {
+  subject: 'math',   // math | chinese | english
+  level: 2,          // 数学难度 1-5
+
+  bossHp: 1500,
+  bossAtk: 50,
+  meteorEvery: 8,    // 每几回合一次大招
+  meteorDmg: 80,
+
+  heroHp: 200,
+  dmgThunder: 95,    // 雷电：单体高伤害
+  dmgFire: 62,       // 火焰弹
+  burnDmg: 26,       // 灼烧：每回合持续掉血
+  burnTurns: 3,
+  dmgIce: 58,        // 冰霜
+  freezeTurns: 1,    // 冻结：Boss 停顿回合数
+  freezeImmune: 2,   // 被冻结后，Boss 获得几回合冻结免疫（防止无限冻）
+  healAmt: 80        // 治疗
+};
+
+/* Boss 三阶段：体型变大、攻击力提升、攻击频率下降、外观与名称变化 */
+var PHASES = [
+  { name: '算术小魔王', scale: 1.00, atkMul: 1.0, atkChance: 1.00, meteorMul: 1.0,
+    body: '#6fbf5b', dark: '#3f7a33', horn: '#f2d06a', eye: '#fff3b0', spikes: 0 },
+  { name: '算术大魔王', scale: 1.28, atkMul: 1.6, atkChance: 0.80, meteorMul: 1.3,
+    body: '#a86ad6', dark: '#6a3a9c', horn: '#ffe08a', eye: '#ffd0f0', spikes: 1 },
+  { name: '终焉算术魔君', scale: 1.58, atkMul: 2.3, atkChance: 0.62, meteorMul: 1.7,
+    body: '#d1483c', dark: '#8a2318', horn: '#ffd45e', eye: '#ffe08a', spikes: 2 }
+];
+
+/* 四名角色 */
+var HEROES = [
+  { cls: '治疗师',   name: '莉莉', skill: '治愈之光', key: 'heal',
+    desc: '为最虚弱队友回血', robe: '#3fae6a', dark: '#24704a', orb: '#7ff0a8', tone: 392 },
+  { cls: '雷电法师', name: '雷恩', skill: '落雷',     key: 'thunder',
+    desc: '单体高伤害',       robe: '#5b7ce0', dark: '#33509c', orb: '#cfe3ff', tone: 300 },
+  { cls: '火系法师', name: '炎心', skill: '火焰弹',   key: 'fire',
+    desc: '伤害＋灼烧持续掉血', robe: '#e0642c', dark: '#a33f13', orb: '#ffca6a', tone: 240 },
+  { cls: '冰系法师', name: '霜月', skill: '冰霜',     key: 'ice',
+    desc: '伤害＋冻结 Boss',   robe: '#3fa8c4', dark: '#216a80', orb: '#bff0ff', tone: 500 }
+];
+
+/* ============================ 音效（纯合成，无外部文件） ============================ */
+var AC = null, sfxOn = true;
+function ac() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = false; } }
+  return AC || null;
+}
+function env(g, t0, dur, peak) {
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t0 + 0.014);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+}
+function beep(freq, dur, type, peak, delay, to) {
+  if (!sfxOn) return; var a = ac(); if (!a) return;
+  var t0 = a.currentTime + (delay || 0);
+  var o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+  if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+  env(g, t0, dur, peak || 0.16); o.connect(g); g.connect(a.destination);
+  o.start(t0); o.stop(t0 + dur + 0.06);
+}
+function noise(dur, peak, freq, delay, q) {
+  if (!sfxOn) return; var a = ac(); if (!a) return;
+  var t0 = a.currentTime + (delay || 0);
+  var n = Math.max(1, Math.floor(a.sampleRate * dur));
+  var buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  var s = a.createBufferSource(); s.buffer = buf;
+  var f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq || 1200; f.Q.value = q || 1;
+  var g = a.createGain(); env(g, t0, dur, peak || 0.14);
+  s.connect(f); f.connect(g); g.connect(a.destination); s.start(t0);
+}
+function sfx(name) {
+  switch (name) {
+    case 'thunder': noise(0.30, 0.26, 5200, 0, 1); beep(900, 0.22, 'sawtooth', 0.14, 0.05, 180); break;
+    case 'fire':    noise(0.42, 0.22, 900, 0, 1);  beep(220, 0.30, 'sawtooth', 0.10, 0, 90); break;
+    case 'ice':     beep(1400, 0.28, 'sine', 0.13, 0, 2200); beep(1900, 0.26, 'triangle', 0.09, 0.08, 1200); break;
+    case 'heal':    beep(523, 0.20, 'sine', 0.13, 0); beep(659, 0.20, 'sine', 0.13, 0.10);
+                    beep(784, 0.34, 'sine', 0.14, 0.20); break;
+    case 'hit':     noise(0.16, 0.24, 1600, 0, 1); beep(160, 0.14, 'square', 0.12, 0, 70); break;
+    case 'meteor':  noise(1.10, 0.30, 260, 0, 1); beep(120, 0.90, 'sawtooth', 0.16, 0, 45); break;
+    case 'warn':    beep(880, 0.16, 'square', 0.16, 0); beep(880, 0.16, 'square', 0.16, 0.22); break;
+    case 'morph':   beep(160, 0.85, 'sawtooth', 0.18, 0, 900); noise(0.7, 0.16, 2400, 0.1, 1); break;
+    case 'win':     [523, 659, 784, 1046].forEach(function (f, i) { beep(f, 0.34, 'triangle', 0.16, i * 0.13); }); break;
+    case 'lose':    [440, 370, 294, 220].forEach(function (f, i) { beep(f, 0.40, 'sawtooth', 0.14, i * 0.17); }); break;
+    case 'click':   beep(680, 0.06, 'square', 0.10, 0); break;
+    case 'wrong':   beep(300, 0.14, 'square', 0.14, 0); beep(200, 0.20, 'square', 0.14, 0.13); break;
+    case 'right':   beep(784, 0.12, 'triangle', 0.13, 0); beep(1046, 0.18, 'triangle', 0.13, 0.09); break;
+    case 'dead':    beep(240, 0.6, 'sawtooth', 0.14, 0, 80); break;
+  }
+}
+
+/* ============================ 题库 ============================ */
+function ri(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+
+/* 数学口算：返回 {text, ans, mode:'num'} —— 用数字键盘作答 */
+function genMath(lv) {
+  var ops = ['+', '-'];
+  if (lv >= 2) ops.push('*', '/');
+  if (lv >= 4) ops = ['+', '-', '*', '/', '*', '/'];
+  var op = ops[ri(0, ops.length - 1)];
+  var hi = [20, 50, 99, 200, 400][Math.min(lv, 5) - 1];
+  var a, b, ans;
+  if (op === '+') { a = ri(1, hi); b = ri(1, hi); ans = a + b; }
+  else if (op === '-') { a = ri(2, hi); b = ri(1, a - 1); ans = a - b; }
+  else if (op === '*') {
+    var m = lv <= 2 ? 9 : (lv === 3 ? 9 : (lv === 4 ? 19 : 29));
+    var n = lv <= 3 ? 9 : (lv === 4 ? 9 : 19);
+    a = ri(2, m); b = ri(2, n); ans = a * b;
+  } else {                                   // 除法保证整除
+    var d = ri(2, lv <= 2 ? 9 : (lv === 3 ? 9 : 19));
+    var q = ri(2, lv <= 3 ? 9 : (lv === 4 ? 19 : 29));
+    b = d; a = d * q; ans = q;
+  }
+  var sym = op === '*' ? '\u00D7' : (op === '/' ? '\u00F7' : op);
+  return { text: a + ' ' + sym + ' ' + b + ' = ?', ans: String(ans), mode: 'num' };
+}
+
+/* 语文题库（ABCD 四选一）—— 示例，可自行往数组里加题 */
+var CN_BANK = [
+  { q: '“守株待兔”比喻的是？', o: ['妄想不劳而获', '行动非常迅速', '团结互助', '勤奋刻苦'], a: 0 },
+  { q: '“画蛇添足”的意思是？', o: ['多此一举', '画得很好', '速度很快', '非常认真'], a: 0 },
+  { q: '“亡羊补牢”下一句是？', o: ['犹未晚也', '为时已晚', '悔之晚矣', '于事无补'], a: 0 },
+  { q: '“春眠不觉晓”下一句是？', o: ['处处闻啼鸟', '更上一层楼', '疑是地上霜', '低头思故乡'], a: 0 },
+  { q: '“欲穷千里目”下一句是？', o: ['更上一层楼', '黄河入海流', '白日依山尽', '千里共婵娟'], a: 0 },
+  { q: '“举头望明月”下一句是？', o: ['低头思故乡', '疑是地上霜', '床前明月光', '霜叶红于二月花'], a: 0 },
+  { q: '“两个黄鹂鸣翠柳”下一句是？', o: ['一行白鹭上青天', '万条垂下绿丝绦', '孤帆远影碧空尽', '春江水暖鸭先知'], a: 0 },
+  { q: '“谁知盘中餐”下一句是？', o: ['粒粒皆辛苦', '汗滴禾下土', '锄禾日当午', '春种一粒粟'], a: 0 },
+  { q: '下列哪个是反义词组合？', o: ['寒冷——炎热', '高兴——快乐', '美丽——漂亮', '安静——宁静'], a: 0 },
+  { q: '“安静”的反义词是？', o: ['喧闹', '平静', '温和', '凉爽'], a: 0 },
+  { q: '“谦虚”的反义词是？', o: ['骄傲', '认真', '努力', '善良'], a: 0 },
+  { q: '“宽阔”的近义词是？', o: ['宽广', '狭窄', '高大', '明亮'], a: 0 },
+  { q: '“注视”的近义词是？', o: ['凝视', '忽视', '浏览', '张望'], a: 0 },
+  { q: '“一鸣惊人”中的“鸣”意思是？', o: ['鸟叫', '名人', '明白', '名字'], a: 0 },
+  { q: '“四面楚歌”说的是谁的故事？', o: ['项羽', '刘邦', '曹操', '诸葛亮'], a: 0 },
+  { q: '“卧薪尝胆”讲的是哪位君王？', o: ['勾践', '夫差', '秦始皇', '汉武帝'], a: 0 },
+  { q: '《静夜思》的作者是？', o: ['李白', '杜甫', '白居易', '王维'], a: 0 },
+  { q: '《春晓》的作者是？', o: ['孟浩然', '李白', '杜牧', '苏轼'], a: 0 },
+  { q: '“锄禾日当午”的作者是？', o: ['李绅', '李白', '杜甫', '陆游'], a: 0 },
+  { q: '“儿童急走追黄蝶”下一句是？', o: ['飞入菜花无处寻', '忙趁东风放纸鸢', '也傍桑阴学种瓜', '短笛无腔信口吹'], a: 0 },
+  { q: '下列词语中没有错别字的是？', o: ['兴高采烈', '兴高彩烈', '兴高采列', '幸高采烈'], a: 0 },
+  { q: '“的、地、得”中，修饰动词用？', o: ['地', '的', '得', '底'], a: 0 },
+  { q: '“他把书看完了”是什么句？', o: ['把字句', '被字句', '疑问句', '感叹句'], a: 0 },
+  { q: '“弯弯的月亮像小船”用了什么修辞？', o: ['比喻', '拟人', '排比', '夸张'], a: 0 }
+];
+
+/* 英语题库（ABCD 四选一）—— 示例，可自行往数组里加题 */
+var EN_BANK = [
+  { q: 'apple 的中文意思是？', o: ['苹果', '香蕉', '橘子', '葡萄'], a: 0 },
+  { q: 'banana 的中文意思是？', o: ['香蕉', '苹果', '梨', '桃子'], a: 0 },
+  { q: 'teacher 的中文意思是？', o: ['老师', '医生', '学生', '警察'], a: 0 },
+  { q: 'student 的中文意思是？', o: ['学生', '老师', '工人', '司机'], a: 0 },
+  { q: 'water 的中文意思是？', o: ['水', '牛奶', '果汁', '茶'], a: 0 },
+  { q: 'Monday 是星期几？', o: ['星期一', '星期二', '星期三', '星期日'], a: 0 },
+  { q: '“红色”的英文是？', o: ['red', 'blue', 'green', 'yellow'], a: 0 },
+  { q: '“蓝色”的英文是？', o: ['blue', 'red', 'black', 'white'], a: 0 },
+  { q: '“猫”的英文是？', o: ['cat', 'dog', 'pig', 'duck'], a: 0 },
+  { q: '“狗”的英文是？', o: ['dog', 'cat', 'bird', 'fish'], a: 0 },
+  { q: '“书”的英文是？', o: ['book', 'pen', 'bag', 'desk'], a: 0 },
+  { q: '“钢笔”的英文是？', o: ['pen', 'pencil', 'ruler', 'eraser'], a: 0 },
+  { q: 'one + two = ?', o: ['three', 'four', 'five', 'six'], a: 0 },
+  { q: '“早上好”的英文是？', o: ['Good morning', 'Good night', 'Goodbye', 'Thank you'], a: 0 },
+  { q: '“谢谢你”的英文是？', o: ['Thank you', 'Sorry', 'Hello', 'Please'], a: 0 },
+  { q: '“对不起”的英文是？', o: ['Sorry', 'Thanks', 'Hello', 'Bye'], a: 0 },
+  { q: '“学校”的英文是？', o: ['school', 'home', 'park', 'zoo'], a: 0 },
+  { q: '“妈妈”的英文是？', o: ['mother', 'father', 'sister', 'brother'], a: 0 },
+  { q: '“爸爸”的英文是？', o: ['father', 'mother', 'uncle', 'aunt'], a: 0 },
+  { q: '“七”的英文是？', o: ['seven', 'six', 'eight', 'nine'], a: 0 },
+  { q: '“十”的英文是？', o: ['ten', 'two', 'twelve', 'twenty'], a: 0 },
+  { q: '“眼睛”的英文是？', o: ['eye', 'ear', 'nose', 'mouth'], a: 0 },
+  { q: '“手”的英文是？', o: ['hand', 'head', 'foot', 'leg'], a: 0 },
+  { q: '“大的”英文是？', o: ['big', 'small', 'long', 'short'], a: 0 }
+];
+
+/* 选择题：随机打乱选项顺序 */
+function genOpts(bank) {
+  var it = bank[ri(0, bank.length - 1)];
+  var idx = [0, 1, 2, 3];
+  for (var i = 3; i > 0; i--) { var j = ri(0, i), t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+  var opts = [], ans = 0;
+  for (var k = 0; k < 4; k++) { opts.push(it.o[idx[k]]); if (idx[k] === it.a) ans = k; }
+  return { text: it.q, ans: String(ans), mode: 'opt', opts: opts };
+}
+
+function genQuestion() {
+  if (CFG.subject === 'math') return genMath(CFG.level);
+  return genOpts(CFG.subject === 'chinese' ? CN_BANK : EN_BANK);
+}
+function answerMode() { return CFG.subject === 'math' ? 'num' : 'opt'; }
+
+/* ============================ 战斗状态 ============================ */
+var B = null;
+var timers = [];
+function after(sec, fn) { timers.push({ t: sec, fn: fn }); }
+function clearTimers() { timers.length = 0; }
+function tickTimers(dt) {
+  for (var i = timers.length - 1; i >= 0; i--) {
+    timers[i].t -= dt;
+    if (timers[i].t <= 0) { var f = timers[i].fn; timers.splice(i, 1); try { f(); } catch (e) { } }
+  }
+}
+
+/* 卡片几何：左侧四张角色卡 */
+var CARD_X = 24, CARD_W = 576, CARD_H = 140, CARD_Y0 = 88, CARD_GAP = 152;
+function cardY(i) { return CARD_Y0 + i * CARD_GAP; }
+function heroPt(i) { return { x: 250, y: cardY(i) + CARD_H / 2 }; }
+var BOSS_X = 1480, BOSS_Y = 400;
+
+function newBattle() {
+  clearTimers();
+  B = {
+    over: false, win: false, round: 1, cursor: 0, active: -1, stage: 'hero',
+    boss: {
+      hp: CFG.bossHp, max: CFG.bossHp, phase: 0, name: PHASES[0].name,
+      burn: 0, burnT: 0, frozen: 0, immune: 0, hitT: 0, shake: 0, morph: 0, atkT: 0, bob: 0
+    },
+    heroes: HEROES.map(function (h, i) {
+      return {
+        i: i, cls: h.cls, name: h.name, key: h.key, ref: h,
+        hp: CFG.heroHp, max: CFG.heroHp, alive: true, hitT: 0, castT: 0, glow: 0
+      };
+    }),
+    q: null, input: '', locked: true, wrongT: 0, meteorWarn: false,
+    fx: [], floats: [], banner: '', bannerT: 0,
+    stats: {
+      start: Date.now(), ms: 0,
+      per: HEROES.map(function () { return { right: 0, wrong: 0, cast: 0, skip: 0 }; })
+    }
+  };
+  nextTurn();
+}
+
+function aliveHeroes() {
+  var r = []; for (var i = 0; i < 4; i++) if (B.heroes[i].alive) r.push(B.heroes[i]);
+  return r;
+}
+function weakestHero() {
+  var best = null;
+  for (var i = 0; i < 4; i++) {
+    var h = B.heroes[i]; if (!h.alive) continue;
+    if (!best || h.hp / h.max < best.hp / best.max) best = h;
+  }
+  return best || B.heroes[0];
+}
+
+/* ---------- 回合推进 ---------- */
+function nextTurn() {
+  if (!B || B.over) return;
+  while (B.cursor < 4 && !B.heroes[B.cursor].alive) B.cursor++;
+  if (B.cursor >= 4) { B.cursor = 0; bossTurn(); return; }
+  B.active = B.cursor;
+  B.stage = 'hero';
+  B.q = genQuestion();
+  B.input = '';
+  B.locked = false;
+  B.wrongT = 0;
+  renderPanels();
+}
+function advance() {
+  if (!B || B.over) return;
+  B.active = -1;
+  B.cursor++;
+  nextTurn();
+}
+
+/* ---------- 答题 ---------- */
+function checkAnswer(val) {
+  if (!B || B.over || B.locked || B.active < 0 || !B.q) return;
+  var h = B.heroes[B.active];
+  if (val === B.q.ans) {
+    B.locked = true;
+    B.stats.per[B.active].right++;
+    B.stats.per[B.active].cast++;
+    sfx('right');
+    renderPanels();
+    castSkill(h);
+  } else {
+    B.stats.per[B.active].wrong++;
+    B.wrongT = 1.4;
+    B.input = '';
+    sfx('wrong');
+    renderPanels();
+  }
+}
+function skipTurn() {
+  if (!B || B.over || B.locked || B.active < 0) return;
+  B.locked = true;
+  B.stats.per[B.active].skip++;
+  banner(B.heroes[B.active].name + ' 跳过了本回合');
+  sfx('click');
+  renderPanels();
+  after(0.7, advance);
+}
+
+/* ---------- 释放技能 ---------- */
+function castSkill(h) {
+  h.castT = 0.9;
+  var from = heroPt(h.i), to = { x: BOSS_X - 60, y: BOSS_Y };
+  if (h.key === 'thunder') {
+    B.fx.push({ type: 'thunder', t: 0, dur: 0.9, from: from, to: to });
+    sfx('thunder');
+    after(0.34, function () { damageBoss(CFG.dmgThunder, 'thunder'); });
+  } else if (h.key === 'fire') {
+    B.fx.push({ type: 'fire', t: 0, dur: 0.9, from: from, to: to });
+    sfx('fire');
+    after(0.34, function () {
+      damageBoss(CFG.dmgFire, 'fire');
+      B.boss.burn = CFG.burnDmg; B.boss.burnT = CFG.burnTurns;
+      floatText(to.x, to.y - 150, '灼烧 ' + CFG.burnTurns + ' 回合', '#ff9a4a');
+    });
+  } else if (h.key === 'ice') {
+    B.fx.push({ type: 'ice', t: 0, dur: 0.9, from: from, to: to });
+    sfx('ice');
+    after(0.34, function () {
+      damageBoss(CFG.dmgIce, 'ice');
+      if (B.boss.immune > 0) {                 /* Boss 有冻结免疫，冻不住 */
+        floatText(to.x, to.y - 150, '冻结被抵抗！', '#ffd45e');
+      } else {
+        B.boss.frozen = CFG.freezeTurns;
+        B.boss.immune = CFG.freezeTurns + CFG.freezeImmune;
+        floatText(to.x, to.y - 150, '冻结！', '#8fe6ff');
+      }
+    });
+  } else {                                   /* 治疗：自动给血量最低的队友 */
+    var t = weakestHero();
+    B.fx.push({ type: 'heal', t: 0, dur: 1.0, from: from, to: heroPt(t.i) });
+    sfx('heal');
+    after(0.34, function () {
+      var amt = Math.min(CFG.healAmt, t.max - t.hp);
+      if (amt <= 0) {
+        t.glow = 0.8;
+        floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '满血', '#7ff0a8');
+        banner('大家都是满血，' + h.name + ' 本次治疗没有消耗');
+      } else {
+        t.hp += amt; if (t.hp > t.max) t.hp = t.max;
+        t.glow = 1.0;
+        floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '+' + amt, '#7ff0a8');
+        banner(h.name + ' 为 ' + t.name + ' 回复 ' + amt + ' 点血量');
+      }
+    });
+  }
+  after(1.6, advance);
+}
+
+/* ---------- 伤害 / 治疗 ---------- */
+function damageBoss(d, kind) {
+  if (!B || B.over) return;
+  B.boss.hp -= d; if (B.boss.hp < 0) B.boss.hp = 0;
+  B.boss.hitT = 0.45;
+  B.boss.shake = 0.3;
+  floatText(BOSS_X, BOSS_Y - 170, '-' + d,
+    kind === 'thunder' ? '#cfe3ff' : (kind === 'fire' ? '#ffb05a' : '#8fe6ff'));
+  sfx('hit');
+  checkPhase();
+  if (B.boss.hp <= 0) { after(0.5, win); }
+}
+function hurtHero(h, d) {
+  if (!h.alive || B.over) return;
+  h.hp -= d; h.hitT = 0.5;
+  if (h.hp < 0) h.hp = 0;
+  floatText(heroPt(h.i).x + 40, heroPt(h.i).y - 40, '-' + d, '#ff7a6a');
+  if (h.hp <= 0) {
+    h.alive = false; sfx('dead');
+    banner(h.name + ' 倒下了！');
+  }
+  renderPanels();
+  checkLose();
+}
+
+/* ---------- Boss 阶段 ---------- */
+function checkPhase() {
+  var r = B.boss.hp / B.boss.max;
+  var want = r > 0.66 ? 0 : (r > 0.33 ? 1 : 2);
+  if (want > B.boss.phase) {
+    B.boss.phase = want;
+    B.boss.name = PHASES[want].name;
+    B.boss.morph = 1.3;
+    B.fx.push({ type: 'morph', t: 0, dur: 1.3, x: BOSS_X, y: BOSS_Y });
+    sfx('morph');
+    banner('Boss 变身！' + PHASES[want].name + ' 登场');
+  }
+}
+
+/* ---------- Boss 行动 ---------- */
+function bossTurn() {
+  if (!B || B.over) return;
+  B.stage = 'boss'; B.active = -1;
+  renderPanels();
+  after(0.7, function () {
+    if (B.over) return;
+    var ph = PHASES[B.boss.phase];
+    if (B.boss.immune > 0) B.boss.immune--;
+    if (B.boss.frozen > 0) {
+      B.boss.frozen--;
+      floatText(BOSS_X, BOSS_Y - 170, '冻结中…', '#8fe6ff');
+      banner('Boss 被冻结，本回合无法行动！');
+      after(1.1, endBossTurn);
+      return;
+    }
+    if (B.round % CFG.meteorEvery === 0) meteorAttack(ph);
+    else normalAttack(ph);
+  });
+}
+
+function normalAttack(ph) {
+  var alive = aliveHeroes();
+  if (!alive.length) { endBossTurn(); return; }
+  if (Math.random() > ph.atkChance) {
+    banner('Boss 正在蓄力，本回合没有出手');
+    after(1.0, endBossTurn);
+    return;
+  }
+  var t = alive[ri(0, alive.length - 1)];
+  var dmg = Math.round(CFG.bossAtk * ph.atkMul);
+  B.boss.atkT = 0.65;
+  B.fx.push({ type: 'bossatk', t: 0, dur: 0.8, from: { x: BOSS_X - 120, y: BOSS_Y }, to: heroPt(t.i) });
+  after(0.42, function () { sfx('hit'); hurtHero(t, dmg); });
+  after(1.4, endBossTurn);
+}
+
+function meteorAttack(ph) {
+  B.meteorWarn = true;
+  banner('陨石来袭！大家小心！');
+  sfx('warn');
+  B.fx.push({ type: 'warn', t: 0, dur: 1.5 });
+  after(1.5, function () {
+    B.meteorWarn = false;
+    sfx('meteor');
+    var dmg = Math.round(CFG.meteorDmg * ph.meteorMul);
+    var alive = aliveHeroes();
+    alive.forEach(function (h, k) {
+      B.fx.push({ type: 'meteor', t: 0, dur: 0.9, x: heroPt(h.i).x + 30, y: heroPt(h.i).y, delay: k * 0.13 });
+      after(0.62 + k * 0.13, function () { hurtHero(h, dmg); });
+    });
+    after(2.1, endBossTurn);
+  });
+}
+
+function endBossTurn() {
+  if (!B || B.over) return;
+  if (B.boss.burnT > 0) {
+    B.boss.burnT--;
+    var bd = B.boss.burn;
+    B.boss.hp -= bd; if (B.boss.hp < 0) B.boss.hp = 0;
+    B.boss.hitT = 0.35;
+    floatText(BOSS_X, BOSS_Y + 150, '灼烧 -' + bd, '#ff9a4a');
+    checkPhase();
+    if (B.boss.hp <= 0) { after(0.6, win); return; }
+    after(0.9, finishRound);
+  } else finishRound();
+}
+function finishRound() {
+  if (B.over) return;
+  B.round++;
+  B.cursor = 0;
+  nextTurn();
+}
+
+/* ---------- 胜负 ---------- */
+function checkLose() {
+  if (B.over) return;
+  if (aliveHeroes().length === 0) after(0.7, lose);
+}
+function win() {
+  if (B.over) return;
+  B.over = true; B.win = true; B.stage = 'over';
+  B.stats.ms = Date.now() - B.stats.start;
+  B.fx.push({ type: 'winburst', t: 0, dur: 2.0 });
+  sfx('win'); after(1.2, showResult);
+}
+function lose() {
+  if (B.over) return;
+  B.over = true; B.win = false; B.stage = 'over';
+  B.stats.ms = Date.now() - B.stats.start;
+  sfx('lose'); after(1.0, showResult);
+}
+
+/* ---------- 飘字 / 横幅 ---------- */
+function floatText(x, y, txt, color) {
+  B.floats.push({ x: x, y: y, txt: txt, color: color || '#fff', t: 0, dur: 1.2 });
+}
+function banner(txt) { B.banner = txt; B.bannerT = 2.4; }
+
+/* ============================ 绘制 ============================ */
+if (!window.CanvasRenderingContext2D || !CanvasRenderingContext2D.prototype.ellipse) {
+  CanvasRenderingContext2D.prototype.ellipse = function (x, y, rx, ry, rot, a0, a1, ccw) {
+    this.save(); this.translate(x, y); this.rotate(rot || 0); this.scale(rx, ry);
+    this.arc(0, 0, 1, a0, a1, ccw); this.restore();
+  };
+}
+function lerp(a, b, p) { return a + (b - a) * p; }
+function rr(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath();
+}
+function txt(c, s, x, y, size, color, align, weight) {
+  c.font = (weight || '700') + ' ' + size + 'px "Microsoft YaHei","PingFang SC",sans-serif';
+  c.fillStyle = color; c.textAlign = align || 'left'; c.textBaseline = 'middle';
+  c.fillText(s, x, y);
+}
+
+/* ---------- 背景 ---------- */
+function drawBg(c) {
+  var g = c.createLinearGradient(0, 0, 0, AH);
+  g.addColorStop(0, '#2b1e52'); g.addColorStop(0.55, '#3c2a63'); g.addColorStop(1, '#221844');
+  c.fillStyle = g; c.fillRect(0, 0, W, AH);
+  /* 远处山影 */
+  c.fillStyle = 'rgba(0,0,0,.22)';
+  for (var k = 0; k < 5; k++) {
+    var bx = 60 + k * 400, bh = 150 + (k % 3) * 60;
+    c.beginPath(); c.moveTo(bx - 190, AH - 60); c.lineTo(bx, AH - 60 - bh); c.lineTo(bx + 190, AH - 60); c.closePath(); c.fill();
+  }
+  /* 地面 */
+  c.fillStyle = '#3a2b1e'; c.fillRect(0, AH - 60, W, 60);
+  c.fillStyle = '#4d3a27'; c.fillRect(0, AH - 60, W, 10);
+  /* 星点 */
+  c.fillStyle = 'rgba(255,255,255,.35)';
+  for (var i = 0; i < 40; i++) {
+    var sx = (i * 271) % W, sy = (i * 137) % 380;
+    c.fillRect(sx, sy, 3, 3);
+  }
+}
+
+/* ---------- 顶部状态条 ---------- */
+function drawTopBar(c) {
+  c.fillStyle = 'rgba(10,7,22,.78)'; c.fillRect(0, 0, W, 76);
+  c.fillStyle = 'rgba(255,255,255,.10)'; c.fillRect(0, 74, W, 2);
+
+  /* 左：回合 + 当前行动者 */
+  txt(c, '第 ' + B.round + ' 回合', 30, 38, 30, '#ffd45e');
+  var who = B.active >= 0 ? B.heroes[B.active].name + ' 行动中'
+    : (B.stage === 'boss' ? 'Boss 行动中' : (B.over ? '战斗结束' : '准备中'));
+  txt(c, who, 210, 38, 24, '#fff');
+
+  /* 中：Boss 名 + 血条 */
+  var bx = 560, bw = 820;
+  txt(c, B.boss.name, bx, 22, 24, '#ff9a9a');
+  var r = Math.max(0, B.boss.hp / B.boss.max);
+  c.fillStyle = '#2a1c3d'; rr(c, bx, 34, bw, 30, 8); c.fill();
+  var grd = c.createLinearGradient(bx, 0, bx + bw, 0);
+  grd.addColorStop(0, '#e0453a'); grd.addColorStop(1, '#ff8a5c');
+  c.fillStyle = grd; rr(c, bx + 2, 36, Math.max(0, (bw - 4) * r), 26, 6); c.fill();
+  txt(c, B.boss.hp + ' / ' + B.boss.max, bx + bw / 2, 49, 20, '#fff', 'center');
+
+  /* 右：阶段 + 陨石倒计时 */
+  var px = 1450;
+  for (var i = 0; i < 3; i++) {
+    var on = i <= B.boss.phase;
+    c.fillStyle = on ? '#ffd45e' : 'rgba(255,255,255,.16)';
+    rr(c, px + i * 46, 20, 38, 36, 8); c.fill();
+    txt(c, 'P' + (i + 1), px + i * 46 + 19, 38, 19, on ? '#241a3d' : '#8d84a8', 'center');
+  }
+  var left = CFG.meteorEvery - (B.round % CFG.meteorEvery);
+  if (left === CFG.meteorEvery) left = 0;
+  txt(c, left === 0 ? '陨石即将来临！' : ('陨石倒计时 ' + left + ' 回合'), 1620, 62, 18, left <= 2 ? '#ff7a6a' : '#b9aed6');
+}
+
+/* ---------- 角色卡 ---------- */
+function drawMage(c, cx, footY, h, s, castP, dim) {
+  var ref = h.ref;
+  c.save();
+  c.translate(cx, footY); c.scale(s, s);
+  c.globalAlpha = dim ? 0.42 : 1;
+  var lean = castP * 0.16;
+  c.rotate(lean);
+
+  /* 影子 */
+  c.fillStyle = 'rgba(0,0,0,.28)';
+  c.beginPath(); c.ellipse(0, 2, 30, 8, 0, 0, 6.2832); c.fill();
+
+  /* 袍子 */
+  var rg = c.createLinearGradient(0, -70, 0, 0);
+  rg.addColorStop(0, ref.robe); rg.addColorStop(1, ref.dark);
+  c.fillStyle = rg;
+  c.beginPath(); c.moveTo(-27, 0); c.lineTo(-19, -58); c.lineTo(19, -58); c.lineTo(27, 0); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(0,0,0,.18)';
+  c.beginPath(); c.moveTo(-27, 0); c.lineTo(-8, 0); c.lineTo(-14, -58); c.lineTo(-19, -58); c.closePath(); c.fill();
+
+  /* 手臂 */
+  c.strokeStyle = ref.dark; c.lineWidth = 7; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-16, -46); c.lineTo(-30 - castP * 10, -34 - castP * 22); c.stroke();
+  c.beginPath(); c.moveTo(16, -46); c.lineTo(30 + castP * 6, -40); c.stroke();
+
+  /* 头 */
+  c.fillStyle = '#ffe0bd';
+  c.beginPath(); c.arc(0, -76, 22, 0, 6.2832); c.fill();
+
+  /* 头饰 */
+  if (h.key === 'heal') {                       /* 治疗师：兜帽 + 十字 */
+    c.fillStyle = ref.robe;
+    c.beginPath(); c.arc(0, -78, 25, Math.PI, 0); c.fill();
+    c.fillStyle = '#fff'; c.fillRect(-4, -104, 8, 20); c.fillRect(-11, -97, 22, 8);
+  } else {                                      /* 法师：尖帽 */
+    c.fillStyle = ref.dark;
+    c.beginPath(); c.moveTo(-26, -88); c.lineTo(26, -88); c.lineTo(4, -146); c.closePath(); c.fill();
+    c.fillStyle = ref.robe;
+    c.beginPath(); c.moveTo(-26, -88); c.lineTo(26, -88); c.lineTo(26, -80); c.lineTo(-26, -80); c.closePath(); c.fill();
+    c.fillStyle = ref.orb;
+    c.beginPath(); c.arc(4, -148, 7, 0, 6.2832); c.fill();
+  }
+
+  /* 眼睛 + 腮红 */
+  c.fillStyle = '#2b2138';
+  c.beginPath(); c.arc(-8, -76, 3.4, 0, 6.2832); c.fill();
+  c.beginPath(); c.arc(8, -76, 3.4, 0, 6.2832); c.fill();
+  c.fillStyle = 'rgba(255,120,140,.35)';
+  c.beginPath(); c.arc(-14, -68, 5, 0, 6.2832); c.fill();
+  c.beginPath(); c.arc(14, -68, 5, 0, 6.2832); c.fill();
+  /* 嘴 */
+  c.strokeStyle = '#c0705a'; c.lineWidth = 2.4;
+  c.beginPath(); c.arc(0, -66, 5, 0.2, Math.PI - 0.2); c.stroke();
+
+  /* 法杖 */
+  var sw = castP * 8;
+  c.strokeStyle = '#7a5a34'; c.lineWidth = 6;
+  c.beginPath(); c.moveTo(30, -6); c.lineTo(38 + sw * 0.4, -100 - sw); c.stroke();
+  var orbR = 11 + castP * 7;
+  var og = c.createRadialGradient(38 + sw * 0.4, -104 - sw, 1, 38 + sw * 0.4, -104 - sw, orbR + 6);
+  og.addColorStop(0, '#ffffff'); og.addColorStop(0.45, ref.orb); og.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = og;
+  c.beginPath(); c.arc(38 + sw * 0.4, -104 - sw, orbR + 6, 0, 6.2832); c.fill();
+  c.fillStyle = ref.orb;
+  c.beginPath(); c.arc(38 + sw * 0.4, -104 - sw, orbR * 0.6, 0, 6.2832); c.fill();
+
+  c.restore();
+}
+
+function drawHeroCard(c, h) {
+  var i = h.i, y = cardY(i);
+  var isAct = (B.active === i);
+  /* 卡片底 */
+  c.fillStyle = isAct ? 'rgba(255,212,94,.16)' : 'rgba(0,0,0,.34)';
+  rr(c, CARD_X, y, CARD_W, CARD_H, 14); c.fill();
+  c.strokeStyle = isAct ? '#ffd45e' : (h.alive ? 'rgba(255,255,255,.16)' : 'rgba(255,80,80,.5)');
+  c.lineWidth = isAct ? 4 : 2;
+  rr(c, CARD_X, y, CARD_W, CARD_H, 14); c.stroke();
+  if (isAct) {   /* 呼吸光 */
+    var pulse = 0.5 + 0.5 * Math.sin(B.boss.bob * 3);
+    c.strokeStyle = 'rgba(255,212,94,' + (0.25 + pulse * 0.5) + ')';
+    c.lineWidth = 8; rr(c, CARD_X - 2, y - 2, CARD_W + 4, CARD_H + 4, 16); c.stroke();
+  }
+
+  /* 头像 */
+  drawMage(c, CARD_X + 78, y + CARD_H - 14, h, 0.72, h.castT > 0 ? h.castT / 0.9 : 0, !h.alive);
+
+  /* 名字 / 职业 */
+  txt(c, h.name, CARD_X + 140, y + 32, 28, '#fff');
+  c.fillStyle = h.ref.robe; rr(c, CARD_X + 140 + (h.name.length * 29) + 12, y + 16, 104, 32, 8); c.fill();
+  txt(c, h.cls, CARD_X + 140 + (h.name.length * 29) + 64, y + 32, 19, '#12101c', 'center');
+
+  /* 血条 */
+  var hx = CARD_X + 140, hw = 400, hy = y + 58;
+  c.fillStyle = '#2a1c3d'; rr(c, hx, hy, hw, 24, 7); c.fill();
+  var r = Math.max(0, h.hp / h.max);
+  var hg = c.createLinearGradient(hx, 0, hx + hw, 0);
+  hg.addColorStop(0, '#3fae6a'); hg.addColorStop(1, '#8fe08a');
+  if (r < 0.3) { hg = c.createLinearGradient(hx, 0, hx + hw, 0); hg.addColorStop(0, '#c0392b'); hg.addColorStop(1, '#ff7a6a'); }
+  c.fillStyle = hg; rr(c, hx + 2, hy + 2, Math.max(0, (hw - 4) * r), 20, 5); c.fill();
+  txt(c, h.hp + '/' + h.max, hx + hw / 2, hy + 12, 17, '#fff', 'center');
+
+  /* 技能栏 */
+  var sy = y + 100;
+  c.fillStyle = 'rgba(255,255,255,.10)'; rr(c, hx, sy, hw, 30, 8); c.fill();
+  c.fillStyle = h.ref.robe; rr(c, hx + 5, sy + 5, 20, 20, 5); c.fill();
+  txt(c, h.ref.skill, hx + 34, sy + 15, 20, '#ffe9b0');
+  txt(c, h.ref.desc, hx + hw - 8, sy + 15, 16, '#b9aed6', 'right');
+
+  if (!h.alive) {
+    c.fillStyle = 'rgba(0,0,0,.45)'; rr(c, CARD_X, y, CARD_W, CARD_H, 14); c.fill();
+    txt(c, '阵 亡', CARD_X + CARD_W / 2, y + CARD_H / 2, 34, '#ff7a6a', 'center');
+  }
+  /* 受击闪红 */
+  if (h.hitT > 0) {
+    c.fillStyle = 'rgba(255,60,50,' + (h.hitT * 0.5) + ')';
+    rr(c, CARD_X, y, CARD_W, CARD_H, 14); c.fill();
+  }
+  /* 治疗绿光 */
+  if (h.glow > 0) {
+    c.fillStyle = 'rgba(120,255,180,' + (h.glow * 0.35) + ')';
+    rr(c, CARD_X, y, CARD_W, CARD_H, 14); c.fill();
+  }
+}
+
+/* ---------- Boss ---------- */
+function drawBoss(c) {
+  var ph = PHASES[B.boss.phase];
+  var mp = B.boss.morph > 0 ? Math.sin((1 - B.boss.morph / 1.3) * Math.PI) : 0;
+  var s = ph.scale * (1 + mp * 0.22);
+  var bob = Math.sin(B.boss.bob * 1.7) * 8;
+  var shx = B.boss.shake > 0 ? (Math.random() - 0.5) * 16 * B.boss.shake : 0;
+  var shkx = B.boss.shake > 0 ? (Math.random() - 0.5) * 10 * B.boss.shake : 0;
+
+  c.save();
+  c.translate(BOSS_X + shx, BOSS_Y + bob + shkx);
+  c.scale(s, s);
+
+  /* 变身光环 */
+  if (B.boss.morph > 0) {
+    c.strokeStyle = 'rgba(255,255,255,' + (B.boss.morph / 1.3 * 0.8) + ')';
+    c.lineWidth = 6;
+    for (var k = 0; k < 3; k++) {
+      c.beginPath(); c.arc(0, 0, 150 + k * 70 + (1.3 - B.boss.morph) * 120, 0, 6.2832); c.stroke();
+    }
+  }
+
+  var R = 130;
+  /* 身体 */
+  var bg = c.createRadialGradient(-30, -40, 20, 0, 0, R + 40);
+  bg.addColorStop(0, ph.body); bg.addColorStop(1, ph.dark);
+  c.fillStyle = bg;
+  c.beginPath(); c.ellipse(0, 0, R, R * 0.86, 0, 0, 6.2832); c.fill();
+
+  /* 肩刺 */
+  if (ph.spikes >= 1) {
+    c.fillStyle = ph.dark;
+    for (var i = -1; i <= 1; i += 2) {
+      c.beginPath();
+      c.moveTo(i * (R - 20), -18); c.lineTo(i * (R + 34), -60); c.lineTo(i * (R - 4), -66); c.closePath(); c.fill();
+    }
+  }
+  if (ph.spikes >= 2) {
+    c.fillStyle = ph.horn;
+    for (var j = -2; j <= 2; j++) {
+      if (j === 0) continue;
+      c.beginPath();
+      c.moveTo(j * 52, -R * 0.62); c.lineTo(j * 60, -R * 0.62 - 46); c.lineTo(j * 38, -R * 0.62 - 8); c.closePath(); c.fill();
+    }
+  }
+
+  /* 角 */
+  c.fillStyle = ph.horn;
+  c.beginPath(); c.moveTo(-R * 0.62, -R * 0.62); c.lineTo(-R * 0.95, -R * 1.12); c.lineTo(-R * 0.30, -R * 0.80); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(R * 0.62, -R * 0.62); c.lineTo(R * 0.95, -R * 1.12); c.lineTo(R * 0.30, -R * 0.80); c.closePath(); c.fill();
+
+  /* 眼睛 */
+  var blink = (B.boss.bob % 4) > 3.85 ? 0.15 : 1;
+  for (var e = -1; e <= 1; e += 2) {
+    c.fillStyle = '#fff';
+    c.beginPath(); c.ellipse(e * 42, -22, 30, 30 * blink, 0, 0, 6.2832); c.fill();
+    c.fillStyle = ph.eye;
+    c.beginPath(); c.ellipse(e * 42, -22, 20, 20 * blink, 0, 0, 6.2832); c.fill();
+    c.fillStyle = '#1a1024';
+    c.beginPath(); c.ellipse(e * 42, -22, 9, 13 * blink, 0, 0, 6.2832); c.fill();
+  }
+  /* 怒眉 */
+  c.strokeStyle = ph.dark; c.lineWidth = 9; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-72, -62); c.lineTo(-18, -44); c.stroke();
+  c.beginPath(); c.moveTo(72, -62); c.lineTo(18, -44); c.stroke();
+
+  /* 嘴 + 牙 */
+  c.fillStyle = '#2a0e14';
+  c.beginPath(); c.ellipse(0, 44, 62, 34, 0, 0, Math.PI); c.fill();
+  c.fillStyle = '#fff';
+  for (var t = -3; t <= 3; t++) {
+    c.beginPath(); c.moveTo(t * 17 - 6, 44); c.lineTo(t * 17 + 6, 44); c.lineTo(t * 17, 44 + 20); c.closePath(); c.fill();
+  }
+
+  /* 受击闪白 */
+  if (B.boss.hitT > 0) {
+    c.globalCompositeOperation = 'lighter';
+    c.fillStyle = 'rgba(255,255,255,' + (B.boss.hitT * 0.6) + ')';
+    c.beginPath(); c.ellipse(0, 0, R, R * 0.86, 0, 0, 6.2832); c.fill();
+    c.globalCompositeOperation = 'source-over';
+  }
+  /* 冻结冰壳 */
+  if (B.boss.frozen > 0) {
+    c.fillStyle = 'rgba(150,225,255,.34)';
+    c.beginPath(); c.ellipse(0, 0, R + 8, R * 0.86 + 8, 0, 0, 6.2832); c.fill();
+    c.strokeStyle = '#bff0ff'; c.lineWidth = 5;
+    for (var f = 0; f < 6; f++) {
+      var a = f * 1.047 + 0.3;
+      c.beginPath(); c.moveTo(Math.cos(a) * 40, Math.sin(a) * 36);
+      c.lineTo(Math.cos(a) * (R + 20), Math.sin(a) * (R * 0.86 + 18)); c.stroke();
+    }
+  }
+  /* 灼烧火苗 */
+  if (B.boss.burnT > 0) {
+    for (var b = 0; b < 5; b++) {
+      var fx0 = -70 + b * 35, fy = -R * 0.7 - Math.abs(Math.sin(B.boss.bob * 6 + b) * 18);
+      c.fillStyle = b % 2 ? '#ffca6a' : '#ff7a3a';
+      c.beginPath(); c.moveTo(fx0 - 9, fy + 20); c.lineTo(fx0, fy - 14); c.lineTo(fx0 + 9, fy + 20); c.closePath(); c.fill();
+    }
+  }
+  c.restore();
+
+  /* Boss 脚下血条 + 状态 */
+  var by = BOSS_Y + 200;
+  c.fillStyle = 'rgba(0,0,0,.4)'; rr(c, BOSS_X - 170, by, 340, 22, 7); c.fill();
+  var r = Math.max(0, B.boss.hp / B.boss.max);
+  c.fillStyle = '#e0453a'; rr(c, BOSS_X - 168, by + 2, Math.max(0, 336 * r), 18, 5); c.fill();
+  txt(c, '第 ' + (B.boss.phase + 1) + ' 阶段 · ' + ph.name, BOSS_X, by + 44, 22, '#ffd0d0', 'center');
+  var st = [];
+  if (B.boss.frozen > 0) st.push('冻结 ' + B.boss.frozen);
+  if (B.boss.immune > 0) st.push('冻结免疫 ' + B.boss.immune);
+  if (B.boss.burnT > 0) st.push('灼烧 ' + B.boss.burnT);
+  if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, '#ffe08a', 'center');
+}
+
+/* ---------- 特效 ---------- */
+function drawFx(c) {
+  for (var i = 0; i < B.fx.length; i++) {
+    var f = B.fx[i];
+    if (f.delay && f.t < f.delay) continue;
+    var p = Math.min(1, (f.t - (f.delay || 0)) / f.dur);
+    c.save();
+    if (f.type === 'thunder') {
+      var x0 = lerp(f.from.x, f.to.x, Math.min(1, p * 1.6)), y0 = lerp(f.from.y, f.to.y, Math.min(1, p * 1.6));
+      c.globalAlpha = p < 0.8 ? 1 : (1 - p) * 5;
+      c.strokeStyle = '#dff0ff'; c.lineWidth = 9; c.lineJoin = 'round'; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(f.from.x, f.from.y);
+      var seg = 7;
+      for (var s = 1; s <= seg; s++) {
+        var q = s / seg;
+        var mx = lerp(f.from.x, f.to.x, q) + (s === seg ? 0 : (Math.random() - 0.5) * 90);
+        var my = lerp(f.from.y, f.to.y, q) + (s === seg ? 0 : (Math.random() - 0.5) * 70);
+        c.lineTo(mx, my);
+      }
+      c.stroke();
+      c.strokeStyle = '#8fb8ff'; c.lineWidth = 20; c.globalAlpha *= 0.35; c.stroke();
+      if (p > 0.55) {   /* 落点爆闪 */
+        c.globalAlpha = (1 - p) * 2.2; c.fillStyle = '#eaf4ff';
+        c.beginPath(); c.arc(f.to.x, f.to.y, 40 + p * 130, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'fire') {
+      var fx1 = lerp(f.from.x, f.to.x, p), fy1 = lerp(f.from.y, f.to.y, p);
+      c.globalAlpha = 1;
+      for (var k = 0; k < 6; k++) {
+        var tp = Math.max(0, p - k * 0.05);
+        var tx = lerp(f.from.x, f.to.x, tp), ty = lerp(f.from.y, f.to.y, tp);
+        c.fillStyle = k % 2 ? 'rgba(255,120,40,.55)' : 'rgba(255,200,90,.55)';
+        c.beginPath(); c.arc(tx, ty, 34 - k * 4, 0, 6.2832); c.fill();
+      }
+      c.fillStyle = '#ffe9a8'; c.beginPath(); c.arc(fx1, fy1, 22, 0, 6.2832); c.fill();
+      if (p > 0.6) {
+        c.globalAlpha = (1 - p) * 2.4; c.fillStyle = '#ff9a4a';
+        c.beginPath(); c.arc(f.to.x, f.to.y, 30 + (p - 0.6) * 380, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'ice') {
+      var ix = lerp(f.from.x, f.to.x, p), iy = lerp(f.from.y, f.to.y, p);
+      c.globalAlpha = 1; c.strokeStyle = '#bff0ff'; c.lineWidth = 6;
+      for (var a = 0; a < 6; a++) {
+        var ang = a * 1.047 + p * 2;
+        c.beginPath(); c.moveTo(ix, iy);
+        c.lineTo(ix + Math.cos(ang) * 40, iy + Math.sin(ang) * 40); c.stroke();
+      }
+      c.fillStyle = '#eafaff'; c.beginPath(); c.arc(ix, iy, 18, 0, 6.2832); c.fill();
+      if (p > 0.6) {
+        c.globalAlpha = (1 - p) * 2.2; c.strokeStyle = '#8fe6ff'; c.lineWidth = 8;
+        c.beginPath(); c.ellipse(f.to.x, f.to.y, 60 + (p - 0.6) * 300, 60 + (p - 0.6) * 300, 0, 0, 6.2832); c.stroke();
+      }
+    } else if (f.type === 'heal') {
+      var a2 = p < 0.5 ? p * 2 : 1;
+      for (var g2 = 0; g2 < 8; g2++) {
+        var q2 = Math.max(0, p - g2 * 0.04);
+        var hx2 = lerp(f.from.x, f.to.x, q2) + Math.sin(p * 8 + g2) * 22;
+        var hy2 = lerp(f.from.y, f.to.y, q2) + Math.cos(p * 8 + g2) * 18;
+        c.globalAlpha = a2 * (1 - g2 / 10);
+        c.fillStyle = g2 % 2 ? '#7ff0a8' : '#d8ffe8';
+        c.beginPath(); c.arc(hx2, hy2, 12, 0, 6.2832); c.fill();
+      }
+      if (p > 0.5) {
+        c.globalAlpha = (1 - p) * 2;
+        c.strokeStyle = '#7ff0a8'; c.lineWidth = 10;
+        c.beginPath(); c.arc(f.to.x, f.to.y, 30 + (p - 0.5) * 260, 0, 6.2832); c.stroke();
+      }
+    } else if (f.type === 'bossatk') {
+      var bx2 = lerp(f.from.x, f.to.x, p), by2 = lerp(f.from.y, f.to.y, p);
+      c.globalAlpha = 1;
+      c.fillStyle = '#8a2be2';
+      c.beginPath(); c.arc(bx2, by2, 26, 0, 6.2832); c.fill();
+      c.fillStyle = 'rgba(180,90,255,.5)';
+      for (var m2 = 1; m2 <= 4; m2++) {
+        var q3 = Math.max(0, p - m2 * 0.06);
+        c.beginPath(); c.arc(lerp(f.from.x, f.to.x, q3), lerp(f.from.y, f.to.y, q3), 26 - m2 * 4, 0, 6.2832); c.fill();
+      }
+      if (p > 0.7) {
+        c.globalAlpha = (1 - p) * 3; c.fillStyle = '#ff6a9a';
+        c.beginPath(); c.arc(f.to.x, f.to.y, 20 + (p - 0.7) * 260, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'meteor') {
+      var pp = Math.min(1, p / 0.62);
+      var my2 = lerp(-140, f.y, pp), mx2 = lerp(f.x + 260, f.x, pp);
+      c.globalAlpha = 1;
+      c.strokeStyle = 'rgba(255,140,60,.5)'; c.lineWidth = 16;
+      c.beginPath(); c.moveTo(mx2 + 130, my2 - 130); c.lineTo(mx2 + 20, my2 - 20); c.stroke();
+      c.fillStyle = '#6d4a33';
+      c.beginPath(); c.arc(mx2, my2, 42, 0, 6.2832); c.fill();
+      c.fillStyle = '#ff8a3a';
+      c.beginPath(); c.arc(mx2 - 10, my2 - 10, 22, 0, 6.2832); c.fill();
+      c.fillStyle = '#ffd45e';
+      c.beginPath(); c.arc(mx2 - 14, my2 - 14, 11, 0, 6.2832); c.fill();
+      if (p > 0.62) {
+        var ep = (p - 0.62) / 0.38;
+        c.globalAlpha = 1 - ep;
+        c.fillStyle = '#ff9a4a';
+        c.beginPath(); c.arc(f.x, f.y, 40 + ep * 200, 0, 6.2832); c.fill();
+        c.fillStyle = '#ffe08a';
+        c.beginPath(); c.arc(f.x, f.y, 20 + ep * 110, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'warn') {
+      var fl = Math.sin(p * 26) > 0 ? 0.30 : 0.12;
+      c.globalAlpha = 1;
+      c.fillStyle = 'rgba(255,40,40,' + fl + ')'; c.fillRect(0, 0, W, AH);
+      c.globalAlpha = 1;
+      var sc2 = 1 + Math.sin(p * 12) * 0.06;
+      c.save(); c.translate(W / 2, 300); c.scale(sc2, sc2);
+      c.strokeStyle = '#ff5a4a'; c.lineWidth = 8;
+      rr(c, -330, -62, 660, 124, 18); c.stroke();
+      c.fillStyle = 'rgba(40,8,8,.85)'; rr(c, -330, -62, 660, 124, 18); c.fill();
+      txt(c, '陨 石 来 袭 ！', 0, 0, 68, '#ffd45e', 'center');
+      c.restore();
+      for (var w2 = 0; w2 < 5; w2++) {   /* 下落提示 */
+        var wx = 200 + w2 * 340, wy = 120 + ((p * 900 + w2 * 200) % 320);
+        c.globalAlpha = 0.55; c.fillStyle = '#ffb05a';
+        c.beginPath(); c.arc(wx, wy, 13, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'morph') {
+      c.globalAlpha = 1 - p;
+      c.fillStyle = 'rgba(255,255,255,' + (0.35 * (1 - p)) + ')'; c.fillRect(0, 0, W, AH);
+      c.strokeStyle = '#ffd45e'; c.lineWidth = 10;
+      c.beginPath(); c.arc(f.x, f.y, 60 + p * 420, 0, 6.2832); c.stroke();
+      c.strokeStyle = '#fff'; c.lineWidth = 5;
+      c.beginPath(); c.arc(f.x, f.y, 20 + p * 300, 0, 6.2832); c.stroke();
+    } else if (f.type === 'winburst') {
+      c.globalAlpha = 1 - p * 0.4;
+      for (var st2 = 0; st2 < 30; st2++) {
+        var sx2 = (st2 * 197) % W;
+        var sy2 = ((st2 * 331) % AH) + p * 300;
+        c.fillStyle = ['#ffd45e', '#7ff0a8', '#8fe6ff', '#ff9ac4'][st2 % 4];
+        c.fillRect(sx2, sy2 % AH, 12, 12);
+      }
+    }
+    c.restore();
+  }
+}
+
+/* ---------- 飘字 / 横幅 ---------- */
+function drawFloats(c) {
+  for (var i = 0; i < B.floats.length; i++) {
+    var f = B.floats[i], p = f.t / f.dur;
+    c.globalAlpha = p < 0.75 ? 1 : (1 - p) * 4;
+    var sz = 42 + (1 - p) * 10;
+    c.lineWidth = 7; c.strokeStyle = 'rgba(0,0,0,.6)';
+    c.font = '700 ' + sz + 'px "Microsoft YaHei",sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.strokeText(f.txt, f.x, f.y - p * 70);
+    c.fillStyle = f.color;
+    c.fillText(f.txt, f.x, f.y - p * 70);
+    c.globalAlpha = 1;
+  }
+}
+function drawBanner(c) {
+  if (B.bannerT <= 0 || !B.banner) return;
+  var a = Math.min(1, B.bannerT / 0.4);
+  c.globalAlpha = a;
+  c.fillStyle = 'rgba(20,10,35,.85)';
+  rr(c, W / 2 - 460, AH - 190, 920, 92, 16); c.fill();
+  c.strokeStyle = '#ffd45e'; c.lineWidth = 4;
+  rr(c, W / 2 - 460, AH - 190, 920, 92, 16); c.stroke();
+  txt(c, B.banner, W / 2, AH - 144, 40, '#ffd45e', 'center');
+  c.globalAlpha = 1;
+}
+
+/* ---------- 主渲染 ---------- */
+function render() {
+  var c = ctx;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalAlpha = 1;
+  c.clearRect(0, 0, W, AH);
+  if (!B) return;
+  drawBg(c);
+  drawTopBar(c);
+  for (var i = 0; i < 4; i++) drawHeroCard(c, B.heroes[i]);
+  drawBoss(c);
+  drawFx(c);
+  drawFloats(c);
+  drawBanner(c);
+}
+
+/* ============================ 舞台缩放 ============================ */
+function fit() {
+  var s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  var st = document.getElementById('stage');
+  st.style.transform = 'scale(' + s + ')';
+  st.style.left = Math.max(0, (window.innerWidth - W * s) / 2) + 'px';
+  st.style.top = Math.max(0, (window.innerHeight - H * s) / 2) + 'px';
+}
+window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', fit);
+
+/* ============================ 设置页 ============================ */
+var SUBJECTS = [
+  { id: 'math', name: '数学口算', desc: '数字键盘作答' },
+  { id: 'chinese', name: '语文知识', desc: 'ABCD 四选一' },
+  { id: 'english', name: '英语单词', desc: 'ABCD 四选一' }
+];
+var LEVELS = [
+  { id: 1, name: '一年级', desc: '20 以内加减' },
+  { id: 2, name: '二年级', desc: '100 以内加减 · 表内乘除' },
+  { id: 3, name: '三年级', desc: '乘法 · 除法整除' },
+  { id: 4, name: '四年级', desc: '两位数乘法 · 除法' },
+  { id: 5, name: '五年级', desc: '大数混合运算' }
+];
+var FIELDS = {
+  fldBoss: [['bossHp', 'Boss 血量'], ['bossAtk', 'Boss 攻击力'], ['meteorEvery', '大招间隔（回合）'], ['meteorDmg', '大招全体伤害']],
+  fldSkill: [['dmgThunder', '雷电伤害'], ['dmgFire', '火焰伤害'], ['dmgIce', '冰霜伤害'], ['healAmt', '治疗量'],
+             ['freezeTurns', '冻结回合数']],
+  fldHero: [['heroHp', '角色血量'], ['burnDmg', '灼烧每回合'], ['burnTurns', '灼烧回合数'], ['freezeImmune', '冻结免疫回合']]
+};
+
+function mkOpts(boxId, list, cur, onPick) {
+  var box = document.getElementById(boxId); box.innerHTML = '';
+  list.forEach(function (it) {
+    var b = document.createElement('button');
+    b.className = 'opt' + (it.id === cur ? ' on' : '');
+    b.innerHTML = it.name + '<span class="small">' + it.desc + '</span>';
+    b.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); sfx('click');
+      var bs = box.querySelectorAll('.opt');
+      for (var i = 0; i < bs.length; i++) bs[i].classList.remove('on');
+      b.classList.add('on'); onPick(it.id);
+    });
+    box.appendChild(b);
+  });
+}
+function mkFields(boxId, list) {
+  var box = document.getElementById(boxId); box.innerHTML = '';
+  list.forEach(function (f) {
+    var d = document.createElement('div'); d.className = 'fld';
+    d.innerHTML = '<label>' + f[1] + '</label><input id="cf_' + f[0] + '" type="number" min="1" value="' + CFG[f[0]] + '">';
+    box.appendChild(d);
+  });
+}
+function buildSetup() {
+  mkOpts('optSubj', SUBJECTS, CFG.subject, function (id) {
+    CFG.subject = id;
+    document.getElementById('rowLevel').style.display = (id === 'math') ? '' : 'none';
+  });
+  mkOpts('optLevel', LEVELS, CFG.level, function (id) { CFG.level = id; });
+  mkFields('fldBoss', FIELDS.fldBoss);
+  mkFields('fldSkill', FIELDS.fldSkill);
+  mkFields('fldHero', FIELDS.fldHero);
+  document.getElementById('rowLevel').style.display = (CFG.subject === 'math') ? '' : 'none';
+}
+function readCfg() {
+  var keys = ['bossHp', 'bossAtk', 'meteorEvery', 'meteorDmg', 'dmgThunder', 'dmgFire',
+    'dmgIce', 'healAmt', 'heroHp', 'burnDmg', 'burnTurns', 'freezeTurns', 'freezeImmune'];
+  keys.forEach(function (k) {
+    var el = document.getElementById('cf_' + k);
+    if (!el) return;
+    var v = parseInt(el.value, 10);
+    if (!isNaN(v) && v > 0) CFG[k] = v;
+  });
+  if (CFG.meteorEvery < 1) CFG.meteorEvery = 1;
+}
+
+/* ============================ 答题区 ============================ */
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function keysHTML(i) {
+  var order = [['7', 'num'], ['8', 'num'], ['9', 'num'], ['清空', 'clr'],
+               ['4', 'num'], ['5', 'num'], ['6', 'num'], ['确定', 'ok'],
+               ['1', 'num'], ['2', 'num'], ['3', 'num'], ['跳过', 'skip']];
+  var h = '';
+  order.forEach(function (k) {
+    var label = k[0], kind = k[1];
+    var attr = (kind === 'num') ? label : kind;   // 数字键传数字本身，功能键传动作名
+    h += '<button class="kbtn ' + kind + '" data-i="' + i + '" data-k="' + attr + '">' + label + '</button>';
+  });
+  h += '<button class="kbtn num" data-i="' + i + '" data-k="0" style="grid-column:span 4">0</button>';
+  return h;
+}
+function panelHTML(i) {
+  var h = B.heroes[i];
+  var st = !h.alive ? '阵亡' : (B.active === i ? (B.locked ? '已出手' : '答题中') : '等待');
+  var s = '<div class="pHead">' +
+    '<span class="pName">' + h.name + '</span>' +
+    '<span class="pCls" style="background:' + h.ref.robe + '">' + h.cls + '</span>' +
+    '<span class="pStat">' + st + '</span></div>';
+  if (!h.alive) return s + '<div class="pQ small">已被击倒，无法行动</div>';
+  if (B.over) return s + '<div class="pQ small">战斗结束</div>';
+  if (B.active !== i || !B.q) return s + '<div class="pQ small">等待轮到你…</div>';
+
+  var q = B.q, bad = (B.wrongT > 0 && B.active === i && !B.locked);
+  if (q.mode === 'num') {
+    s += '<div class="pQ' + (bad ? ' hint' : '') + '">' + esc(bad ? '答错了，再试一次' : q.text) + '</div>';
+    s += '<div class="pAns">' + (B.input === '' ? '?' : esc(B.input)) + '</div>';
+    s += '<div class="pKeys">' + keysHTML(i) + '</div>';
+  } else {
+    s += '<div class="pQ opt' + (bad ? ' hint' : '') + '">' + esc(bad ? '答错了，再试一次' : q.text) + '</div>';
+    s += '<div class="pOpts">';
+    q.opts.forEach(function (o, k) {
+      s += '<button class="obtn" data-i="' + i + '" data-o="' + k + '">' +
+        '<span style="color:#ffd45e">' + 'ABCD'.charAt(k) + '.</span> ' + esc(o) + '</button>';
+    });
+    s += '</div>';
+    s += '<div class="pSkipRow"><button class="kbtn skip" data-i="' + i + '" data-k="skip" style="width:100%">跳过本回合</button></div>';
+  }
+  return s;
+}
+function renderPanels() {
+  if (!B) return;
+  for (var i = 0; i < 4; i++) {
+    var el = document.getElementById('pcol' + i);
+    if (!el) continue;
+    var h = B.heroes[i];
+    el.className = 'pcol' + (!h.alive ? ' dead' : (B.active === i ? ' act' : ' wait'));
+    el.innerHTML = panelHTML(i);
+  }
+}
+function buildPanels() {
+  var box = document.getElementById('panels');
+  box.innerHTML = '';
+  for (var i = 0; i < 4; i++) {
+    var d = document.createElement('div');
+    d.className = 'pcol'; d.id = 'pcol' + i;
+    box.appendChild(d);
+  }
+}
+function closestAttr(el, attr) {
+  while (el && el !== document && el.nodeType === 1) {
+    if (el.getAttribute(attr) !== null) return el;
+    el = el.parentNode;
+  }
+  return null;
+}
+function bindPanels() {
+  document.getElementById('panels').addEventListener('pointerdown', function (e) {
+    if (!B || B.over) return;
+    var el = closestAttr(e.target, 'data-i');
+    if (!el) return;
+    e.preventDefault();
+    var i = parseInt(el.getAttribute('data-i'), 10);
+    if (i !== B.active) return;                 // 只有当前行动者的区可操作
+    var o = el.getAttribute('data-o');
+    if (o !== null) { checkAnswer(o); return; }
+    var k = el.getAttribute('data-k');
+    if (k === null || B.locked) return;
+    if (k === 'clr') { B.input = ''; sfx('click'); renderPanels(); }
+    else if (k === 'ok') { if (B.input !== '') checkAnswer(B.input); }
+    else if (k === 'skip') { skipTurn(); }
+    else if (k >= '0' && k <= '9' && B.input.length < 6) { B.input += k; sfx('click'); renderPanels(); }
+  });
+}
+
+/* ============================ 结算 ============================ */
+function showResult() {
+  var t = document.getElementById('resTitle');
+  t.textContent = B.win ? '团 队 胜 利 ！' : '全 员 阵 亡 …';
+  t.style.color = B.win ? '#7ff0a8' : '#ff8a7a';
+  var sec = Math.round(B.stats.ms / 1000);
+  document.getElementById('resSum').textContent =
+    (B.win ? '打倒了 ' + B.boss.name + '！' : 'Boss 还剩 ' + B.boss.hp + ' 点血量') +
+    '　·　总用时 ' + Math.floor(sec / 60) + ' 分 ' + (sec % 60) + ' 秒　·　共 ' + B.round + ' 回合';
+  document.getElementById('resGrid').innerHTML = B.heroes.map(function (h, i) {
+    var s = B.stats.per[i];
+    return '<div class="statCard"><div class="nm">' + h.name + '</div>' +
+      '<div class="cl" style="color:' + h.ref.robe + '">' + h.cls + '</div>' +
+      '<div class="ln">答对 ' + s.right + ' 题<br>答错 ' + s.wrong + ' 次<br>' +
+      '释放技能 ' + s.cast + ' 次<br>跳过 ' + s.skip + ' 次</div></div>';
+  }).join('');
+  document.getElementById('result').classList.remove('hidden');
+}
+
+/* ============================ 开局 / 主循环 ============================ */
+function startBattle() {
+  ac();                       // 用户手势中解锁音频
+  readCfg();
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('result').classList.add('hidden');
+  newBattle();
+  sfx('click');
+}
+function backToSetup() {
+  clearTimers();
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('setup').classList.remove('hidden');
+  newBattle();
+  clearTimers();
+  B.active = -1; B.q = null; B.locked = true;
+  renderPanels();
+}
+
+var last = 0;
+function loop(ts) {
+  var dt = last ? (ts - last) / 1000 : 0.016;
+  last = ts;
+  if (dt > 0.05) dt = 0.05;
+  try {
+    if (B) {
+      tickTimers(dt);
+      var i;
+      for (i = B.fx.length - 1; i >= 0; i--) {
+        B.fx[i].t += dt;
+        if (B.fx[i].t > B.fx[i].dur + (B.fx[i].delay || 0)) B.fx.splice(i, 1);
+      }
+      for (i = B.floats.length - 1; i >= 0; i--) {
+        B.floats[i].t += dt;
+        if (B.floats[i].t > B.floats[i].dur) B.floats.splice(i, 1);
+      }
+      if (B.bannerT > 0) B.bannerT -= dt;
+      var bs = B.boss;
+      bs.bob += dt;
+      if (bs.hitT > 0) bs.hitT -= dt;
+      if (bs.shake > 0) bs.shake -= dt;
+      if (bs.morph > 0) bs.morph -= dt;
+      if (bs.atkT > 0) bs.atkT -= dt;
+      for (i = 0; i < 4; i++) {
+        var h = B.heroes[i];
+        if (h.hitT > 0) h.hitT -= dt;
+        if (h.castT > 0) h.castT -= dt;
+        if (h.glow > 0) h.glow -= dt * 1.2;
+      }
+      if (B.wrongT > 0) { B.wrongT -= dt; if (B.wrongT <= 0) renderPanels(); }
+    }
+    render();
+  } catch (err) {
+    if (window.console && window.console.error) window.console.error('loop:', err);
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ============================ 初始化 ============================ */
+buildSetup();
+buildPanels();
+bindPanels();
+newBattle();
+clearTimers();
+B.active = -1; B.q = null; B.locked = true;   // 设置页期间只做预览
+renderPanels();
+fit();
+
+document.getElementById('btnStart').addEventListener('click', startBattle);
+document.getElementById('btnAgain').addEventListener('click', startBattle);
+document.getElementById('btnBack').addEventListener('click', backToSetup);
+requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>
