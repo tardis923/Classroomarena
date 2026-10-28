@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>团队合作知识闯关</title>
+<title>团队合作知识闯关 · 进阶版</title>
 <style>
 /* ================= 基础 ================= */
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -103,6 +103,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
           border-radius: 16px; background: #ffd45e; color: #241a3d;
           font-size: 34px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .bigBtn.ghost { background: #4a3f74; color: #fff; height: 62px; font-size: 26px; }
+.bigBtn.off { background: #3d3358; color: #8d84a8; }
 .bigBtn:active { filter: brightness(.9); }
 .resBtns { display: flex; gap: 14px; margin-top: 18px; }
 
@@ -149,6 +150,17 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .pwFoot { margin-top: 14px; }
 .pwFoot .pwKey { width: 100%; height: 60px; font-size: 24px; background: #4a3f74; }
 
+/* ================= 魔力条 ================= */
+.gone { display: none !important; }
+.energyBar { background: #322650; border-radius: 14px; padding: 14px 18px; }
+.eLine { font-size: 23px; font-weight: 700; color: #fff; }
+.eLine b { font-size: 32px; color: #a97bf5; }
+.eTrack { height: 24px; border-radius: 99px; background: #1a1330; margin: 10px 0 8px; overflow: hidden; }
+.eFill { height: 100%; width: 0; border-radius: 99px; background: #a97bf5; transition: width .35s; }
+.eFill.ok { background: #4ecb83; }
+.eTip { font-size: 18px; font-weight: 700; color: #ff9a9a; line-height: 1.45; }
+.eTip.ok { color: #7ff0a8; }
+
 /* ================= 轻提示 ================= */
 #toast { position: absolute; left: 50%; top: 900px; transform: translateX(-50%); z-index: 300;
          background: rgba(20,14,35,.96); border: 3px solid #ffd45e; color: #ffd45e;
@@ -166,10 +178,14 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
   <div id="overlay">
     <div id="setup" class="card">
       <div class="cardHead">
-        <h1>团队合作知识闯关</h1>
-        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），合力打倒大魔王。Boss 分三阶段变身，题目难度逐级上升；答对才能释放技能，答错会换一题。默认参数已按小学生平均水平调成中等难度。</p>
+        <h1>团队合作知识闯关 · 进阶版</h1>
+        <p class="sub">四人争霸赛里「团队闯关」的<b>进阶版</b>：四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。默认参数已按小学生平均水平调成中等难度。</p>
       </div>
       <div class="cardBody">
+      <div class="setRow">
+        <div class="energyBar" id="energyBar"></div>
+      </div>
+
       <div class="setRow">
         <div class="setLabel">题库（决定答题方式）</div>
         <div class="opts" id="optSubj"></div>
@@ -187,6 +203,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       </div>
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
+        <button id="btnToArena" class="bigBtn ghost gone">先去「四人争霸赛」攒魔力 →</button>
         <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。</div>
       </div>
     </div>
@@ -198,6 +215,16 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         <p class="sub">数值越大越难 / Boss 越强。改完点「保存配置」，会存到本机浏览器，下次打开自动生效；当前这一局结束后才应用新数值。</p>
       </div>
       <div class="cardBody">
+        <div class="setRow">
+          <div class="setLabel">魔力门票（与「四人争霸赛」联动）</div>
+          <div class="opts" id="optEnergy"></div>
+        </div>
+
+        <div class="setRow">
+          <div class="setLabel">开战消耗魔力点数（学生在「四人争霸赛」里每答对 1 题得 1 点）</div>
+          <div class="grid4" id="fldEnergy"></div>
+        </div>
+
         <div class="setRow">
           <div class="setLabel">Boss 设定</div>
           <div class="grid4" id="fldBoss"></div>
@@ -225,6 +252,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         <div class="resBtns">
           <button id="btnSaveCfg" class="bigBtn">保 存 配 置</button>
           <button id="btnResetCfg" class="bigBtn ghost">恢 复 默 认</button>
+          <button id="btnClearEnergy" class="bigBtn ghost">魔 力 清 零</button>
           <button id="btnCloseCfg" class="bigBtn ghost">关 闭</button>
         </div>
       </div>
@@ -309,7 +337,10 @@ var DEFAULTS = {
   shieldAmt: 60,      // 全员满血时，治疗师答对给每人的护盾值
   shieldMax: 240,     // 护盾叠加上限
   wrongToHeal: 3,     // 我方每累计答错几题，Boss 回血一次
-  bossHealPct: 8      // 每次回复总血量的百分之几
+  bossHealPct: 8,     // 每次回复总血量的百分之几
+
+  energyOn: 1,        // 魔力门槛：1 需要门票才能开战 / 0 不需要
+  energyNeed: 30      // 开战消耗多少点班级魔力
 };
 
 var CFG = {};
@@ -332,6 +363,7 @@ function loadCfg() {
     for (var k in DEFAULTS) {
       if (!Object.prototype.hasOwnProperty.call(DEFAULTS, k)) continue;
       var v = o[k];
+      if (k === 'energyOn') { CFG[k] = v ? 1 : 0; continue; }   /* 允许为 0（关闭门槛） */
       if (typeof DEFAULTS[k] === 'number') {
         if (typeof v === 'number' && isFinite(v) && v > 0) CFG[k] = v;
       } else if (k === 'subject') {
@@ -356,6 +388,30 @@ function setPwd(p) {
   try { window.localStorage.setItem(PWD_KEY, p); return true; } catch (e) { return false; }
 }
 
+/* ---------- 班级魔力池（与四人争霸赛共享） ----------
+   学生在「四人争霸赛」里每答对 1 题 = 1 点魔力；
+   攒够 CFG.energyNeed 点才能挑战本进阶版，开战时扣除。        */
+var ENERGY_KEY = 'arena_energy_v1';
+function loadEnergy() {
+  var d = { pool: 0, need: 30, on: 1 };
+  try {
+    var s = window.localStorage.getItem(ENERGY_KEY);
+    if (s) {
+      var o = JSON.parse(s);
+      if (o && typeof o === 'object') {
+        if (typeof o.pool === 'number' && isFinite(o.pool) && o.pool >= 0) d.pool = Math.floor(o.pool);
+        if (typeof o.need === 'number' && isFinite(o.need) && o.need >= 1) d.need = Math.floor(o.need);
+        d.on = o.on ? 1 : 0;
+      }
+    }
+  } catch (e) { }
+  return d;
+}
+function saveEnergy(d) {
+  try { window.localStorage.setItem(ENERGY_KEY, JSON.stringify(d)); return true; }
+  catch (e) { return false; }
+}
+
 /* ---------- 轻提示 ---------- */
 var toastTimer = 0;
 function toast(msg) {
@@ -369,11 +425,11 @@ function toast(msg) {
 
 /* Boss 三阶段：体型变大、攻击力提升、攻击频率下降、外观与名称变化 */
 var PHASES = [
-  { name: '算术小魔王', scale: 1.00, atkMul: 1.0, atkChance: 1.00, meteorMul: 1.0,
+  { name: '知识小魔王', scale: 1.00, atkMul: 1.0, atkChance: 1.00, meteorMul: 1.0,
     body: '#6fbf5b', dark: '#3f7a33', horn: '#f2d06a', eye: '#fff3b0', spikes: 0 },
-  { name: '算术大魔王', scale: 1.28, atkMul: 1.6, atkChance: 0.80, meteorMul: 1.3,
+  { name: '知识大魔王', scale: 1.28, atkMul: 1.6, atkChance: 0.80, meteorMul: 1.3,
     body: '#a86ad6', dark: '#6a3a9c', horn: '#ffe08a', eye: '#ffd0f0', spikes: 1 },
-  { name: '终焉算术魔君', scale: 1.58, atkMul: 2.3, atkChance: 0.62, meteorMul: 1.7,
+  { name: '终焉知识魔君', scale: 1.58, atkMul: 2.3, atkChance: 0.62, meteorMul: 1.7,
     body: '#d1483c', dark: '#8a2318', horn: '#ffd45e', eye: '#ffe08a', spikes: 2 }
 ];
 
@@ -1713,7 +1769,8 @@ var FIELDS = {
              ['freezeSec', '冻结秒数'], ['freezeImmuneSec', '冻结免疫秒数']],
   fldHero: [['heroHp', '角色血量'], ['burnDmg', '灼烧每次伤害'], ['burnTurns', '灼烧次数'], ['burnTickSec', '灼烧间隔（秒）'],
             ['shieldAmt', '全员满血时给的护盾'], ['shieldMax', '护盾叠加上限'],
-            ['wrongToHeal', '答错几题 Boss 回血'], ['bossHealPct', 'Boss 每次回血%']]
+            ['wrongToHeal', '答错几题 Boss 回血'], ['bossHealPct', 'Boss 每次回血%']],
+  fldEnergy: [['energyNeed', '开战消耗魔力点数']]
 };
 
 function mkOpts(boxId, list, cur, onPick) {
@@ -1815,6 +1872,9 @@ function openSettings() {
   mkFields('fldBoss', FIELDS.fldBoss);
   mkFields('fldSkill', FIELDS.fldSkill);
   mkFields('fldHero', FIELDS.fldHero);
+  buildEnergyOpts();
+  mkFields('fldEnergy', FIELDS.fldEnergy);
+  document.getElementById('cf_energyNeed').value = CFG.energyNeed;
   document.getElementById('cf_newpwd').value = '';
   setWasRunning = !!(B && !B.over && !B.paused);
   document.getElementById('setup').classList.add('hidden');
@@ -1838,7 +1898,10 @@ function resumeBattle() {
   renderPanels();
 }
 function saveSettings() {
+  var en = parseInt(document.getElementById('cf_energyNeed').value, 10);
+  if (isFinite(en) && en >= 1) CFG.energyNeed = en;
   readCfg();
+  writeEnergyMeta();                         /* 把门票价 / 开关同步给四人争霸赛 */
   var np = String(document.getElementById('cf_newpwd').value || '').replace(/\D/g, '');
   if (np.length > 0 && np.length !== 4) { toast('新密码必须是 4 位数字'); return; }
   var okPwd = np ? setPwd(np) : true;
@@ -1853,9 +1916,64 @@ function resetSettings() {
   mkFields('fldBoss', FIELDS.fldBoss);
   mkFields('fldSkill', FIELDS.fldSkill);
   mkFields('fldHero', FIELDS.fldHero);
+  buildEnergyOpts();
+  mkFields('fldEnergy', FIELDS.fldEnergy);
+  document.getElementById('cf_energyNeed').value = CFG.energyNeed;
+  writeEnergyMeta();
   buildSetup();                              /* 刷新首页的题库 / 难度选中态 */
   toast('已恢复默认（中等难度）参数');
   closeSettings();
+}
+
+/* ============================ 魔力门票 ============================ */
+function renderEnergy() {
+  var el = document.getElementById('energyBar');
+  if (!el) return;
+  if (!CFG.energyOn) {
+    el.innerHTML = '<div class="eLine">魔力门票：<b>已关闭</b></div>' +
+      '<div class="eTip ok">老师已关闭魔力门槛，可以随时直接开战。</div>';
+    return;
+  }
+  var d = loadEnergy();
+  var pct = Math.min(100, d.pool / CFG.energyNeed * 100);
+  var ok = d.pool >= CFG.energyNeed;
+  el.innerHTML =
+    '<div class="eLine">班级魔力 <b>' + d.pool + '</b> / ' + CFG.energyNeed + ' 点</div>' +
+    '<div class="eTrack"><div class="eFill' + (ok ? ' ok' : '') + '" style="width:' + pct + '%"></div></div>' +
+    '<div class="eTip' + (ok ? ' ok' : '') + '">' +
+    (ok ? '魔力充足！开战会消耗 ' + CFG.energyNeed + ' 点班级魔力。'
+        : '还差 ' + (CFG.energyNeed - d.pool) + ' 点魔力才能挑战 —— 先去「四人争霸赛」打一局，每答对 1 题得 1 点。') +
+    '</div>';
+}
+function energyLocked() { return !!CFG.energyOn && loadEnergy().pool < CFG.energyNeed; }
+function syncEnergyUI() {
+  renderEnergy();
+  var bs = document.getElementById('btnStart');
+  var ba = document.getElementById('btnToArena');
+  var lack = energyLocked();
+  if (bs) {
+    if (lack) { bs.classList.add('off'); bs.textContent = '魔 力 不 足'; }
+    else { bs.classList.remove('off'); bs.textContent = '开 始 战 斗'; }
+  }
+  if (ba) { if (lack) ba.classList.remove('gone'); else ba.classList.add('gone'); }
+}
+function writeEnergyMeta() {
+  var d = loadEnergy();
+  d.need = CFG.energyNeed; d.on = CFG.energyOn ? 1 : 0;
+  saveEnergy(d);
+}
+function clearEnergy() {
+  var d = loadEnergy();
+  d.pool = 0; d.need = CFG.energyNeed; d.on = CFG.energyOn ? 1 : 0;
+  saveEnergy(d);
+  toast('班级魔力已清零，需要重新攒');
+  syncEnergyUI();
+}
+function buildEnergyOpts() {
+  mkOpts('optEnergy', [
+    { id: 1, name: '需要门票', desc: '须先在四人争霸赛攒够魔力' },
+    { id: 0, name: '不需要', desc: '随时可以直接开战' }
+  ], CFG.energyOn, function (id) { CFG.energyOn = id; });
 }
 
 /* ============================ 全屏 ============================ */
@@ -2020,6 +2138,17 @@ function showResult() {
 function startBattle() {
   ac();                       // 用户手势中解锁音频
   readCfg();
+  if (CFG.energyOn) {                        /* 魔力门票：开战时扣除 */
+    var d = loadEnergy();
+    if (d.pool < CFG.energyNeed) {
+      toast('魔力不足：还差 ' + (CFG.energyNeed - d.pool) + ' 点，先去四人争霸赛攒一攒');
+      syncEnergyUI();
+      return;
+    }
+    d.pool -= CFG.energyNeed;
+    d.need = CFG.energyNeed; d.on = 1;
+    saveEnergy(d);
+  }
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('result').classList.add('hidden');
   newBattle();
@@ -2030,6 +2159,7 @@ function backToSetup() {
   document.getElementById('setup').classList.remove('hidden');
   newBattle();
   parkBattle();
+  syncEnergyUI();
 }
 
 var last = 0;
@@ -2082,6 +2212,7 @@ newBattle();
 parkBattle();                                 // 设置页期间只做画面预览
 fit();
 syncFsBtn();
+syncEnergyUI();                               // 魔力门票状态
 
 document.getElementById('btnStart').addEventListener('click', startBattle);
 document.getElementById('btnAgain').addEventListener('click', startBattle);
@@ -2092,6 +2223,8 @@ document.getElementById('pwCancel').addEventListener('click', function () { sfx(
 document.getElementById('btnSaveCfg').addEventListener('click', saveSettings);
 document.getElementById('btnResetCfg').addEventListener('click', resetSettings);
 document.getElementById('btnCloseCfg').addEventListener('click', function () { sfx('click'); closeSettings(); });
+document.getElementById('btnToArena').addEventListener('click', function () { sfx('click'); location.href = 'index.html'; });
+document.getElementById('btnClearEnergy').addEventListener('click', clearEnergy);
 requestAnimationFrame(loop);
 
 </script>

@@ -55,7 +55,7 @@
   var MODES = [
     { id: 'eat', name: '吃食物大赛', desc: '答对就开吃，先吃完者获胜' },
     { id: 'race', name: '赛道竞速', desc: '答对向前冲，先到终点者获胜' },
-    { id: 'team', name: '团队闯关', desc: '四人合力打倒大魔王，共 ' + TEAM_MAX_LEVEL + ' 关' }
+    { id: 'team', name: '团队闯关', desc: '四人合力打倒大魔王，共 ' + TEAM_MAX_LEVEL + ' 关（进阶版在「团队合作知识闯关」里）' }
   ];
 
   var TIPS = {
@@ -89,6 +89,50 @@
     var sub = document.querySelector('#setup .sub');
     if (h1) h1.textContent = GAME_TITLE;
     if (sub) sub.textContent = (SUBS[cfg.mode] || SUBS.eat)(Scene.food(), ROSTER[cfg.theme] || ROSTER.forest);
+  }
+
+  /* ================= 魔力池（与 boss-battle.html 共享） =================
+     pool = 班级攒的魔力；need = 挑战大魔王要几张点；on = 门槛开关
+     本游戏只负责「产出魔力」，消耗由 boss-battle.html 开战时扣。      */
+  var ENERGY_KEY = 'arena_energy_v1';
+  function loadEnergy() {
+    var d = { pool: 0, need: 30, on: 1 };
+    try {
+      var s = window.localStorage.getItem(ENERGY_KEY);
+      if (s) {
+        var o = JSON.parse(s);
+        if (o && typeof o === 'object') {
+          if (typeof o.pool === 'number' && isFinite(o.pool) && o.pool >= 0) d.pool = Math.floor(o.pool);
+          if (typeof o.need === 'number' && isFinite(o.need) && o.need >= 1) d.need = Math.floor(o.need);
+          d.on = o.on ? 1 : 0;
+        }
+      }
+    } catch (e) { }
+    return d;
+  }
+  function saveEnergy(d) {
+    try { window.localStorage.setItem(ENERGY_KEY, JSON.stringify(d)); return true; }
+    catch (e) { return false; }
+  }
+  function renderEnergyResult(totalRight, gain, ed) {
+    var eb = $('energyBox');
+    if (eb) {
+      var html = '<div class="eGain">本局四人共答对 ' + totalRight + ' 题　→　获得 <b>+' + gain + '</b> 点魔力</div>';
+      if (!ed.on) html += '<div class="ePool">魔力门槛已由老师关闭，可随时挑战大魔王</div>';
+      else {
+        html += '<div class="ePool">班级魔力池：<b>' + ed.pool + '</b> / ' + ed.need + ' 点' +
+          (ed.pool >= ed.need
+            ? '<span class="eOk">魔力充足，可以去挑战大魔王！</span>'
+            : '<span class="eNo">还差 ' + (ed.need - ed.pool) + ' 点才能挑战大魔王</span>') + '</div>';
+      }
+      eb.innerHTML = html;
+    }
+    var bb = $('btnBoss');
+    if (bb) {
+      var can = !ed.on || ed.pool >= ed.need;
+      if (can) { bb.classList.remove('locked'); bb.textContent = '挑 战 大 魔 王 →'; }
+      else { bb.classList.add('locked'); bb.textContent = '魔 力 不 足 ' + ed.pool + '/' + ed.need; }
+    }
   }
 
   /* ================= 缩放适配 ================= */
@@ -698,6 +742,16 @@
       else if (tied) $('resultTitle').textContent = topNames.join('、') + ' 并列第一！';
       else $('resultTitle').textContent = ranked[0].name + ' ' + verb + '！';
     }
+    /* ---- 魔力结算：每答对 1 题 = 1 点，不设单局上限 ----
+       数量设 5 一局约 16 点（半张票），设 20 一局可拿 60+ 点（两票）。
+       开局就点「提前结算」只能拿 0 点，刷分被堵死。              */
+    var totalRight = 0;
+    for (var k = 0; k < players.length; k++) totalRight += (players[k].eaten || 0);
+    var ed = loadEnergy();
+    var gain = totalRight;
+    if (gain > 0) { ed.pool += gain; saveEnergy(ed); }
+    renderEnergyResult(totalRight, gain, ed);
+
     $('setup').classList.add('hidden');
     $('result').classList.remove('hidden');
     $('overlay').classList.remove('hidden');
@@ -755,6 +809,14 @@
       $('result').classList.add('hidden');
       $('setup').classList.remove('hidden');
       state = 'setup';
+    });
+    /* 去进阶版闯关：魔力在 boss-battle.html 开战时才扣除 */
+    bindTap($('btnBoss'), function (e) {
+      e.preventDefault();
+      var ed = loadEnergy();
+      if (ed.on && ed.pool < ed.need) { Sound.bad(); return; }
+      Sound.ok();
+      location.href = 'boss-battle.html';
     });
 
     // 桌面测试用：物理键盘映射到 1 号玩家

@@ -188,6 +188,28 @@ html, body {
 .resBtns { display: flex; gap: 24px; justify-content: center; margin-top: 24px; }
 .tip { margin-top: 16px; font-size: 18px; color: #8a6534; }
 
+/* ---------- 魔力（与进阶版闯关联动） ---------- */
+.energyBox {
+  margin: 16px auto 0; max-width: 900px; padding: 14px 20px;
+  background: linear-gradient(#fff6e2, #ffe9c2);
+  border: 4px solid #b4793c; border-radius: 16px;
+}
+.energyBox .eGain { font-size: 26px; font-weight: 900; color: #a3340f; }
+.energyBox .eGain b { color: #e0631a; font-size: 34px; }
+.energyBox .ePool { margin-top: 6px; font-size: 22px; color: #7a4f1a; }
+.energyBox .ePool b { font-size: 30px; color: #a3340f; }
+.energyBox .eOk { display: inline-block; margin-left: 14px; color: #2f7d3a; font-weight: 900; }
+.energyBox .eNo { display: inline-block; margin-left: 14px; color: #c25a1a; font-weight: 900; }
+
+.bigBtn.bossBtn {
+  width: 100%; max-width: 900px; margin-top: 14px;
+  background: linear-gradient(#8a5cf0, #5b2fb8); border-color: #3d1f80;
+}
+.bigBtn.bossBtn.locked {
+  background: linear-gradient(#c9bfae, #a99c88); border-color: #8a7f70;
+  color: #f4efe7; cursor: not-allowed;
+}
+
 /* ---------- 结算 ---------- */
 #podium { display: flex; align-items: flex-end; justify-content: center; gap: 26px; height: 250px; margin: 10px 0 22px; }
 .pod {
@@ -221,3 +243,13 @@ html, body {
 .rankRow .no { width: 60px; text-align: center; font-size: 26px; color: #a3340f; }
 .rankRow .nm { width: 220px; text-align: left; }
 .rankRow .st { flex: 1; text-align: left; color: #7a4f1a; font-size: 21px; }
+
+/* ---------- 结算页：加入魔力区后内容更高，压缩留白保证底部按钮完整可见 ---------- */
+#result { padding: 26px 60px 30px; }
+#result #podium { margin: 6px 0 14px; }
+#result #rankList { gap: 6px; }
+#result .rankRow { padding: 8px 18px; }
+#result .energyBox { margin-top: 10px; padding: 9px 20px; }
+#result .energyBox .ePool { margin-top: 3px; }
+#result .bigBtn.bossBtn { margin-top: 10px; padding: 15px 70px; font-size: 34px; }
+#result .resBtns .bigBtn { margin-top: 10px; padding: 15px 70px; font-size: 34px; }
