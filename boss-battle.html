@@ -59,7 +59,9 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .pSkipRow .kbtn { height: 34px; }
 
 /* ================= 覆盖层 ================= */
-#overlay { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+/* 关键：覆盖层铺满整屏，若不关闭命中测试会把四个答题区的点击全部吃掉 */
+#overlay { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+#overlay .card { pointer-events: auto; }
 .card { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
         width: 1500px; max-height: 1000px; overflow: auto; background: #241a3d;
         border-radius: 22px; padding: 26px 34px; color: #fff; box-shadow: 0 18px 60px rgba(0,0,0,.5); }
