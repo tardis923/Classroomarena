@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>四人争霸赛 · 团队闯关</title>
+<title>团队合作知识闯关</title>
 <style>
 /* ================= 基础 ================= */
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -54,6 +54,15 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         background: #4a3f74; color: #fff; cursor: pointer; font-family: inherit;
         line-height: 1.25; padding: 6px; overflow: hidden; }
 .obtn:active { background: #6d5ba6; }
+
+/* 比大小题：题目行 + 答案框 + 「> < =」三大键 + 确定/换一题 */
+.pQ.cmp { height: 76px; font-size: 36px; letter-spacing: 0; }
+.pAns.cmp { font-size: 44px; line-height: 1; }
+.pKeys.cmpkeys { grid-template-columns: repeat(3, 1fr); }
+.pKeys.cmpkeys .kbtn.cmpv { height: 96px; font-size: 46px; background: #4a3f74; }
+.pKeys.cmpkeys .kbtn.cmpv:active { background: #6d5ba6; }
+.pKeys.cmpkeys .kbtn.ok { height: 56px; font-size: 26px; }
+.pKeys.cmpkeys .kbtn.skip { height: 56px; font-size: 22px; }
 
 .pSkipRow { margin-top: 6px; height: 34px; }
 .pSkipRow .kbtn { height: 34px; }
@@ -107,6 +116,45 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .statCard .cl { font-size: 15px; color: #b9aed6; margin: 2px 0 8px; }
 .statCard .ln { font-size: 16px; color: #ddd; line-height: 1.7; }
 .sumline { text-align: center; font-size: 21px; color: #ffd45e; margin-top: 14px; font-weight: 700; }
+
+/* ================= 左上角「设置」/ 右上角「全屏」 ================= */
+#hud { position: absolute; left: 0; top: 0; width: 1920px; height: 0; z-index: 80; pointer-events: none; }
+.hudBtn { position: absolute; top: 12px; height: 52px; min-width: 120px; padding: 0 18px;
+          border: 3px solid rgba(255,255,255,.22); border-radius: 14px; pointer-events: auto;
+          background: rgba(36,26,61,.94); color: #ffd45e; font-size: 24px; font-weight: 700;
+          font-family: inherit; cursor: pointer; }
+.hudBtn:active { background: #4a3f74; color: #fff; }
+#btnSet { left: 16px; }
+#btnFs  { right: 16px; }
+
+/* ================= 密码键盘（管理入口） ================= */
+.mask { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 200;
+        background: rgba(8,5,16,.74); display: flex; align-items: center; justify-content: center; }
+.mask.hidden { display: none; }
+.pwCard { width: 560px; background: #241a3d; border-radius: 22px; padding: 30px 36px 32px;
+          color: #fff; box-shadow: 0 18px 60px rgba(0,0,0,.55); text-align: center; }
+.pwTitle { font-size: 32px; font-weight: 700; margin-bottom: 6px; }
+.pwHint  { font-size: 17px; color: #b9aed6; margin-bottom: 18px; line-height: 1.5; }
+.pwDots  { display: flex; gap: 16px; justify-content: center; margin-bottom: 8px; }
+.pwDots i { width: 50px; height: 56px; border-radius: 10px; background: #1a1330;
+            border: 3px solid rgba(255,255,255,.2); display: block; }
+.pwDots i.on  { background: #ffd45e; border-color: #ffd45e; }
+.pwDots i.bad { border-color: #ff7a6a; background: #3a2030; }
+.pwErr { height: 28px; font-size: 18px; color: #ff8a7a; font-weight: 700; margin-bottom: 4px; }
+.pwKeys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pwKey { height: 70px; border: none; border-radius: 12px; background: #4a3f74; color: #fff;
+         font-size: 28px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.pwKey:active { background: #6d5ba6; }
+.pwKey.warn { background: #a4572b; }
+.pwFoot { margin-top: 14px; }
+.pwFoot .pwKey { width: 100%; height: 60px; font-size: 24px; background: #4a3f74; }
+
+/* ================= 轻提示 ================= */
+#toast { position: absolute; left: 50%; top: 900px; transform: translateX(-50%); z-index: 300;
+         background: rgba(20,14,35,.96); border: 3px solid #ffd45e; color: #ffd45e;
+         font-size: 24px; font-weight: 700; padding: 14px 32px; border-radius: 14px;
+         pointer-events: none; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+#toast.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -118,8 +166,8 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
   <div id="overlay">
     <div id="setup" class="card">
       <div class="cardHead">
-        <h1>四人争霸赛 · 团队闯关</h1>
-        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），合力打倒大魔王。Boss 分三阶段变身，题目难度逐级上升；答对才能释放技能，答错可以重来或换一题。</p>
+        <h1>团队合作知识闯关</h1>
+        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），合力打倒大魔王。Boss 分三阶段变身，题目难度逐级上升；答对才能释放技能，答错会换一题。默认参数已按小学生平均水平调成中等难度。</p>
       </div>
       <div class="cardBody">
       <div class="setRow">
@@ -134,23 +182,51 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       </div>
 
       <div class="setRow">
-        <div class="setLabel">Boss 设定</div>
-        <div class="grid4" id="fldBoss"></div>
-      </div>
-
-      <div class="setRow">
-        <div class="setLabel">技能数值</div>
-        <div class="grid4" id="fldSkill"></div>
-      </div>
-
-      <div class="setRow">
-        <div class="setLabel">我方设定</div>
-        <div class="grid4" id="fldHero"></div>
+        <div class="tip" style="text-align:left;margin:0">想改 Boss 血量、技能伤害、角色血量等数值？点屏幕左上角的「设 置」按钮，输入管理密码后即可调整，保存后会自动存在本机，下次打开仍然生效。</div>
       </div>
       </div>
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
         <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。</div>
+      </div>
+    </div>
+
+    <!-- 参数设置（需密码） -->
+    <div id="settings" class="card hidden">
+      <div class="cardHead">
+        <h1>参数设置</h1>
+        <p class="sub">数值越大越难 / Boss 越强。改完点「保存配置」，会存到本机浏览器，下次打开自动生效；当前这一局结束后才应用新数值。</p>
+      </div>
+      <div class="cardBody">
+        <div class="setRow">
+          <div class="setLabel">Boss 设定</div>
+          <div class="grid4" id="fldBoss"></div>
+        </div>
+
+        <div class="setRow">
+          <div class="setLabel">技能数值</div>
+          <div class="grid4" id="fldSkill"></div>
+        </div>
+
+        <div class="setRow">
+          <div class="setLabel">我方设定</div>
+          <div class="grid4" id="fldHero"></div>
+        </div>
+
+        <div class="setRow">
+          <div class="setLabel">修改管理密码（4 位数字，留空表示不修改）</div>
+          <div class="fld" style="max-width:280px">
+            <input id="cf_newpwd" type="text" inputmode="numeric" maxlength="4" placeholder="如 8888">
+          </div>
+          <div class="tip" style="text-align:left;margin:6px 0 0">初始密码：8888</div>
+        </div>
+      </div>
+      <div class="cardFoot">
+        <div class="resBtns">
+          <button id="btnSaveCfg" class="bigBtn">保 存 配 置</button>
+          <button id="btnResetCfg" class="bigBtn ghost">恢 复 默 认</button>
+          <button id="btnCloseCfg" class="bigBtn ghost">关 闭</button>
+        </div>
       </div>
     </div>
 
@@ -169,46 +245,127 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
     </div>
   </div>
 
+  <!-- 常驻按钮：左上设置（要密码） / 右上全屏 -->
+  <div id="hud">
+    <button id="btnSet" class="hudBtn">设 置</button>
+    <button id="btnFs"  class="hudBtn">全 屏</button>
+  </div>
+
+  <!-- 管理密码键盘 -->
+  <div id="pwMask" class="mask hidden">
+    <div class="pwCard">
+      <div class="pwTitle">请输入管理密码</div>
+      <div class="pwHint">4 位数字，输入满 4 位自动确认</div>
+      <div class="pwDots" id="pwDots"></div>
+      <div class="pwErr" id="pwErr"></div>
+      <div class="pwKeys" id="pwKeys"></div>
+      <div class="pwFoot"><button class="pwKey" id="pwCancel">取 消</button></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
 </div>
 
 <script>
 /* =========================================================================
-   四人争霸赛 · 团队闯关   单文件版
+   团队合作知识闯关   单文件版
    无外部依赖，双击即可运行。所有角色 / Boss / 特效均为 Canvas 程序化绘制。
+   首页只显示「题库」和「题目难度」；其余数值在左上角「设置」里，
+   输入管理密码（默认 8888）后可调，点「保存配置」存到本机浏览器。
    ========================================================================= */
 
 var W = 1920, H = 1080, AH = 720;          // 舞台宽高 / 战斗区高
 var cv = document.getElementById('arena');
 var ctx = cv.getContext('2d');
 
-/* ============================ 可配置参数 ============================ */
-var CFG = {
-  subject: 'math',   // math | chinese | english
-  level: 3,          // 数学基准年级 3-6（Boss 每进阶一阶段 +1 年级，封顶 6）
+/* ============================ 可配置参数 ============================
+   以下为「中等难度」固定值：按小学生平均水平调过，
+   一局大约 3~4 分钟，答得快准就能赢，磨蹭或乱答就会被 Boss 拖死。
+   老师可以在左上角「设置」（密码 8888）里改，保存后存在本机。
+   ==================================================================== */
+var DEFAULTS = {
+  subject: 'math',    // math | chinese | english
+  level: 3,           // 数学基准年级 3-6（Boss 每进阶一阶段 +1 年级，封顶 6）
 
-  bossHp: 2400,
-  bossAtk: 50,
-  bossAtkEvery: 8,   // 秒：Boss 普通攻击间隔
-  meteorEvery: 45,   // 秒：天降陨石间隔
-  meteorDmg: 80,
+  bossHp: 2400,       // Boss 总血量
+  bossAtk: 42,        // Boss 普通攻击伤害（打随机一名角色）
+  bossAtkEvery: 9,    // 秒：Boss 普通攻击间隔
+  meteorEvery: 48,    // 秒：天降陨石（全体伤害）间隔
+  meteorDmg: 70,      // 天降陨石：每名角色受到的伤害
 
-  heroHp: 200,
-  dmgThunder: 95,    // 雷电：单体高伤害
-  dmgFire: 62,       // 火焰弹
-  burnDmg: 26,       // 灼烧：每次结算掉血
-  burnTurns: 3,      // 灼烧：结算次数
-  burnTickSec: 2,    // 灼烧：每隔几秒结算一次
-  dmgIce: 58,        // 冰霜
-  freezeSec: 5,      // 冻结：Boss 停手几秒
-  freezeImmuneSec: 12, // 冻结结束后，Boss 获得几秒冻结免疫（防止无限冻）
-  healAmt: 80,       // 治疗师：单体治疗量
-  healGroupEvery: 10,// 治疗师：累计答对几次触发一次全体治疗
-  healGroupAmt: 120, // 治疗师：全体治疗量
-  shieldAmt: 60,     // 全员满血时，治疗师答对给每人的护盾值
-  shieldMax: 240,    // 护盾叠加上限
-  wrongToHeal: 2,   // 我方每累计答错几题，Boss 回血一次
-  bossHealPct: 10    // 每次回复总血量的百分之几
+  heroHp: 220,        // 我方每名角色血量
+  dmgThunder: 100,    // 雷电：单体高伤害
+  dmgFire: 68,        // 火焰弹：即时伤害
+  burnDmg: 24,        // 灼烧：每次结算掉血
+  burnTurns: 3,       // 灼烧：结算次数（合计 72 点）
+  burnTickSec: 2,     // 灼烧：每隔几秒结算一次
+  dmgIce: 62,         // 冰霜：即时伤害
+  freezeSec: 5,       // 冻结：Boss 停手几秒
+  freezeImmuneSec: 12,// 冻结结束后，Boss 获得几秒冻结免疫（防止无限冻）
+  healAmt: 85,        // 治疗师：单体治疗量
+  healGroupEvery: 10, // 治疗师：累计答对几次触发一次全体治疗
+  healGroupAmt: 130,  // 治疗师：全体治疗量
+  shieldAmt: 60,      // 全员满血时，治疗师答对给每人的护盾值
+  shieldMax: 240,     // 护盾叠加上限
+  wrongToHeal: 3,     // 我方每累计答错几题，Boss 回血一次
+  bossHealPct: 8      // 每次回复总血量的百分之几
 };
+
+var CFG = {};
+function resetCfg() {
+  for (var k in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, k)) CFG[k] = DEFAULTS[k];
+}
+resetCfg();
+
+/* ---------- 本地保存 / 读取（localStorage，存本机浏览器） ---------- */
+var CFG_KEY = 'bossbattle_cfg_v1';
+var PWD_KEY = 'bossbattle_pwd_v1';
+var DEFAULT_PWD = '8888';
+
+function loadCfg() {
+  try {
+    var s = window.localStorage.getItem(CFG_KEY);
+    if (!s) return false;
+    var o = JSON.parse(s);
+    if (!o || typeof o !== 'object') return false;
+    for (var k in DEFAULTS) {
+      if (!Object.prototype.hasOwnProperty.call(DEFAULTS, k)) continue;
+      var v = o[k];
+      if (typeof DEFAULTS[k] === 'number') {
+        if (typeof v === 'number' && isFinite(v) && v > 0) CFG[k] = v;
+      } else if (k === 'subject') {
+        if (v === 'math' || v === 'chinese' || v === 'english') CFG[k] = v;
+      } else if (k === 'level') {
+        var n = parseInt(v, 10);
+        if (n >= 3 && n <= 6) CFG[k] = n;
+      }
+    }
+    return true;
+  } catch (e) { return false; }
+}
+function saveCfg() {
+  try { window.localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); return true; }
+  catch (e) { return false; }
+}
+function getPwd() {
+  try { var p = window.localStorage.getItem(PWD_KEY); return (p && p.length >= 4) ? p : DEFAULT_PWD; }
+  catch (e) { return DEFAULT_PWD; }
+}
+function setPwd(p) {
+  try { window.localStorage.setItem(PWD_KEY, p); return true; } catch (e) { return false; }
+}
+
+/* ---------- 轻提示 ---------- */
+var toastTimer = 0;
+function toast(msg) {
+  var el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.classList.remove('show'); }, 1900);
+}
 
 /* Boss 三阶段：体型变大、攻击力提升、攻击频率下降、外观与名称变化 */
 var PHASES = [
@@ -287,9 +444,61 @@ function sfx(name) {
 function ri(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
 function secs(t) { return Math.max(0, Math.ceil(t)); }      /* 秒数：向上取整，不显示小数 */
 
-/* 数学口算：返回 {text, ans, mode:'num'} —— 用数字键盘作答
+/* ======================= 比大小题型 =======================
+   左右各两个数字，运算符可以不同（＋ － × ÷），
+   两边结果差距不超过 CMP_MAX_DIFF，避免一眼看出、也避免过于悬殊。 */
+var CMP_MAX_DIFF = 5;
+var CMP_TXT = { gt: '>', lt: '<', eq: '=' };
+
+function cmpSide(lv, boost, target) {
+  /* 生成一边：两个数字 + 一个运算符，结果一定是非负整数。
+     传了 target 就「倒推」着凑：加减法可以直接凑出接近 target 的数，
+     这样两边结果差距才小，不会一边 3 一边 80。                   */
+  var ops = ['+', '-', '×', '÷'];
+  var op = ops[ri(0, ops.length - 1)];
+  var hi = Math.min(89, 30 + (lv - 3) * 15 + boost * 15);   /* 两位数上限 */
+  var x, y, v;
+  if (op === '+') {
+    var lo = Math.max(11, target - 89), up = Math.min(hi, target - 11);
+    if (target >= 22 && up >= lo) { x = ri(lo, up); y = target - x; }
+    else { x = ri(11, hi); y = ri(11, hi); }
+    v = x + y;
+  } else if (op === '-') {
+    var uy = Math.min(89, 99 - target);
+    if (target >= 1 && target <= 88 && uy >= 11) { y = ri(11, uy); x = target + y; }
+    else { x = ri(21, 99); y = ri(11, x - 1); }             /* 保证不为负 */
+    v = x - y;
+  } else if (op === '×') {
+    var m = Math.min(9, 5 + (lv - 3) + boost);
+    x = ri(2, m); y = ri(2, 9); v = x * y;                  /* 乘法口诀范围内 */
+  } else {
+    y = ri(2, 9); v = ri(2, 9); x = y * v;                 /* 表内除法，一律整除 */
+  }
+  return { s: x + ' ' + op + ' ' + y, v: v, op: op };
+}
+function genCmp(lv, boost) {
+  for (var g = 0; g < 260; g++) {
+    var a = cmpSide(lv, boost, 0);
+    var want = Math.max(2, a.v + ri(-4, 4));      /* 右边目标值：与左边相差 0~4 */
+    var b = cmpSide(lv, boost, want);
+    /* 左右运算符相同时，多数情况下重掷一次，让两边形式更丰富 */
+    if (a.op === b.op && g < 200 && Math.random() < 0.65) b = cmpSide(lv, boost, want);
+    var d = a.v - b.v;
+    if (a.v < 0 || b.v < 0) continue;
+    if (Math.abs(d) > CMP_MAX_DIFF) continue;                /* 两边悬殊不要过大 */
+    if (Math.max(a.v, b.v) > 160) continue;
+    return {
+      text: a.s + '  \u25CB  ' + b.s,
+      ans: d > 0 ? 'gt' : (d < 0 ? 'lt' : 'eq'),
+      mode: 'cmp'
+    };
+  }
+  return { text: '3 \u00D7 4  \u25CB  2 \u00D7 6', ans: 'eq', mode: 'cmp' };
+}
+
+/* 数学口算：返回 {text, ans, mode} —— mode:'num' 数字键盘，mode:'cmp' 比大小键盘
    题型按年级「累加」，后面年级包含前面所有题型：
-     三年级：A 三个两位数相加减 / B 乘法口诀 ± 一个数
+     三年级：A 两个两位数相加减 / B 乘法口诀 ± 一个数 / F 比大小
      四年级：＋ C 除法（整除）
      五年级：＋ D 两位数×一位数 ± 一个数（可带除法）
      六年级：＋ E 三位数÷一位数 ± 一个数
@@ -297,28 +506,29 @@ function secs(t) { return Math.max(0, Math.ceil(t)); }      /* 秒数：向上�
 function genMath(lv, boost) {
   lv = Math.max(3, Math.min(6, lv || 3));
   boost = boost || 0;                     /* 已封顶六年级还想再难，就靠它加码 */
-  var a, b, c, d, q, m1, ans, text, guard;
+  var a, b, c, d, q, ans, text, guard;
   var hi2 = 99 + boost * 60;               /* 两位数上限（封顶后逐步加大） */
   var ch  = 90 + boost * 90;                /* 尾随「一个数」的上限 */
 
-  var pool = [1, 2];
+  var pool = [1, 2, 6];                    /* 三年级三种题型 */
   if (lv >= 4) pool.push(3);
   if (lv >= 5) pool.push(4);
   if (lv >= 6) pool.push(5);
   var t = pool[ri(0, pool.length - 1)];
 
-  /* ---- A：三个两位数相加减（中间结果不出现负数） ---- */
+  /* ---- F：比大小 ---- */
+  if (t === 6) return genCmp(lv, boost);
+
+  /* ---- A：两个两位数相加减（结果不出现负数） ---- */
   if (t === 1) {
     guard = 0;
     do {
-      a = ri(10, hi2); b = ri(10, hi2); c = ri(10, hi2);
+      a = ri(10, hi2); b = ri(10, hi2);
       var s1 = Math.random() < 0.5 ? 1 : -1;
-      var s2 = Math.random() < 0.5 ? 1 : -1;
-      m1  = a + s1 * b;
-      ans = m1 + s2 * c;
-      text = a + (s1 > 0 ? ' + ' : ' - ') + b + (s2 > 0 ? ' + ' : ' - ') + c;
+      ans = a + s1 * b;
+      text = a + (s1 > 0 ? ' + ' : ' - ') + b;
       guard++;
-    } while ((m1 < 0 || ans < 0) && guard < 40);
+    } while (ans < 0 && guard < 40);
     return { text: text + ' = ?', ans: String(ans), mode: 'num' };
   }
 
@@ -981,16 +1191,20 @@ function drawTopBar(c) {
   c.fillStyle = 'rgba(10,7,22,.78)'; c.fillRect(0, 0, W, 76);
   c.fillStyle = 'rgba(255,255,255,.10)'; c.fillRect(0, 74, W, 2);
 
-  /* 左：模式 + 用时 + Boss 出手倒计时 */
+  /* 左：模式 + 用时 + Boss 出手倒计时（起点右移，给左上角「设置」按钮让位） */
   var bs = B.boss;
   var sec = Math.floor(B.elapsed);
-  txt(c, '自 由 攻 击', 24, 24, 26, '#ffd45e');
-  txt(c, '用时 ' + Math.floor(sec / 60) + ' 分 ' + (sec % 60) + ' 秒', 24, 56, 19, '#b9aed6');
   var nxt;
   if (B.over) nxt = '战斗结束';
   else if (bs.frozen > 0) nxt = 'Boss 冻结中 ' + secs(bs.frozen) + ' 秒';
   else nxt = 'Boss 出手倒计时 ' + secs(B.atkCd) + ' 秒';
-  txt(c, nxt, 250, 38, 22, (nxt.indexOf('冻结') >= 0) ? '#8fe6ff' : '#ff9a9a');
+  var t1 = '用时 ' + Math.floor(sec / 60) + ' 分 ' + (sec % 60) + ' 秒';
+  txt(c, '自 由 攻 击', 150, 24, 26, '#ffd45e');
+  txt(c, t1, 150, 54, 19, '#b9aed6');
+  c.font = '700 19px "Microsoft YaHei","PingFang SC",sans-serif';
+  var w1 = c.measureText(t1).width;
+  txt(c, '　·　' + nxt, 150 + w1, 54, 19,
+      (nxt.indexOf('冻结') >= 0) ? '#8fe6ff' : (B.over ? '#b9aed6' : '#ff9a9a'));
 
   /* 中：Boss 名 + 血条 */
   var bx = 560, bw = 800;
@@ -1485,7 +1699,7 @@ var SUBJECTS = [
   { id: 'english', name: '英语单词', desc: 'ABCD 四选一' }
 ];
 var LEVELS = [
-  { id: 3, name: '三年级', desc: '三个两位数相加减 · 乘法口诀±一个数' },
+  { id: 3, name: '三年级', desc: '两个两位数相加减 · 乘法口诀±一个数 · 比大小' },
   { id: 4, name: '四年级', desc: '三年级题型 ＋ 整除除法' },
   { id: 5, name: '五年级', desc: '四年级题型 ＋ 两位数×一位数±一个数' },
   { id: 6, name: '六年级', desc: '五年级题型 ＋ 三位数÷一位数±一个数' }
@@ -1550,7 +1764,127 @@ function readCfg() {
   if (CFG.meteorEvery < 5) CFG.meteorEvery = 5;
   if (CFG.bossAtkEvery < 2) CFG.bossAtkEvery = 2;
   if (CFG.healGroupEvery < 1) CFG.healGroupEvery = 1;
+  if (CFG.wrongToHeal < 1) CFG.wrongToHeal = 1;
 }
+
+/* ============================ 参数设置（需密码） ============================ */
+var PW_KEYS = [['1', '1'], ['2', '2'], ['3', '3'],
+               ['4', '4'], ['5', '5'], ['6', '6'],
+               ['7', '7'], ['8', '8'], ['9', '9'],
+               ['clr', '清空'], ['0', '0'], ['del', '删除']];
+var pwBuf = '';
+
+function buildPwKeys() {
+  var box = document.getElementById('pwKeys');
+  box.innerHTML = '';
+  PW_KEYS.forEach(function (k) {
+    var b = document.createElement('button');
+    b.className = 'pwKey' + (k[0] === 'clr' ? ' warn' : '');
+    b.textContent = k[1];
+    b.addEventListener('pointerdown', function (e) { e.preventDefault(); pwKey(k[0]); });
+    box.appendChild(b);
+  });
+}
+function renderPwDots(err) {
+  var box = document.getElementById('pwDots'), h = '';
+  for (var i = 0; i < 4; i++) {
+    h += '<i class="' + (i < pwBuf.length ? 'on' : '') + (err ? ' bad' : '') + '"></i>';
+  }
+  box.innerHTML = h;
+  document.getElementById('pwErr').textContent = err || '';
+}
+function openPw() { pwBuf = ''; renderPwDots(''); document.getElementById('pwMask').classList.remove('hidden'); }
+function closePw() { document.getElementById('pwMask').classList.add('hidden'); }
+function pwKey(k) {
+  if (k === 'clr') { sfx('click'); pwBuf = ''; renderPwDots(''); return; }
+  if (k === 'del') { sfx('click'); pwBuf = pwBuf.slice(0, -1); renderPwDots(''); return; }
+  if (pwBuf.length >= 4) return;
+  sfx('click');
+  pwBuf += k;
+  renderPwDots('');
+  if (pwBuf.length === 4) {
+    setTimeout(function () {
+      if (pwBuf === getPwd()) { sfx('right'); pwBuf = ''; closePw(); openSettings(); }
+      else { sfx('wrong'); pwBuf = ''; renderPwDots('密码不对，请重新输入'); }
+    }, 180);
+  }
+}
+
+var setWasRunning = false;
+function openSettings() {
+  mkFields('fldBoss', FIELDS.fldBoss);
+  mkFields('fldSkill', FIELDS.fldSkill);
+  mkFields('fldHero', FIELDS.fldHero);
+  document.getElementById('cf_newpwd').value = '';
+  setWasRunning = !!(B && !B.over && !B.paused);
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('settings').classList.remove('hidden');
+  parkBattle();                              /* 调参时暂停出题与计时 */
+}
+function closeSettings() {
+  document.getElementById('settings').classList.add('hidden');
+  if (setWasRunning) resumeBattle();
+  else backToSetup();
+}
+function resumeBattle() {
+  if (!B) return;
+  B.paused = false;
+  for (var i = 0; i < 4; i++) {
+    var h = B.heroes[i];
+    h.castT = 0; h.wrongT = 0;
+    if (h.alive && !h.q) { h.locked = false; h.input = ''; giveQuestion(h); }
+  }
+  renderPanels();
+}
+function saveSettings() {
+  readCfg();
+  var np = String(document.getElementById('cf_newpwd').value || '').replace(/\D/g, '');
+  if (np.length > 0 && np.length !== 4) { toast('新密码必须是 4 位数字'); return; }
+  var okPwd = np ? setPwd(np) : true;
+  var ok = saveCfg();
+  if (ok) toast(okPwd ? '已保存到本机，下一局生效' : '参数已保存，但密码未写入本机');
+  else toast('保存失败：当前浏览器不允许本地存储');
+  closeSettings();
+}
+function resetSettings() {
+  resetCfg();
+  try { window.localStorage.removeItem(CFG_KEY); } catch (e) { }
+  mkFields('fldBoss', FIELDS.fldBoss);
+  mkFields('fldSkill', FIELDS.fldSkill);
+  mkFields('fldHero', FIELDS.fldHero);
+  buildSetup();                              /* 刷新首页的题库 / 难度选中态 */
+  toast('已恢复默认（中等难度）参数');
+  closeSettings();
+}
+
+/* ============================ 全屏 ============================ */
+function fsEl() {
+  return document.fullscreenElement || document.webkitFullscreenElement ||
+         document.webkitCurrentFullScreenElement || document.msFullscreenElement || null;
+}
+function syncFsBtn() {
+  var b = document.getElementById('btnFs');
+  if (b) b.textContent = fsEl() ? '退出全屏' : '全 屏';
+}
+function toggleFs() {
+  var el = document.documentElement;
+  try {
+    if (!fsEl()) {
+      var r = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (r) r.call(el); else toast('浏览器不支持自动全屏，请按 F11');
+    } else {
+      var x = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      if (x) x.call(document); else toast('请按 F11 或 Esc 退出全屏');
+    }
+  } catch (e) { toast('浏览器不支持自动全屏，请按 F11'); }
+}
+document.addEventListener('fullscreenchange', function () { syncFsBtn(); fit(); });
+document.addEventListener('webkitfullscreenchange', function () { syncFsBtn(); fit(); });
+
+/* ============================ 屏蔽鼠标右键 / 拖拽 ============================ */
+document.addEventListener('contextmenu', function (e) { e.preventDefault(); e.stopPropagation(); return false; }, false);
+document.addEventListener('dragstart', function (e) { e.preventDefault(); return false; }, false);
 
 /* ============================ 答题区 ============================ */
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -1566,6 +1900,17 @@ function keysHTML(i) {
     h += '<button class="kbtn ' + kind + '" data-i="' + i + '" data-k="' + attr + '">' + label + '</button>';
   });
   h += '<button class="kbtn num" data-i="' + i + '" data-k="0" style="grid-column:span 4">0</button>';
+  return h;
+}
+/* 比大小专用键盘：>  <  = 三大键 + 确定 / 换一题 */
+function cmpKeysHTML(i) {
+  var syms = [['gt', '&gt;'], ['lt', '&lt;'], ['eq', '=']];
+  var h = '';
+  syms.forEach(function (s) {
+    h += '<button class="kbtn cmpv" data-i="' + i + '" data-k="' + s[0] + '">' + s[1] + '</button>';
+  });
+  h += '<button class="kbtn ok" data-i="' + i + '" data-k="ok" style="grid-column:span 2">确 定</button>';
+  h += '<button class="kbtn skip" data-i="' + i + '" data-k="skip">换一题</button>';
   return h;
 }
 function panelHTML(i) {
@@ -1584,7 +1929,11 @@ function panelHTML(i) {
     (h.wrongT > 0 ? '答错了，正在换一题…' : '技能释放中，马上来新题…') + '</div>';
 
   var q = h.q, bad = (h.wrongT > 0);
-  if (q.mode === 'num') {
+  if (q.mode === 'cmp') {
+    s += '<div class="pQ cmp' + (bad ? ' hint' : '') + '">' + esc(bad ? '比一比，再试一次' : q.text) + '</div>';
+    s += '<div class="pAns cmp">' + (h.input === '' ? '?' : (CMP_TXT[h.input] || '?')) + '</div>';
+    s += '<div class="pKeys cmpkeys">' + cmpKeysHTML(i) + '</div>';
+  } else if (q.mode === 'num') {
     s += '<div class="pQ' + (bad ? ' hint' : '') + '">' + esc(bad ? '答错了，再试一次' : q.text) + '</div>';
     s += '<div class="pAns">' + (h.input === '' ? '?' : esc(h.input)) + '</div>';
     s += '<div class="pKeys">' + keysHTML(i) + '</div>';
@@ -1640,6 +1989,7 @@ function bindPanels() {
     var k = el.getAttribute('data-k');
     if (k === null) return;
     if (k === 'clr') { h.input = ''; sfx('click'); renderPanels(); }
+    else if (k === 'gt' || k === 'lt' || k === 'eq') { h.input = k; sfx('click'); renderPanels(); }
     else if (k === 'ok') { if (h.input !== '') checkAnswer(i, h.input); }
     else if (k === 'skip') { skipQuestion(i); }
     else if (k >= '0' && k <= '9' && h.input.length < 6) { h.input += k; sfx('click'); renderPanels(); }
@@ -1723,16 +2073,25 @@ function loop(ts) {
 }
 
 /* ============================ 初始化 ============================ */
+loadCfg();                                    // 先读本机保存过的参数
 buildSetup();
 buildPanels();
 bindPanels();
+buildPwKeys();
 newBattle();
 parkBattle();                                 // 设置页期间只做画面预览
 fit();
+syncFsBtn();
 
 document.getElementById('btnStart').addEventListener('click', startBattle);
 document.getElementById('btnAgain').addEventListener('click', startBattle);
 document.getElementById('btnBack').addEventListener('click', backToSetup);
+document.getElementById('btnSet').addEventListener('click', function () { ac(); openPw(); });
+document.getElementById('btnFs').addEventListener('click', function () { ac(); toggleFs(); });
+document.getElementById('pwCancel').addEventListener('click', function () { sfx('click'); closePw(); });
+document.getElementById('btnSaveCfg').addEventListener('click', saveSettings);
+document.getElementById('btnResetCfg').addEventListener('click', resetSettings);
+document.getElementById('btnCloseCfg').addEventListener('click', function () { sfx('click'); closeSettings(); });
 requestAnimationFrame(loop);
 
 </script>
