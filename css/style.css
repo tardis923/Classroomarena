@@ -168,6 +168,17 @@ html, body {
 /* 场景角色卡片 */
 .optCard { padding: 12px 10px; }
 .optCard .roles { display: block; font-size: 15px; font-weight: 600; color: #7a4f1a; margin-top: 6px; line-height: 1.5; }
+
+/* 团队闯关：题量固定 15/人，隐藏选项、改显示固定说明 */
+.gone { display: none !important; }
+.fixedVal {
+  flex: 1; min-width: 0; padding: 12px 20px; text-align: left;
+  font-size: 24px; font-weight: 700; color: #7a3410;
+  background: linear-gradient(#ffd08a, #f7ab45);
+  border: 3px solid #a3340f; border-radius: 14px;
+}
+.fixedVal b { font-size: 30px; color: #a3340f; }
+.fixedVal .fxsub { display: block; font-size: 17px; font-weight: 600; color: #7a4f1a; margin-top: 4px; }
 .optCard.on .roles { color: #6a3210; }
 
 .nameInputs { flex: 1; display: flex; gap: 14px; min-width: 0; }

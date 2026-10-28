@@ -38,15 +38,17 @@
   var players = [];
   var startMs = 0, pausedMs = 0, elapsed = 0;
 
-  /* 团队闯关：3 关，每关需要全队答对 buns × 4 题
+  /* 团队闯关：一关定胜负，需要全队答对 buns × 4 题（固定 15×4 = 60 题）
    * 用「本关已答对题数」计数，血量只是它的显示形式，
    * 这样过场动画期间打出的伤害也不会丢。 */
-  var TEAM_MAX_LEVEL = 3;
+  /* 团队闯关：一关定胜负，每人固定 15 题（四人 60 题）
+     基础难度 60 × 0.5 = 30 点，正好够换一局进阶版；提高难度 60 点够两局。 */
+  var TEAM_MAX_LEVEL = 1;
+  var TEAM_BUNS = 15;
   var teamDone = 0, teamLevel = 1, teamWon = false, teamBusy = false;
   function teamNeed() { return cfg.buns * 4; }
   function teamInfoText() {
-    return '第 ' + teamLevel + ' 关 · ' + Scene.bossName() +
-      ' · 还差 ' + Math.max(0, teamNeed() - teamDone) + ' 题';
+    return Scene.bossName() + ' · 还差 ' + Math.max(0, teamNeed() - teamDone) + ' 题';
   }
   /* 赛道竞速：是否已有人冲线 */
   var raceFirst = false;
@@ -55,20 +57,20 @@
   var MODES = [
     { id: 'eat', name: '吃食物大赛', desc: '答对就开吃，先吃完者获胜' },
     { id: 'race', name: '赛道竞速', desc: '答对向前冲，先到终点者获胜' },
-    { id: 'team', name: '团队闯关', desc: '四人合力打倒大魔王，共 ' + TEAM_MAX_LEVEL + ' 关 · 唯一能攒班级魔力的模式' }
+    { id: 'team', name: '团队闯关', desc: '四人合力打倒大魔王 · 共 60 题 · 唯一能攒班级魔力的模式' }
   ];
 
   var TIPS = {
     eat: '提示：答错不会失去食物，但会换新题并浪费时间 —— 抢答要准！',
     race: '提示：答对立刻冲出一段，答错原地打滑 —— 又快又准才能夺冠！',
-    team: '提示：四个人的题目全班都能看到，可以一起算！答对一题扣魔王一点血。' +
-      '只有本模式攒魔力：基础题 0.5 点/题，提高题 1 点/题；攒够 30 点才能去打进阶版。'
+    team: '提示：四个人的题目全班都能看到，可以一起算！每人 15 题、四人共 60 题，打空魔王血条即胜利。' +
+      '只有本模式攒魔力：基础题 0.5 点/题，提高题 1 点/题 —— 打完基础难度正好 30 点，够换一局进阶版。'
   };
 
   var BUN_LABEL = {
     eat: '食物数量（每人题数）',
     race: '赛道长度（每人题数）',
-    team: '关卡血量（每人每关题数）'
+    team: '关卡血量（固定）'
   };
 
   /* 标题统一为「四人争霸赛」：不含学科词，以后加语文知识竞赛也不用改 */
@@ -81,7 +83,7 @@
   var SUBS = {
     eat: function (f, r) { return r + '同场竞技：答对题目，角色吃掉一个' + f + '。先吃完全部' + f + '者获胜！'; },
     race: function (f, r) { return r + '各驾一辆卡丁车：答对一题就向前冲一段，先冲过终点线者获胜！'; },
-    team: function (f, r) { return r + '并肩作战：答对的题目变成' + f + '炮弹砸向大魔王，打完 ' + TEAM_MAX_LEVEL + ' 关即团队胜利！'; }
+    team: function (f, r) { return r + '并肩作战：答对的题目变成' + f + '炮弹砸向大魔王，' + '打空魔王血条即团队胜利！'; }
   };
 
   /* 刷新设置页标题与副标题 */
@@ -201,6 +203,7 @@
   })();
 
   /* ================= 设置面板 ================= */
+  var syncBuns = function () { };   // 由 buildSetup 赋值：同步「数量」按钮的选中态
   function buildSetup() {
     // 游戏模式
     var mdBox = $('optMode');
@@ -220,15 +223,19 @@
 
     var bunBox = $('optBuns');
     var bunOpts = [5, 10, 15, 20];
+    syncBuns = function () {
+      var bs = bunBox.querySelectorAll('.opt');
+      for (var i = 0; i < bs.length; i++) {
+        bs[i].classList.toggle('on', parseInt(bs[i].getAttribute('data-n'), 10) === cfg.buns);
+      }
+    };
     bunOpts.forEach(function (n) {
       var b = document.createElement('button');
       b.className = 'opt' + (n === cfg.buns ? ' on' : '');
+      b.setAttribute('data-n', n);
       b.innerHTML = n + ' 个';
       bindTap(b, function (e) {
-        e.preventDefault(); cfg.buns = n; Sound.click();
-        var bs = bunBox.querySelectorAll('.opt');
-        for (var i = 0; i < bs.length; i++) bs[i].classList.remove('on');
-        b.classList.add('on');
+        e.preventDefault(); cfg.buns = n; Sound.click(); syncBuns();
       });
       bunBox.appendChild(b);
     });
@@ -284,6 +291,13 @@
       lb.innerHTML = (BUN_LABEL[cfg.mode] || BUN_LABEL.eat)
         .replace('食物', '<span id="lbFood">' + Scene.food() + '</span>');
     }
+    /* 团队闯关题量固定：隐藏选项，显示说明 */
+    var isTeam = (cfg.mode === 'team');
+    if (isTeam) cfg.buns = TEAM_BUNS;
+    var ob = $('optBuns'), fb = $('bunsFixed');
+    if (ob) { if (isTeam) ob.classList.add('gone'); else ob.classList.remove('gone'); }
+    if (fb) { if (isTeam) fb.classList.remove('gone'); else fb.classList.add('gone'); }
+    syncBuns();
     applyTitle();
     showDemo();
   }
@@ -309,7 +323,7 @@
       list.push({ idx: i, name: sk[i].name, buns: cfg.buns, skin: sk[i], onSwallow: null, onEatDone: null });
     }
     Scene.setPlayers(list);
-    if (cfg.mode === 'team') Scene.teamLevel(1, '第 1 关 · ' + Scene.bossName());
+    if (cfg.mode === 'team') Scene.teamLevel(1, Scene.bossName() + ' · 共 ' + teamNeed() + ' 题');
     for (i = 0; i < 4; i++) Scene.char(i).plate = cfg.buns;
   }
 
@@ -480,6 +494,8 @@
 
   function onKey(i, k) {
     if (state !== 'play') return;
+    /* 魔王已被打倒、正在播过关过场：不再收题，保证答对题数正好是 teamNeed() */
+    if (cfg.mode === 'team' && teamBusy) return;
     var p = players[i];
     if (p.done || p.busy || !p.q) return;
 
@@ -608,7 +624,13 @@
 
     if (teamLevel >= TEAM_MAX_LEVEL) {
       teamWon = true;
-      Scene.banner('全部通关 · 团队胜利！', '#7ce07c');
+      Scene.banner('打倒大魔王 · 团队胜利！', '#7ce07c');
+      /* 四块面板统一提示「已打倒」，并停止收题（见 onKey 的 teamBusy 判断） */
+      for (var k = 0; k < 4; k++) {
+        var qt = $('qt' + k); if (qt) qt.textContent = '魔王已被打倒！';
+        var qb = $('qb' + k); if (qb) qb.textContent = '';
+        if (players[k]) players[k].input = '';
+      }
       setTimeout(endGame, 2200);
       return;
     }
@@ -751,10 +773,10 @@
     for (i = 0; i < tops.length; i++) topNames.push(tops[i].name);
 
     if (cfg.mode === 'team') {
-      if (teamWon) $('resultTitle').textContent = '团结就是力量 · ' + TEAM_MAX_LEVEL + ' 关全通！';
+      if (teamWon) $('resultTitle').textContent = '团结就是力量 · 打倒大魔王！';
       else if (nobody) $('resultTitle').textContent = '本局无人作答 · 再接再厉！';
       else if (tied) $('resultTitle').textContent = topNames.join('、') + ' 贡献并列第一！';
-      else $('resultTitle').textContent = '第 ' + teamLevel + ' 关 · ' + ranked[0].name + ' 贡献最多！';
+      else $('resultTitle').textContent = ranked[0].name + ' 贡献最多！';
     } else {
       var verb = cfg.mode === 'race' ? '抢先冲线' : '大获全胜';
       if (nobody) $('resultTitle').textContent = '本局无人作答 · 再来一局吧！';
