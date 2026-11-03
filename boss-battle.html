@@ -206,7 +206,9 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
         <button id="btnToArena" class="bigBtn ghost gone">先去「四人争霸赛」玩团队闯关攒魔力 →</button>
-        <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。</div>
+        <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。<br>
+        注意：②③ 阶段的 Boss 会免疫灼烧与冰冻，大招陨石也会越来越频繁（30 → 20 → 10 秒），并且一击就能把护盾砸碎。<br>
+        💢 每倒下一名队友，剩下的角色攻击力 +10%（愤怒），倒得越多打得越狠。</div>
       </div>
     </div>
 
@@ -321,8 +323,10 @@ var DEFAULTS = {
   bossHp: 2400,       // Boss 总血量
   bossAtk: 42,        // Boss 普通攻击伤害（打随机一名角色）
   bossAtkEvery: 9,    // 秒：Boss 普通攻击间隔
-  meteorEvery: 48,    // 秒：天降陨石（全体伤害）间隔
-  meteorDmg: 70,      // 天降陨石：每名角色受到的伤害
+  meteorEvery: 30,    // 秒：大招「天降陨石」间隔 —— 第 1 阶段
+  meteorEvery2: 20,   // 秒：大招间隔 —— 第 2 阶段（越来越快）
+  meteorEvery3: 10,   // 秒：大招间隔 —— 第 3 阶段
+  meteorDmg: 70,      // 天降陨石：每名角色受到的基础伤害（阶段加成见 PHASES.meteorMul）
 
   heroHp: 220,        // 我方每名角色血量
   dmgThunder: 100,    // 雷电：单体高伤害
@@ -431,15 +435,41 @@ function toast(msg) {
   toastTimer = setTimeout(function () { el.classList.remove('show'); }, 1900);
 }
 
-/* Boss 三阶段：体型变大、攻击力提升、攻击频率下降、外观与名称变化 */
+/* Boss 三阶段：体型变大、攻击力提升、攻击频率下降、外观与名称变化
+   bossImmune：二阶段起免疫「灼烧」「冰冻」两种控制
+   meteorMul ：大招伤害相对第 1 阶段的倍率（+10% / +20%）              */
 var PHASES = [
-  { name: '知识小魔王', scale: 1.00, atkMul: 1.0, atkChance: 1.00, meteorMul: 1.0,
+  { name: '知识小魔王', scale: 1.00, atkMul: 1.0, atkChance: 1.00, meteorMul: 1.0, bossImmune: false,
     body: '#6fbf5b', dark: '#3f7a33', horn: '#f2d06a', eye: '#fff3b0', spikes: 0 },
-  { name: '知识大魔王', scale: 1.28, atkMul: 1.6, atkChance: 0.80, meteorMul: 1.3,
+  { name: '知识大魔王', scale: 1.28, atkMul: 1.6, atkChance: 0.80, meteorMul: 1.1, bossImmune: true,
     body: '#a86ad6', dark: '#6a3a9c', horn: '#ffe08a', eye: '#ffd0f0', spikes: 1 },
-  { name: '终焉知识魔君', scale: 1.58, atkMul: 2.3, atkChance: 0.62, meteorMul: 1.7,
+  { name: '终焉知识魔君', scale: 1.58, atkMul: 2.3, atkChance: 0.62, meteorMul: 1.2, bossImmune: true,
     body: '#d1483c', dark: '#8a2318', horn: '#ffd45e', eye: '#ffe08a', spikes: 2 }
 ];
+
+/* 陨石间隔按阶段取：一阶段 30 秒、二阶段 20 秒、三阶段 10 秒 */
+function meteorEveryOf(phase) {
+  var list = [CFG.meteorEvery, CFG.meteorEvery2, CFG.meteorEvery3];
+  var v = list[phase];
+  return (typeof v === 'number' && v > 0) ? v : CFG.meteorEvery;
+}
+/* 二阶段起 Boss 免疫冰冻 / 灼烧 */
+function bossImmuneNow() {
+  return !!(B && B.boss && PHASES[B.boss.phase] && PHASES[B.boss.phase].bossImmune);
+}
+/* 我方攻击力倍率：每倒下一名队友，存活角色 +10%（愤怒） */
+function rageMul() {
+  if (!B || !B.heroes) return 1;
+  var dead = 0;
+  for (var i = 0; i < B.heroes.length; i++) if (!B.heroes[i].alive) dead++;
+  return 1 + 0.1 * dead;
+}
+function deadCount() {
+  if (!B || !B.heroes) return 0;
+  var d = 0;
+  for (var i = 0; i < B.heroes.length; i++) if (!B.heroes[i].alive) d++;
+  return d;
+}
 
 /* 四名角色 */
 var HEROES = [
@@ -1107,7 +1137,7 @@ function newBattle() {
         q: null, input: '', locked: false, wrongT: 0, healCount: 0, wrongRun: 0
       };
     }),
-    atkCd: CFG.bossAtkEvery, meteorCd: CFG.meteorEvery, meteorWarn: false,
+    atkCd: CFG.bossAtkEvery, meteorCd: meteorEveryOf(0), meteorWarn: false,
     fx: [], floats: [], banner: '', bannerT: 0,
     stats: {
       start: Date.now(), ms: 0,
@@ -1213,7 +1243,12 @@ function castSkill(h) {
     B.fx.push({ type: 'fire', t: 0, dur: 0.9, from: from, to: to });
     sfx('fire');
     after(0.34, function () {
+      if (B.over) return;
       damageBoss(CFG.dmgFire, 'fire');
+      if (bossImmuneNow()) {                       /* 二阶段起：灼烧免疫，只吃直伤 */
+        floatText(to.x, to.y - 150, 'Boss 免疫灼烧！', '#ffd45e');
+        return;
+      }
       B.boss.burn = CFG.burnDmg;
       B.boss.burnT = CFG.burnTurns * CFG.burnTickSec;
       B.boss.burnTick = CFG.burnTickSec;
@@ -1224,8 +1259,11 @@ function castSkill(h) {
     B.fx.push({ type: 'ice', t: 0, dur: 0.9, from: from, to: to });
     sfx('ice');
     after(0.34, function () {
+      if (B.over) return;
       damageBoss(CFG.dmgIce, 'ice');
-      if (B.boss.immune > 0 || B.boss.frozen > 0) {   /* Boss 有冻结免疫，冻不住 */
+      if (bossImmuneNow()) {                       /* 二阶段起：冰冻免疫，只吃直伤 */
+        floatText(to.x, to.y - 150, 'Boss 免疫冰冻！', '#ffd45e');
+      } else if (B.boss.immune > 0 || B.boss.frozen > 0) {   /* Boss 有冻结免疫，冻不住 */
         floatText(to.x, to.y - 150, '冻结被抵抗！', '#ffd45e');
       } else {
         B.boss.frozen = CFG.freezeSec;
@@ -1296,6 +1334,7 @@ function castSkill(h) {
 /* ---------- 伤害 / 治疗 ---------- */
 function damageBoss(d, kind) {
   if (!B || B.over) return;
+  d = Math.round(d * rageMul());             /* 队友倒下越多，攻击力越高（愤怒） */
   B.boss.hp -= d; if (B.boss.hp < 0) B.boss.hp = 0;
   B.boss.hitT = 0.45;
   B.boss.shake = 0.3;
@@ -1319,7 +1358,10 @@ function hurtHero(h, d) {
   if (h.hp <= 0) {
     h.alive = false; sfx('dead');
     h.q = null; h.locked = true; h.input = ''; h.shield = 0;
-    banner(h.name + ' 倒下了！');
+    var dead = deadCount(), up = Math.round(dead * 10);
+    banner('💢 ' + h.name + ' 倒下了！队友愤怒，攻击力 +10%（累计 +' + up + '%）');
+    floatText(p.x, p.y - 90, '愤 怒！攻击 +' + up + '%', '#ff7a4a');
+    sfx('warn');
   }
   renderPanels();
   checkLose();
@@ -1335,7 +1377,16 @@ function checkPhase() {
     B.boss.morph = 1.3;
     B.fx.push({ type: 'morph', t: 0, dur: 1.3, x: BOSS_X, y: BOSS_Y });
     sfx('morph');
-    banner('Boss 变身！' + PHASES[want].name + ' 登场，题目难度提升！');
+    if (PHASES[want].bossImmune) {
+      /* 二阶段起免疫控制：身上的灼烧 / 冻结一并清掉 */
+      B.boss.burn = 0; B.boss.burnT = 0; B.boss.frozen = 0;
+      banner('Boss 变身！' + PHASES[want].name + ' 登场：免疫灼烧与冰冻，大招更快了！');
+    } else {
+      banner('Boss 变身！' + PHASES[want].name + ' 登场，题目难度提升！');
+    }
+    /* 阶段变了，大招节奏跟着变快：剩余倒计时不超过新间隔 */
+    var mv = meteorEveryOf(want);
+    if (B.meteorCd > mv) B.meteorCd = mv;
   }
 }
 
@@ -1351,7 +1402,7 @@ function tickBoss(dt) {
     bs.burnT -= dt; bs.burnTick -= dt;
     if (bs.burnTick <= 0) {
       bs.burnTick = CFG.burnTickSec;
-      var bd = bs.burn;
+      var bd = Math.round(bs.burn * rageMul());   /* 愤怒加成同样作用于灼烧 */
       bs.hp -= bd; if (bs.hp < 0) bs.hp = 0;
       bs.hitT = 0.35;
       floatText(BOSS_X, BOSS_Y + 150, '灼烧 -' + bd, '#ff9a4a');
@@ -1367,7 +1418,7 @@ function tickBoss(dt) {
   if (B.atkCd <= 0) { B.atkCd = CFG.bossAtkEvery; normalAttack(); }
 
   B.meteorCd -= dt;
-  if (B.meteorCd <= 0) { B.meteorCd = CFG.meteorEvery; meteorAttack(); }
+  if (B.meteorCd <= 0) { B.meteorCd = meteorEveryOf(bs.phase); meteorAttack(); }
 }
 
 function normalAttack() {
@@ -1395,12 +1446,36 @@ function meteorAttack() {
     if (B.over) return;
     sfx('meteor');
     var dmg = Math.round(CFG.meteorDmg * ph.meteorMul);
-    var alive = aliveHeroes();
+    var alive = aliveHeroes(), broke = false;
     alive.forEach(function (h, k) {
       B.fx.push({ type: 'meteor', t: 0, dur: 0.9, x: heroPt(h.i).x + 30, y: heroPt(h.i).y, delay: k * 0.13 });
-      after(0.62 + k * 0.13, function () { hurtHero(h, dmg); });
+      after(0.62 + k * 0.13, function () {
+        if (h.shield > 0) broke = true;
+        meteorHit(h, dmg);
+      });
+    });
+    /* 大招专破护盾：有任何人的盾被击碎就提示一次 */
+    after(1.6, function () {
+      if (broke && B && !B.over) banner('陨石把护盾砸碎了！治疗师重新套盾吧');
     });
   });
+}
+
+/* 陨石命中：带护盾 → 护盾直接破碎（这一下不再扣血）；无护盾 → 正常受伤 */
+function meteorHit(h, dmg) {
+  if (!B || B.over || !h.alive) return;
+  var p = heroPt(h.i);
+  if (h.shield > 0) {
+    h.shield = 0;
+    h.hitT = 0.5;
+    h.glow = 0;
+    floatText(p.x + 40, p.y - 40, '护盾破碎！', '#8fe6ff');
+    floatText(p.x + 40, p.y - 74, '这一击被盾挡下了', '#cfeaff');
+    sfx('ice');
+    renderPanels();
+    return;
+  }
+  hurtHero(h, dmg);
 }
 
 /* ---------- 胜负 ---------- */
@@ -1510,8 +1585,12 @@ function drawTopBar(c) {
     txt(c, 'P' + (i + 1), px + i * 46 + 19, 38, 19, on ? '#241a3d' : '#8d84a8', 'center');
   }
 
-  /* 状态标签：灼烧 / 冻结 */
+  /* 状态标签：免控 / 灼烧 / 冻结 */
   var sx = 1520;
+  if (PHASES[bs.phase].bossImmune) {
+    c.fillStyle = '#7a5f1c'; rr(c, sx, 18, 92, 32, 8); c.fill();
+    txt(c, '免控', sx + 46, 34, 19, '#ffe08a', 'center'); sx += 100;
+  }
   if (bs.burnT > 0) {
     c.fillStyle = '#e0642c'; rr(c, sx, 18, 92, 32, 8); c.fill();
     txt(c, '灼烧', sx + 46, 34, 19, '#fff', 'center'); sx += 100;
@@ -1782,7 +1861,10 @@ function drawBoss(c) {
   var st = [];
   if (B.boss.frozen > 0) st.push('冻结 ' + secs(B.boss.frozen) + ' 秒');
   if (B.boss.burnT > 0) st.push('灼烧 ' + secs(B.boss.burnT) + ' 秒');
-  if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, '#ffe08a', 'center');
+  if (ph.bossImmune) st.push('免疫灼烧/冰冻');
+  var dc = deadCount();
+  if (dc > 0) st.push('我方愤怒 攻击力 +' + (dc * 10) + '%');
+  if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, dc > 0 ? '#ffb27a' : '#ffe08a', 'center');
 }
 
 /* ---------- 特效 ---------- */
@@ -1992,7 +2074,8 @@ var LEVELS = [
 
 var FIELDS = {
   fldBoss: [['bossHp', 'Boss 血量'], ['bossAtk', 'Boss 攻击力'], ['bossAtkEvery', 'Boss 出手间隔（秒）'],
-            ['meteorEvery', '大招间隔（秒）'], ['meteorDmg', '大招全体伤害']],
+            ['meteorEvery', '大招间隔·第1阶段（秒）'], ['meteorEvery2', '大招间隔·第2阶段（秒）'],
+            ['meteorEvery3', '大招间隔·第3阶段（秒）'], ['meteorDmg', '大招全体伤害']],
   fldSkill: [['dmgThunder', '雷电伤害'], ['dmgFire', '火焰伤害'], ['dmgIce', '冰霜伤害'],
              ['healAmt', '单体治疗量'], ['healGroupEvery', '全队治疗：答对几次'], ['healGroupAmt', '全队治疗量'],
              ['freezeSec', '冻结秒数'], ['freezeImmuneSec', '冻结免疫秒数']],
@@ -2037,7 +2120,8 @@ function buildSetup() {
   document.getElementById('rowLevel').style.display = (CFG.subject === 'math') ? '' : 'none';
 }
 function readCfg() {
-  var keys = ['bossHp', 'bossAtk', 'bossAtkEvery', 'meteorEvery', 'meteorDmg', 'dmgThunder', 'dmgFire',
+  var keys = ['bossHp', 'bossAtk', 'bossAtkEvery', 'meteorEvery', 'meteorEvery2', 'meteorEvery3', 'meteorDmg',
+    'dmgThunder', 'dmgFire',
     'dmgIce', 'healAmt', 'healGroupEvery', 'healGroupAmt',
     'heroHp', 'burnDmg', 'burnTurns', 'burnTickSec', 'freezeSec', 'freezeImmuneSec',
     'shieldAmt', 'shieldMax', 'wrongToHeal', 'bossHealPct'];
@@ -2048,6 +2132,8 @@ function readCfg() {
     if (!isNaN(v) && v > 0) CFG[k] = v;
   });
   if (CFG.meteorEvery < 5) CFG.meteorEvery = 5;
+  if (CFG.meteorEvery2 < 5) CFG.meteorEvery2 = 5;
+  if (CFG.meteorEvery3 < 5) CFG.meteorEvery3 = 5;
   if (CFG.bossAtkEvery < 2) CFG.bossAtkEvery = 2;
   if (CFG.healGroupEvery < 1) CFG.healGroupEvery = 1;
   if (CFG.wrongToHeal < 1) CFG.wrongToHeal = 1;

@@ -45,6 +45,8 @@
      基础难度 60 × 0.5 = 30 点，正好够换一局进阶版；提高难度 60 点够两局。 */
   var TEAM_MAX_LEVEL = 1;
   var TEAM_BUNS = 15;
+  /* 团队闯关限时：100 秒内没打空魔王血条 → 魔王逃跑（黑屏，换下一批学生） */
+  var TEAM_TIME = 100;
   var teamDone = 0, teamLevel = 1, teamWon = false, teamBusy = false;
   function teamNeed() { return cfg.buns * 4; }
   function teamInfoText() {
@@ -63,8 +65,9 @@
   var TIPS = {
     eat: '提示：答错不会失去食物，但会换新题并浪费时间 —— 抢答要准！',
     race: '提示：答对立刻冲出一段，答错原地打滑 —— 又快又准才能夺冠！',
-    team: '提示：四个人的题目全班都能看到，可以一起算！每人 15 题、四人共 60 题，打空魔王血条即胜利。' +
-      '只有本模式攒魔力：基础题 0.5 点/题，提高题 1 点/题 —— 打完基础难度正好 30 点，够换一局进阶版。'
+    team: '提示：四个人的题目全班都能看到，可以一起算！每人 15 题、四人共 60 题，限时 <b>100 秒</b>，打空魔王血条即胜利。' +
+      '只有本模式攒魔力：基础题 0.5 点/题，提高题 1 点/题 —— 打完基础难度正好 30 点，够换一局进阶版。' +
+      '<br>⏱ 100 秒内没打完，魔王就逃跑了，这局不产魔力，换下一批同学上台。'
   };
 
   var BUN_LABEL = {
@@ -285,7 +288,7 @@
   /* 切换玩法：更新提示文案、数量标签、背景预览 */
   function applyMode() {
     var tipEl = document.querySelector('#setup .tip');
-    if (tipEl && state === 'setup') tipEl.textContent = TIPS[cfg.mode] || TIPS.eat;
+    if (tipEl && state === 'setup') tipEl.innerHTML = TIPS[cfg.mode] || TIPS.eat;
     var lb = $('lbBun');
     if (lb) {
       lb.innerHTML = (BUN_LABEL[cfg.mode] || BUN_LABEL.eat)
@@ -416,8 +419,11 @@
     Scene.setPlayers(list);
 
     $('overlay').classList.add('hidden');
+    var tEl = $('timeout'); if (tEl) tEl.classList.remove('show');
+    var hudEl = $('hudTime'); if (hudEl) hudEl.classList.remove('warn');
     $('btnPause').textContent = '⏸';
     elapsed = 0;
+    if (cfg.mode === 'team' && hudEl) hudEl.textContent = '剩 ' + TEAM_TIME + 's';
 
     // 倒计时 3 2 1 GO
     state = 'count';
@@ -648,6 +654,16 @@
     }, 1900);
   }
 
+  /* ================= 团队闯关：100 秒到点，魔王逃跑 ================= */
+  function teamTimeout() {
+    if (state !== 'play') return;
+    state = 'timeout';
+    teamBusy = true;                 // 停收题
+    var hud = $('hudTime'); if (hud) hud.textContent = '0s';
+    Sound.bad();
+    var el = $('timeout'); if (el) el.classList.add('show');
+  }
+
   function updateProgress(i) {
     var p = players[i];
     var badge = p.combo >= 2 ? ('🔥x' + p.combo) : (p.wrong > 0 ? ('✗' + p.wrong) : '');
@@ -819,7 +835,18 @@
       }
       if (state === 'play') {
         elapsed += dt * 1000;
-        $('hudTime').textContent = fmt(elapsed).replace('秒', 's').replace('分', 'm');
+        if (cfg.mode === 'team') {
+          /* 团队闯关：显示剩余秒数，到点魔王逃跑 */
+          var left = TEAM_TIME - elapsed / 1000;
+          if (left < 0) left = 0;
+          var ht = $('hudTime');
+          ht.textContent = '剩 ' + Math.ceil(left) + 's';
+          if (left <= 20) ht.classList.add('warn'); else ht.classList.remove('warn');
+          if (left <= 0 && !teamBusy && !teamWon) teamTimeout();
+        } else {
+          $('hudTime').classList.remove('warn');
+          $('hudTime').textContent = fmt(elapsed).replace('秒', 's').replace('分', 'm');
+        }
       }
     } catch (err) {
       // 单帧异常不能把整场动画打死（否则画面冻结、血条再也不动）
@@ -848,6 +875,9 @@
       e.preventDefault();
       location.reload();
     });
+    /* 魔王逃跑的「重来一次」：直接刷新页面，方便下一批学生重新选模式 / 场景 / 难度 */
+    var rt = $('btnRetry');
+    if (rt) bindTap(rt, function (e) { e.preventDefault(); location.reload(); });
     bindTap($('btnAgain'), function (e) {
       e.preventDefault(); Sound.ok(); startGame();
     });

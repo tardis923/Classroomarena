@@ -255,6 +255,39 @@ html, body {
 .rankRow .nm { width: 220px; text-align: left; }
 .rankRow .st { flex: 1; text-align: left; color: #7a4f1a; font-size: 21px; }
 
+/* ---------- 团队闯关：100 秒限时 ---------- */
+#hudTime.warn {
+  color: #fff; background: #c0392b; border-color: #7d1d13;
+  animation: hudPulse .8s ease-in-out infinite;
+}
+@keyframes hudPulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.06) } }
+
+#timeout {
+  position: absolute; inset: 0; z-index: 90;
+  display: none; align-items: center; justify-content: center;
+  background: #000; text-align: center;
+}
+#timeout.show { display: flex; }
+#timeout .toKicker {
+  font-size: 30px; font-weight: 800; color: #7d7d7d;
+  letter-spacing: 16px; text-indent: 16px;
+}
+#timeout .toTitle {
+  font-size: 132px; font-weight: 900; color: #fff;
+  letter-spacing: 14px; text-indent: 14px;
+  margin: 14px 0 22px;
+  text-shadow: 0 0 46px rgba(255,70,50,.6), 0 0 120px rgba(255,70,50,.3);
+  animation: toIn .9s cubic-bezier(.2,.9,.3,1) both;
+}
+#timeout .toSub {
+  font-size: 30px; font-weight: 600; color: #b0b0b0; line-height: 1.75;
+}
+#timeout .toBtn {
+  margin-top: 52px; padding: 24px 96px; font-size: 44px;
+  background: linear-gradient(#f0803c, #d1551b);
+}
+@keyframes toIn { from { opacity: 0; transform: scale(.84) } to { opacity: 1; transform: scale(1) } }
+
 /* ---------- 结算页：加入魔力区后内容更高，压缩留白保证底部按钮完整可见 ---------- */
 #result { padding: 24px 60px 26px; }
 #result #podium { margin: 6px 0 14px; }
