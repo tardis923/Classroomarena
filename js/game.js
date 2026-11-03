@@ -126,6 +126,16 @@
     var v = Math.round(x * 10) / 10;
     return (v === Math.floor(v)) ? String(Math.floor(v)) : v.toFixed(1);
   }
+  /* 结算魔力：加进池子 → 团队模式且不满门槛则清零。返回最终状态 */
+  function addEnergy(gain, earned) {
+    var ed = loadEnergy();
+    if (gain > 0) ed.pool = Math.round((ed.pool + gain) * 10) / 10;
+    var poolAfter = ed.pool, cleared = false;
+    if (earned && ed.on && ed.pool < ed.need) { ed.pool = 0; cleared = true; }
+    saveEnergy(ed);
+    return { ed: ed, poolAfter: poolAfter, cleared: cleared };
+  }
+
   /* earned: 本局是否产魔力（只有团队闯关产）  poolAfter: 清零前算出来的池子  cleared: 是否已清零 */
   function renderEnergyResult(totalRight, gain, ed, earned, poolAfter, cleared) {
     var eb = $('energyBox');
@@ -420,6 +430,7 @@
 
     $('overlay').classList.add('hidden');
     var tEl = $('timeout'); if (tEl) tEl.classList.remove('show');
+    var vEl = $('victory'); if (vEl) vEl.classList.remove('show');
     var hudEl = $('hudTime'); if (hudEl) hudEl.classList.remove('warn');
     $('btnPause').textContent = '⏸';
     elapsed = 0;
@@ -637,7 +648,7 @@
         var qb = $('qb' + k); if (qb) qb.textContent = '';
         if (players[k]) players[k].input = '';
       }
-      setTimeout(endGame, 2200);
+      setTimeout(teamWinScreen, 2200);
       return;
     }
     Scene.banner('第 ' + teamLevel + ' 关 · 通关！', '#ffe14b');
@@ -652,6 +663,58 @@
       Scene.banner('第 ' + teamLevel + ' 关 · ' + Scene.bossName() + ' 来了！', '#ff9a5a');
       checkTeamHp();                         // 过场期间又被打空，马上接着过
     }, 1900);
+  }
+
+  /* ============ 团队闯关胜利：黑屏庆祝 + 一键进进阶版 ============ */
+  function teamWinScreen() {
+    if (state === 'over' || state === 'timeout') return;   // 已结算过（比如提前结算）就不再重复加魔力
+    state = 'over';
+    Sound.win();
+
+    var i, totalRight = 0, totalWrong = 0, per = [];
+    for (i = 0; i < 4; i++) {
+      totalRight += players[i].eaten || 0;
+      totalWrong += players[i].wrong || 0;
+      per.push(players[i].name + ' <b>' + (players[i].eaten || 0) + '</b>');
+    }
+
+    /* 魔力照常结算：60 题 × 0.5 = 30 点，正好够开一局进阶版 */
+    var gain = Math.round(totalRight * QGen.energyPer(cfg.level) * 10) / 10;
+    var st = addEnergy(gain, true);
+    var ed = st.ed;
+    var enough = !ed.on || ed.pool >= ed.need;
+
+    var used = elapsed / 1000;
+    var left = Math.max(0, Math.ceil(TEAM_TIME - used));
+
+    var vs = $('vicStats');
+    if (vs) {
+      vs.innerHTML = '⏱ 用时 <b>' + used.toFixed(1) + '</b> 秒（限时 ' + TEAM_TIME + ' 秒，还剩 <b>' + left + '</b> 秒）' +
+        '　·　四人共答对 <b>' + totalRight + '</b> 题　·　答错 <b>' + totalWrong + '</b> 次' +
+        '<br>答对题数：' + per.join('　·　');
+    }
+
+    var ve = $('vicEnergy');
+    if (ve) {
+      if (!ed.on) {
+        ve.innerHTML = '本局获得 <b>+' + eNum(gain) + '</b> 点魔力（老师已关闭魔力门槛，随时都能进进阶版）';
+      } else if (st.cleared) {
+        ve.innerHTML = '本局获得 <b>+' + eNum(gain) + '</b> 点魔力，但还没到 <b>' + ed.need +
+          '</b> 点门槛，<span class="vNo">已清零</span>　→　再打一局团队闯关就能解锁进阶版';
+      } else {
+        ve.innerHTML = '✨ 本局 <b>+' + eNum(gain) + '</b> 点魔力　·　魔力池 <b>' +
+          eNum(ed.pool) + ' / ' + ed.need + '</b>　→　' +
+          (enough ? '已解锁进阶版！' : '<span class="vNo">还差 ' + eNum(ed.need - ed.pool) + ' 点</span>');
+      }
+    }
+
+    var bg = $('btnVicGo');
+    if (bg) {
+      if (enough) { bg.classList.remove('locked'); bg.textContent = '进 入 进 阶 版 · 挑 战 真 正 的 魔 王 →'; }
+      else { bg.classList.add('locked'); bg.textContent = '魔 力 不 足 · 再 打 一 局 团 队 闯 关 →'; }
+    }
+
+    var v = $('victory'); if (v) v.classList.add('show');
   }
 
   /* ================= 团队闯关：100 秒到点，魔王逃跑 ================= */
@@ -805,15 +868,10 @@
        ③ 本局结束后仍不满 30 点 → 清零，换下一批学生从 0 开始攒               */
     var totalRight = 0;
     for (var k = 0; k < players.length; k++) totalRight += (players[k].eaten || 0);
-    var ed = loadEnergy();
     var earned = (cfg.mode === 'team');
     var gain = earned ? totalRight * QGen.energyPer(cfg.level) : 0;
-    if (gain > 0) ed.pool = Math.round((ed.pool + gain) * 10) / 10;
-    var poolAfter = ed.pool;
-    var cleared = false;
-    if (earned && ed.on && ed.pool < ed.need) { ed.pool = 0; cleared = true; }
-    saveEnergy(ed);
-    renderEnergyResult(totalRight, gain, ed, earned, poolAfter, cleared);
+    var st = addEnergy(gain, earned);
+    renderEnergyResult(totalRight, gain, st.ed, earned, st.poolAfter, st.cleared);
 
     $('setup').classList.add('hidden');
     $('result').classList.remove('hidden');
@@ -878,6 +936,15 @@
     /* 魔王逃跑的「重来一次」：直接刷新页面，方便下一批学生重新选模式 / 场景 / 难度 */
     var rt = $('btnRetry');
     if (rt) bindTap(rt, function (e) { e.preventDefault(); location.reload(); });
+    /* 胜利黑屏的按钮：魔力够 → 进进阶版；不够 → 刷新重来 */
+    var vg = $('btnVicGo');
+    if (vg) bindTap(vg, function (e) {
+      e.preventDefault();
+      var ed = loadEnergy();
+      if (ed.on && ed.pool < ed.need) { Sound.bad(); location.reload(); return; }
+      Sound.ok();
+      location.href = 'boss-battle.html';
+    });
     bindTap($('btnAgain'), function (e) {
       e.preventDefault(); Sound.ok(); startGame();
     });

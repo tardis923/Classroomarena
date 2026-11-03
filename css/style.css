@@ -288,6 +288,46 @@ html, body {
 }
 @keyframes toIn { from { opacity: 0; transform: scale(.84) } to { opacity: 1; transform: scale(1) } }
 
+/* ---------- 团队闯关：100 秒内打倒魔王（黑屏 · 进进阶版） ---------- */
+#victory {
+  position: absolute; inset: 0; z-index: 90;
+  display: none; align-items: center; justify-content: center;
+  background: #000; text-align: center;
+}
+#victory.show { display: flex; }
+#victory .vicKicker {
+  font-size: 28px; font-weight: 800; color: #ffd45e;
+  letter-spacing: 18px; text-indent: 18px;
+}
+#victory .vicTitle {
+  font-size: 122px; font-weight: 900; color: #fff;
+  letter-spacing: 12px; text-indent: 12px;
+  margin: 12px 0 26px;
+  text-shadow: 0 0 46px rgba(255,200,80,.65), 0 0 130px rgba(255,150,40,.35);
+  animation: toIn .9s cubic-bezier(.2,.9,.3,1) both;
+}
+#victory .vicFlavor {
+  font-size: 30px; font-weight: 600; color: #ddd3c6; line-height: 1.9;
+}
+#victory .vicStats {
+  margin-top: 26px; font-size: 25px; font-weight: 700; color: #a8a19a; line-height: 1.8;
+}
+#victory .vicStats b { color: #ffe08a; font-size: 31px; }
+#victory .vicEnergy {
+  margin: 20px auto 0; max-width: 940px; padding: 16px 28px;
+  font-size: 26px; font-weight: 800; color: #ffd9a0;
+  background: rgba(255,200,90,.08);
+  border: 3px solid rgba(255,200,90,.35); border-radius: 18px;
+}
+#victory .vicEnergy b { color: #ffd45e; font-size: 34px; }
+#victory .vicEnergy .vNo { color: #ff8a7a; }
+#victory .vicBtn {
+  margin-top: 40px; padding: 26px 80px; font-size: 42px;
+  background: linear-gradient(#8a5cf0, #5b2fb8); border-color: #3d1f80;
+  box-shadow: 0 0 44px rgba(138,92,240,.45);
+}
+#victory .vicTip { margin-top: 20px; font-size: 22px; color: #857f74; }
+
 /* ---------- 结算页：加入魔力区后内容更高，压缩留白保证底部按钮完整可见 ---------- */
 #result { padding: 24px 60px 26px; }
 #result #podium { margin: 6px 0 14px; }
