@@ -95,6 +95,14 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .opt.on { background: #ffd45e; color: #241a3d; border-color: #ffd45e; }
 .opt .small { display: block; font-size: 14px; font-weight: 400; opacity: .8; margin-top: 2px; }
 
+/* 三年级难度：只在每周二 00:00–12:00 开放，其余时段不可选 */
+.opt.off {
+  background: #262034; color: #6e6489; border-color: rgba(255,255,255,.10);
+  cursor: not-allowed; filter: grayscale(.55);
+}
+.opt .lockNote { display: block; font-size: 12.5px; font-weight: 700; margin-top: 4px; color: #7ff0a8; }
+.opt.off .lockNote { color: #c08a6a; }
+
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .fld { background: #322650; border-radius: 12px; padding: 8px 12px; }
 .fld label { display: block; font-size: 15px; color: #b9aed6; margin-bottom: 4px; }
@@ -195,7 +203,8 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 
       <div class="setRow" id="rowLevel">
         <div class="setLabel">题目难度（基准年级）</div>
-        <div class="tip" style="text-align:left;margin:0 0 8px">P1 用所选年级，Boss 每变身一次升一年级：P2 = +1 年级，P3 = +2 年级（封顶六年级）。</div>
+        <div class="tip" style="text-align:left;margin:0 0 8px">P1 用所选年级，Boss 每变身一次升一年级：P2 = +1 年级，P3 = +2 年级（封顶六年级）。<br>
+        ⏰ <b>三年级</b>只在<b>每周二 00:00–12:00</b>开放，其余时段该按钮变灰、不可选。</div>
         <div class="opts" id="optLevel"></div>
       </div>
 
@@ -2066,11 +2075,47 @@ var SUBJECTS = [
   { id: 'english', name: '英语单词', desc: 'ABCD 四选一' }
 ];
 var LEVELS = [
-  { id: 3, name: '三年级', desc: '两个两位数相加减 · 乘法口诀±一个数 · 比大小' },
+  { id: 3, name: '三年级', desc: '两个两位数相加减 · 乘法口诀±一个数 · 比大小', tueOnly: true },
   { id: 4, name: '四年级', desc: '三年级题型 ＋ 整除除法' },
   { id: 5, name: '五年级', desc: '四年级题型 ＋ 两位数×一位数±一个数' },
   { id: 6, name: '六年级', desc: '五年级题型 ＋ 三位数÷一位数±一个数' }
 ];
+
+/* ---------- 三年级难度开放时段 ----------
+   只在「每周二 00:00 ~ 12:00」可选，其余时段按钮变灰、点了不开战。
+   想改时段：把 TUE_ONLY 里的条件改掉即可（day 用 getDay()：0=周日，2=周二）。 */
+function lv3Open(d) {
+  d = d || new Date();
+  return d.getDay() === 2 && d.getHours() < 12;
+}
+function lv3Msg() {
+  if (lv3Open()) return '✔ 周二上午限定 · 现在可选择';
+  var d = new Date();
+  if (d.getDay() === 2) return '🔒 今天已过 12:00，下周二上午再来';
+  return '🔒 仅每周二 00:00–12:00 可选';
+}
+/* 刷新三年级按钮的可用状态；不可用时若正选中它，自动退到四年级 */
+function refreshLevelLock() {
+  var box = document.getElementById('optLevel');
+  if (!box) return;
+  var open = lv3Open();
+  var bs = box.querySelectorAll('.opt');
+  for (var i = 0; i < bs.length; i++) {
+    if (String(bs[i].getAttribute('data-id')) !== '3') continue;
+    var note = bs[i].querySelector('.lockNote');
+    if (!note) { note = document.createElement('span'); note.className = 'lockNote'; bs[i].appendChild(note); }
+    note.textContent = lv3Msg();
+    if (open) bs[i].classList.remove('off');
+    else bs[i].classList.add('off');
+  }
+  if (!open && CFG.level === 3) {
+    CFG.level = 4;
+    for (var k = 0; k < bs.length; k++) {
+      if (String(bs[k].getAttribute('data-id')) === '4') bs[k].classList.add('on');
+      else bs[k].classList.remove('on');
+    }
+  }
+}
 
 var FIELDS = {
   fldBoss: [['bossHp', 'Boss 血量'], ['bossAtk', 'Boss 攻击力'], ['bossAtkEvery', 'Boss 出手间隔（秒）'],
@@ -2090,9 +2135,16 @@ function mkOpts(boxId, list, cur, onPick) {
   list.forEach(function (it) {
     var b = document.createElement('button');
     b.className = 'opt' + (it.id === cur ? ' on' : '');
+    b.setAttribute('data-id', it.id);
     b.innerHTML = it.name + '<span class="small">' + it.desc + '</span>';
     b.addEventListener('pointerdown', function (e) {
-      e.preventDefault(); sfx('click');
+      e.preventDefault();
+      /* 时段未开放的档位（三年级）：点了只提示，不切换 */
+      if (b.classList.contains('off')) {
+        sfx('wrong'); toast('三年级难度只在每周二上午 12:00 前开放');
+        return;
+      }
+      sfx('click');
       var bs = box.querySelectorAll('.opt');
       for (var i = 0; i < bs.length; i++) bs[i].classList.remove('on');
       b.classList.add('on'); onPick(it.id);
@@ -2113,7 +2165,10 @@ function buildSetup() {
     CFG.subject = id;
     document.getElementById('rowLevel').style.display = (id === 'math') ? '' : 'none';
   });
+  /* 读档就读到三年级、但现在不是开放时段 → 先退到四年级，避免「选中却开不了」 */
+  if (CFG.level === 3 && !lv3Open()) CFG.level = 4;
   mkOpts('optLevel', LEVELS, CFG.level, function (id) { CFG.level = id; });
+  refreshLevelLock();
   mkFields('fldBoss', FIELDS.fldBoss);
   mkFields('fldSkill', FIELDS.fldSkill);
   mkFields('fldHero', FIELDS.fldHero);
@@ -2455,6 +2510,14 @@ function showResult() {
 function startBattle() {
   ac();                       // 用户手势中解锁音频
   readCfg();
+  /* 三年级难度：不在开放时段（每周二 00:00–12:00）就不许开战 */
+  if (CFG.subject === 'math' && CFG.level === 3 && !lv3Open()) {
+    sfx('wrong');
+    buildSetup();
+    syncEnergyUI();
+    toast('三年级难度只在每周二上午 12:00 前开放，已切到四年级');
+    return;
+  }
   if (CFG.energyOn) {                        /* 魔力门票：开战时扣除 */
     var d = loadEnergy();
     if (d.pool < CFG.energyNeed) {
@@ -2476,6 +2539,7 @@ function backToSetup() {
   document.getElementById('setup').classList.remove('hidden');
   newBattle();
   parkBattle();
+  refreshLevelLock();                        /* 回到首页时重新检查三年级时段 */
   syncEnergyUI();
 }
 
@@ -2522,6 +2586,7 @@ function loop(ts) {
 /* ============================ 初始化 ============================ */
 loadCfg();                                    // 先读本机保存过的参数
 buildSetup();
+setInterval(refreshLevelLock, 20000);         // 时段一到/一过，按钮状态自动跟着变
 buildPanels();
 bindPanels();
 buildPwKeys();
