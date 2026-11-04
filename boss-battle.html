@@ -48,6 +48,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .kbtn.ok  { background: #2f9e63; }
 .kbtn.clr { background: #a4572b; font-size: 21px; }
 .kbtn.skip{ background: #6b6b6b; font-size: 19px; }
+.kbtn.skip.off{ opacity:.45; filter:grayscale(.5); }
 
 .pOpts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
 .obtn { height: 84px; border: none; border-radius: 12px; font-size: 23px; font-weight: 700;
@@ -216,6 +217,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
         <button id="btnToArena" class="bigBtn ghost gone">先去「四人争霸赛」玩团队闯关攒魔力 →</button>
         <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。<br>
+        ⏭ 每人每局最多「跳过 / 换一题」<b>6 次</b>（按钮上会显示剩余次数，用完就不能再跳了），遇到难题要努力想一想哦。<br>
         注意：②③ 阶段的 Boss 会免疫灼烧与冰冻，大招陨石也会越来越频繁（30 → 20 → 10 秒），并且一击就能把护盾砸碎。<br>
         💢 每倒下一名队友，剩下的角色攻击力 +10%（愤怒），倒得越多打得越狠。</div>
       </div>
@@ -353,6 +355,7 @@ var DEFAULTS = {
   shieldMax: 240,     // 护盾叠加上限
   wrongToHeal: 3,     // 我方每累计答错几题，Boss 回血一次
   bossHealPct: 8,     // 每次回复总血量的百分之几
+  skipMax: 6,         // 每人每局「跳过 / 换一题」次数上限（防止遇到难题就跳）
 
   energyOn: 1,        // 魔力门槛：1 需要门票才能开战 / 0 不需要
   energyNeed: 30      // 开战消耗多少点班级魔力
@@ -1497,10 +1500,24 @@ function bossRegen(h) {
   banner(h.name + ' 累计答错 ' + CFG.wrongToHeal + ' 题，Boss 回复 ' + add + ' 点血量！');
   sfx('heal');
 }
+function skipLeft(i) {   /* 该角色还能跳过/换题几次 */
+  var used = B && B.stats ? B.stats.per[i].skip : 0;
+  return Math.max(0, (CFG.skipMax || 0) - used);
+}
+function skipLabel(i, base) {   /* 按钮文案：跳过·剩3 / 换一题·用完 */
+  var l = skipLeft(i);
+  return l > 0 ? base + '·剩' + l : base + '·用完';
+}
 function skipQuestion(i) {
   if (!B || B.over || B.paused) return;
   var h = B.heroes[i];
   if (!h || !h.alive || h.locked) return;
+  if (skipLeft(i) <= 0) {                 /* 次数用完：不许再跳 */
+    sfx('wrong');
+    toast(h.name + ' 的换题次数已用完（每人每局 ' + CFG.skipMax + ' 次），努力想想这道题吧！');
+    renderPanels();
+    return;
+  }
   B.stats.per[i].skip++;
   sfx('click');
   giveQuestion(h);
@@ -2397,7 +2414,8 @@ var FIELDS = {
              ['freezeSec', '冻结秒数'], ['freezeImmuneSec', '冻结免疫秒数']],
   fldHero: [['heroHp', '角色血量'], ['burnDmg', '灼烧每次伤害'], ['burnTurns', '灼烧次数'], ['burnTickSec', '灼烧间隔（秒）'],
             ['shieldAmt', '全员满血时给的护盾'], ['shieldMax', '护盾叠加上限'],
-            ['wrongToHeal', '答错几题 Boss 回血'], ['bossHealPct', 'Boss 每次回血%']],
+            ['wrongToHeal', '答错几题 Boss 回血'], ['bossHealPct', 'Boss 每次回血%'],
+            ['skipMax', '每人跳过/换题次数上限']],
   fldEnergy: [['energyNeed', '开战消耗魔力点数']]
 };
 
@@ -2450,7 +2468,7 @@ function readCfg() {
     'dmgThunder', 'dmgFire',
     'dmgIce', 'healAmt', 'healGroupEvery', 'healGroupAmt',
     'heroHp', 'burnDmg', 'burnTurns', 'burnTickSec', 'freezeSec', 'freezeImmuneSec',
-    'shieldAmt', 'shieldMax', 'wrongToHeal', 'bossHealPct'];
+    'shieldAmt', 'shieldMax', 'wrongToHeal', 'bossHealPct', 'skipMax'];
   keys.forEach(function (k) {
     var el = document.getElementById('cf_' + k);
     if (!el) return;
@@ -2655,8 +2673,10 @@ function keysHTML(i) {
   var h = '';
   order.forEach(function (k) {
     var label = k[0], kind = k[1];
+    if (kind === 'skip') label = skipLabel(i, '跳过');   // 跳过键显示剩余次数
     var attr = (kind === 'num') ? label : kind;   // 数字键传数字本身，功能键传动作名
-    h += '<button class="kbtn ' + kind + '" data-i="' + i + '" data-k="' + attr + '">' + label + '</button>';
+    h += '<button class="kbtn ' + kind + (kind === 'skip' && skipLeft(i) <= 0 ? ' off' : '') +
+         '" data-i="' + i + '" data-k="' + attr + '">' + label + '</button>';
   });
   h += '<button class="kbtn num" data-i="' + i + '" data-k="0" style="grid-column:span 4">0</button>';
   return h;
@@ -2669,7 +2689,8 @@ function cmpKeysHTML(i) {
     h += '<button class="kbtn cmpv" data-i="' + i + '" data-k="' + s[0] + '">' + s[1] + '</button>';
   });
   h += '<button class="kbtn ok" data-i="' + i + '" data-k="ok" style="grid-column:span 2">确 定</button>';
-  h += '<button class="kbtn skip" data-i="' + i + '" data-k="skip">换一题</button>';
+  h += '<button class="kbtn skip' + (skipLeft(i) <= 0 ? ' off' : '') + '" data-i="' + i + '" data-k="skip">' +
+       skipLabel(i, '换一题') + '</button>';
   return h;
 }
 function panelHTML(i) {
@@ -2706,7 +2727,8 @@ function panelHTML(i) {
         '<span style="color:#ffd45e">' + 'ABCD'.charAt(k) + '.</span> ' + esc(o) + '</button>';
     });
     s += '</div>';
-    s += '<div class="pSkipRow"><button class="kbtn skip" data-i="' + i + '" data-k="skip" style="width:100%">换一题</button></div>';
+    s += '<div class="pSkipRow"><button class="kbtn skip' + (skipLeft(i) <= 0 ? ' off' : '') +
+         '" data-i="' + i + '" data-k="skip" style="width:100%">' + skipLabel(i, '换一题') + '</button></div>';
   }
   return s;
 }
