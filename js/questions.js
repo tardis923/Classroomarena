@@ -109,9 +109,11 @@ var QGen = (function () {
       var b2 = ri(10, 99 - d), a2 = b2 + d;
       return { text: "(" + a2 + " − " + b2 + ") ÷ " + c2, ans: q2 };
     }
-    if (t === 2) {                       // (a + b) × c
-      var c3 = ri(2, 4), a3 = ri(10, 30), b3 = ri(10, 30);
-      return { text: "(" + a3 + " + " + b3 + ") × " + c3, ans: (a3 + b3) * c3 };
+    if (t === 2) {                       // (a + b) × c（积不超过 150）
+      var c3 = ri(2, 4);
+      var s3 = ri(20, Math.min(60, Math.floor(150 / c3)));   // 两数之和
+      var a3 = ri(10, s3 - 10), b3 = s3 - a3;
+      return { text: "(" + a3 + " + " + b3 + ") × " + c3, ans: s3 * c3 };
     }
     /* (a − b) × c */
     var c4 = ri(2, 4), d4 = ri(3, 20), b4 = ri(10, 50), a4 = b4 + d4;
