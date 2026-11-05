@@ -250,6 +250,12 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         </div>
 
         <div class="setRow">
+          <div class="setLabel">关卡解锁（老师测试用）</div>
+          <div class="opts" id="optUnlock"></div>
+          <div class="tip" style="text-align:left;margin:6px 0 0">默认按班级通关进度解锁关卡；选「全部解锁」后所有关卡都可直接选，方便测试新关卡。不影响通关次数与成长加成。</div>
+        </div>
+
+        <div class="setRow">
           <div class="setLabel">魔力门票（与「热身赛」联动）</div>
           <div class="opts" id="optEnergy"></div>
         </div>
@@ -275,11 +281,11 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         </div>
 
         <div class="setRow">
-          <div class="setLabel">修改管理密码（4 位数字，留空表示不修改）</div>
+          <div class="setLabel">修改管理密码（6 位数字，留空表示不修改）</div>
           <div class="fld" style="max-width:280px">
-            <input id="cf_newpwd" type="text" inputmode="numeric" maxlength="4" placeholder="如 8888">
+            <input id="cf_newpwd" type="text" inputmode="numeric" maxlength="6" placeholder="如 990214">
           </div>
-          <div class="tip" style="text-align:left;margin:6px 0 0">初始密码：8888</div>
+          <div class="tip" style="text-align:left;margin:6px 0 0">初始密码：990214。密码保存在本机时只存加密值，不存明文。</div>
         </div>
       </div>
       <div class="cardFoot">
@@ -317,7 +323,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
   <div id="pwMask" class="mask hidden">
     <div class="pwCard">
       <div class="pwTitle">请输入管理密码</div>
-      <div class="pwHint">4 位数字，输入满 4 位自动确认</div>
+      <div class="pwHint">6 位数字，输入满 6 位自动确认</div>
       <div class="pwDots" id="pwDots"></div>
       <div class="pwErr" id="pwErr"></div>
       <div class="pwKeys" id="pwKeys"></div>
@@ -335,7 +341,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
    团队合作知识闯关   单文件版
    无外部依赖，双击即可运行。所有角色 / Boss / 特效均为 Canvas 程序化绘制。
    首页只显示「题库」和「题目难度」；其余数值在左上角「设置」里，
-   输入管理密码（默认 8888）后可调，点「保存配置」存到本机浏览器。
+   输入管理密码（默认 990214）后可调，点「保存配置」存到本机浏览器。
    ========================================================================= */
 
 var W = 1920, H = 1080, AH = 720;          // 舞台宽高 / 战斗区高
@@ -345,7 +351,7 @@ var ctx = cv.getContext('2d');
 /* ============================ 可配置参数 ============================
    以下为「中等难度」固定值：按小学生平均水平调过，
    一局大约 3~4 分钟，答得快准就能赢，磨蹭或乱答就会被 Boss 拖死。
-   老师可以在左上角「设置」（密码 8888）里改，保存后存在本机。
+   老师可以在左上角「设置」（密码 990214）里改，保存后存在本机。
    ==================================================================== */
 var DEFAULTS = {
   stage: 1,           // 当前关卡：1 魔法师大战魔王 / 2 植物守卫战
@@ -379,7 +385,9 @@ var DEFAULTS = {
   skipMax: 6,         // 每人每局「跳过 / 换一题」次数上限（防止遇到难题就跳）
 
   energyOn: 1,        // 魔力门槛：1 需要门票才能开战 / 0 不需要
-  energyNeed: 30      // 开战消耗多少点班级魔力
+  energyNeed: 30,     // 开战消耗多少点班级魔力
+
+  allUnlock: 0        // 测试用：1 = 解锁全部关卡（设置页可切换）
 };
 
 var CFG = {};
@@ -391,7 +399,7 @@ resetCfg();
 /* ---------- 本地保存 / 读取（localStorage，存本机浏览器） ---------- */
 var CFG_KEY = 'bossbattle_cfg_v1';
 var PWD_KEY = 'bossbattle_pwd_v1';
-var DEFAULT_PWD = '8888';
+var DEFAULT_PWD = '990214';   /* 初始管理密码：6 位 */
 
 function loadCfg() {
   try {
@@ -403,6 +411,7 @@ function loadCfg() {
       if (!Object.prototype.hasOwnProperty.call(DEFAULTS, k)) continue;
       var v = o[k];
       if (k === 'energyOn') { CFG[k] = v ? 1 : 0; continue; }   /* 允许为 0（关闭门槛） */
+      if (k === 'allUnlock') { CFG[k] = v ? 1 : 0; continue; }  /* 允许为 0（按进度解锁） */
       if (typeof DEFAULTS[k] === 'number') {
         if (typeof v === 'number' && isFinite(v) && v > 0) CFG[k] = v;
       } else if (k === 'subject') {
@@ -419,12 +428,24 @@ function saveCfg() {
   try { window.localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); return true; }
   catch (e) { return false; }
 }
-function getPwd() {
-  try { var p = window.localStorage.getItem(PWD_KEY); return (p && p.length >= 4) ? p : DEFAULT_PWD; }
-  catch (e) { return DEFAULT_PWD; }
+/* 密码不存明文：本机只保存简单哈希值（防翻看 localStorage 直接看到密码；
+   代码中保留初始密码明文，方便老师第一次进入） */
+function pwHash(p) {
+  var h = 5381;
+  for (var i = 0; i < p.length; i++) h = ((h * 33) + p.charCodeAt(i)) >>> 0;
+  return 'h' + h.toString(36);
+}
+function getPwdHash() {
+  try {
+    var s = window.localStorage.getItem(PWD_KEY);
+    if (s && s.charAt(0) === 'h') return s;        /* 新版：已存哈希 */
+    if (s && s.length >= 4) return pwHash(s);      /* 旧版明文自动升级为哈希 */
+  } catch (e) { }
+  return pwHash(DEFAULT_PWD);
 }
 function setPwd(p) {
-  try { window.localStorage.setItem(PWD_KEY, p); return true; } catch (e) { return false; }
+  try { window.localStorage.setItem(PWD_KEY, pwHash(p)); return true; }
+  catch (e) { return false; }
 }
 
 /* ---------- 班级魔力池（与热身赛共享） ----------
@@ -2115,7 +2136,10 @@ var STAGES = [
   { id: 4, name: '第四关 · 太空漫游',       desc: '英语单词 · 敬请期待', subj: 'english' }
 ];
 function stageOf(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return STAGES[i]; return STAGES[0]; }
-function stageLocked(id) { return id > loadProg().unlocked; }
+function stageLocked(id) {
+  if (CFG.allUnlock) return false;      /* 测试开关：全部解锁 */
+  return id > loadProg().unlocked;
+}
 function isStage2() { return CFG.stage === 2; }
 
 /* ---------- 班级进度（关卡解锁 + 通关次数）----------
@@ -2199,6 +2223,7 @@ function buildSetup() {
   }), CFG.stage, function (id) { pickStage(id); });
   mkOpts('optSubj', SUBJECTS, CFG.subject, function (id) { CFG.subject = id; });
   mkOpts('optLevel', LEVELS, CFG.level, function (id) { CFG.level = id; });
+  buildUnlockOpts();
   renderGrowth();
   mkFields('fldBoss', FIELDS.fldBoss);
   mkFields('fldSkill', FIELDS.fldSkill);
@@ -2206,6 +2231,18 @@ function buildSetup() {
   applyStageText();
 }
 var SUBJ_NAMES = { math: '数学口算', chinese: '语文知识', english: '英语单词', safe: '安全知识' };
+/* 关卡解锁开关（设置页，老师测试用） */
+function buildUnlockOpts() {
+  mkOpts('optUnlock', [
+    { id: 0, name: '按进度解锁', desc: '打过第 N 关才开第 N+1 关' },
+    { id: 1, name: '全部解锁', desc: '测试用：所有关卡都可直接选' }
+  ], CFG.allUnlock ? 1 : 0, function (v) {
+    CFG.allUnlock = v ? 1 : 0;
+    saveCfg();
+    buildSetup();                    /* 刷新首页关卡按钮的锁定态 */
+    toast(v ? '已解锁全部关卡（测试模式），关闭设置后生效' : '已恢复按班级通关进度解锁');
+  });
+}
 function pickStage(id) {
   CFG.stage = id;
   CFG.subject = stageOf(id).subj;     /* 每关默认绑定学科，老师可在设置页改 */
@@ -2280,7 +2317,7 @@ function buildPwKeys() {
 }
 function renderPwDots(err) {
   var box = document.getElementById('pwDots'), h = '';
-  for (var i = 0; i < 4; i++) {
+  for (var i = 0; i < 6; i++) {
     h += '<i class="' + (i < pwBuf.length ? 'on' : '') + (err ? ' bad' : '') + '"></i>';
   }
   box.innerHTML = h;
@@ -2291,13 +2328,13 @@ function closePw() { document.getElementById('pwMask').classList.add('hidden'); 
 function pwKey(k) {
   if (k === 'clr') { sfx('click'); pwBuf = ''; renderPwDots(''); return; }
   if (k === 'del') { sfx('click'); pwBuf = pwBuf.slice(0, -1); renderPwDots(''); return; }
-  if (pwBuf.length >= 4) return;
+  if (pwBuf.length >= 6) return;
   sfx('click');
   pwBuf += k;
   renderPwDots('');
-  if (pwBuf.length === 4) {
+  if (pwBuf.length === 6) {
     setTimeout(function () {
-      if (pwBuf === getPwd()) { sfx('right'); pwBuf = ''; closePw(); openSettings(); }
+      if (pwHash(pwBuf) === getPwdHash()) { sfx('right'); pwBuf = ''; closePw(); openSettings(); }
       else { sfx('wrong'); pwBuf = ''; renderPwDots('密码不对，请重新输入'); }
     }, 180);
   }
@@ -2342,7 +2379,7 @@ function saveSettings() {
   readCfg();
   writeEnergyMeta();                         /* 把门票价 / 开关同步给热身赛 */
   var np = String(document.getElementById('cf_newpwd').value || '').replace(/\D/g, '');
-  if (np.length > 0 && np.length !== 4) { toast('新密码必须是 4 位数字'); return; }
+  if (np.length > 0 && np.length !== 6) { toast('新密码必须是 6 位数字'); return; }
   var okPwd = np ? setPwd(np) : true;
   var ok = saveCfg();
   if (ok) toast(okPwd ? '已保存到本机，下一局生效' : '参数已保存，但密码未写入本机');
