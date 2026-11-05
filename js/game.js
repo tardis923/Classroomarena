@@ -33,6 +33,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var W = 1920, H = 1080;
 
+  /* 题库洗牌（js/banks.js 约定各页面自己调）：源数据正确答案固定在 o[0]，
+     整体打散到随机位置；抽题时还会再洗一次选项顺序，双保险。 */
+  try { shuffleBank(CN_BANK); shuffleBank(EN_BANK); shuffleBank(SAFE_BANK); } catch (e) { }
+
   var state = 'setup';           // setup | count | play | pause | over
   var cfg = { buns: 15, level: 0, theme: 'forest', mode: 'team', names: [] };
   var players = [];
@@ -83,8 +87,8 @@
     return bankQuestion(r < 0.6 ? CN_BANK : (r < 0.8 ? EN_BANK : SAFE_BANK));
   }
 
-  /* 标题统一为「四人争霸赛」：不含学科词，以后加语文知识竞赛也不用改 */
-  var GAME_TITLE = '四人争霸赛';
+  /* 标题统一为「热身赛」：不含学科词，以后加语文知识竞赛也不用改 */
+  var GAME_TITLE = '热身赛';
   var ROSTER = {
     forest: '熊大、熊二、光头强、蹦蹦',
     tavern: '四位壮士'
@@ -460,7 +464,12 @@
     qe.style.display = isOpt ? 'none' : '';
     qb.textContent = '';
     qb.classList.remove('bad', 'hint', 'ok');
-    if (col) col.classList.toggle('optMode', isOpt);
+    if (col) {
+      col.classList.toggle('optMode', isOpt);
+      /* 清掉上一题的答错/亮答案高亮，避免颜色残留到新题上 */
+      var pb = col.querySelectorAll('.popt');
+      for (var b2 = 0; b2 < pb.length; b2++) pb[b2].classList.remove('showAns', 'badSel');
+    }
     $('pq' + i).classList.toggle('optQ', isOpt);
     if (isOpt) {
       for (var k = 0; k < 4; k++) {

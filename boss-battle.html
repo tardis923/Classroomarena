@@ -212,7 +212,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       </div>
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
-        <button id="btnToArena" class="bigBtn ghost gone">先去「四人争霸赛」通关攒魔力 →</button>
+        <button id="btnToArena" class="bigBtn ghost gone">先去「热身赛」通关攒魔力 →</button>
         <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。<br>
         ⏭ 每人每局最多「跳过 / 换一题」<b>6 次</b>（按钮上会显示剩余次数，用完就不能再跳了），遇到难题要努力想一想哦。<br>
         注意：②③ 阶段的 Boss 会免疫灼烧与冰冻，大招陨石也会越来越频繁（30 → 20 → 10 秒），并且一击就能把护盾砸碎。<br>
@@ -241,12 +241,12 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         </div>
 
         <div class="setRow">
-          <div class="setLabel">魔力门票（与「四人争霸赛」联动）</div>
+          <div class="setLabel">魔力门票（与「热身赛」联动）</div>
           <div class="opts" id="optEnergy"></div>
         </div>
 
         <div class="setRow">
-          <div class="setLabel">开战消耗魔力点数（在「四人争霸赛」通关热身赛攒：一次奖 30 点）</div>
+          <div class="setLabel">开战消耗魔力点数（在「热身赛」通关攒：一次奖 30 点）</div>
           <div class="grid4" id="fldEnergy"></div>
         </div>
 
@@ -418,8 +418,8 @@ function setPwd(p) {
   try { window.localStorage.setItem(PWD_KEY, p); return true; } catch (e) { return false; }
 }
 
-/* ---------- 班级魔力池（与四人争霸赛共享） ----------
-   学生在「四人争霸赛」里每答对 1 题 = 1 点魔力；
+/* ---------- 班级魔力池（与热身赛共享） ----------
+   学生在「热身赛」里通关一次 = 奖 30 点魔力；
    攒够 CFG.energyNeed 点才能挑战本进阶版，开战时扣除。        */
 var ENERGY_KEY = 'arena_energy_v1';
 function loadEnergy() {
@@ -429,7 +429,7 @@ function loadEnergy() {
     if (s) {
       var o = JSON.parse(s);
       if (o && typeof o === 'object') {
-        /* pool 允许小数：四人争霸赛基础难度一题 0.5 点 */
+        /* pool 允许小数：历史版本按题计魔力留下的兼容 */
         if (typeof o.pool === 'number' && isFinite(o.pool) && o.pool >= 0) d.pool = Math.round(o.pool * 10) / 10;
         if (typeof o.need === 'number' && isFinite(o.need) && o.need >= 1) d.need = Math.floor(o.need);
         d.on = o.on ? 1 : 0;
@@ -2328,7 +2328,7 @@ function saveSettings() {
   var en = parseInt(document.getElementById('cf_energyNeed').value, 10);
   if (isFinite(en) && en >= 1) CFG.energyNeed = en;
   readCfg();
-  writeEnergyMeta();                         /* 把门票价 / 开关同步给四人争霸赛 */
+  writeEnergyMeta();                         /* 把门票价 / 开关同步给热身赛 */
   var np = String(document.getElementById('cf_newpwd').value || '').replace(/\D/g, '');
   if (np.length > 0 && np.length !== 4) { toast('新密码必须是 4 位数字'); return; }
   var okPwd = np ? setPwd(np) : true;
@@ -2369,7 +2369,7 @@ function renderEnergy() {
     '<div class="eTrack"><div class="eFill' + (ok ? ' ok' : '') + '" style="width:' + pct + '%"></div></div>' +
     '<div class="eTip' + (ok ? ' ok' : '') + '">' +
     (ok ? '魔力充足！开战会消耗 ' + CFG.energyNeed + ' 点班级魔力（每次挑战都要付门票）。'
-        : '还差 ' + eNum(CFG.energyNeed - d.pool) + ' 点魔力才能挑战 —— 去「四人争霸赛」通关热身赛，一次奖 <b>30</b> 点魔力。') +
+        : '还差 ' + eNum(CFG.energyNeed - d.pool) + ' 点魔力才能挑战 —— 去「热身赛」通关一次就奖 <b>30</b> 点魔力。') +
     '</div>';
 }
 function energyLocked() { return !!CFG.energyOn && loadEnergy().pool < CFG.energyNeed; }
@@ -2398,7 +2398,7 @@ function clearEnergy() {
 }
 function buildEnergyOpts() {
   mkOpts('optEnergy', [
-    { id: 1, name: '需要门票', desc: '须先在四人争霸赛攒够魔力' },
+    { id: 1, name: '需要门票', desc: '须先在热身赛攒够魔力' },
     { id: 0, name: '不需要', desc: '随时可以直接开战' }
   ], CFG.energyOn, function (id) { CFG.energyOn = id; });
 }
@@ -2574,7 +2574,7 @@ function startBattle() {
   if (CFG.energyOn) {                        /* 魔力门票：开战时扣除 */
     var d = loadEnergy();
     if (d.pool < CFG.energyNeed) {
-      toast('魔力不足：还差 ' + (CFG.energyNeed - d.pool) + ' 点，先去四人争霸赛攒一攒');
+      toast('魔力不足：还差 ' + (CFG.energyNeed - d.pool) + ' 点，先去热身赛攒一攒');
       syncEnergyUI();
       return;
     }
