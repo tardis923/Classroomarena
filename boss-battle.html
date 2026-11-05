@@ -253,7 +253,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         <div class="setRow">
           <div class="setLabel">关卡解锁（老师测试用）</div>
           <div class="opts" id="optUnlock"></div>
-          <div class="tip" style="text-align:left;margin:6px 0 0">默认按班级通关进度解锁关卡；选「全部解锁」后所有关卡都可直接选，方便测试新关卡。不影响通关次数与成长加成。</div>
+          <div class="tip" style="text-align:left;margin:6px 0 0">默认按班级通关进度解锁关卡；选「全部解锁」后已做好的关卡都可直接选，方便测试。还没做好的关卡（敬请期待）会保持锁定，不能进入。不影响通关次数与成长加成。</div>
         </div>
 
         <div class="setRow">
@@ -2193,16 +2193,18 @@ var LEVELS = [
 
 /* ---------- 关卡列表（闯关制）----------
    解锁看班级进度 loadProg().unlocked：打过第 N 关就永久解锁第 N+1 关。
-   subj = 该关默认绑定的学科（选关时自动切换；老师可在设置页再改）。 */
+   subj = 该关默认绑定的学科（选关时自动切换；老师可在设置页再改）。
+   done = 关卡是否已做好：false 的占位关（敬请期待）即使开了「全部解锁」也不能进入。 */
 var STAGES = [
-  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '数学口算 · 三阶段变身大魔王', subj: 'math' },
-  { id: 2, name: '第二关 · 植物守卫战',     desc: '安全知识 · 僵尸博士开机甲来袭', subj: 'safe' },
-  { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 敬请期待', subj: 'chinese' },
-  { id: 4, name: '第四关 · 太空漫游',       desc: '英语单词 · 敬请期待', subj: 'english' }
+  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '数学口算 · 三阶段变身大魔王', subj: 'math',    done: true },
+  { id: 2, name: '第二关 · 植物守卫战',     desc: '安全知识 · 僵尸博士开机甲来袭', subj: 'safe',    done: true },
+  { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 敬请期待',           subj: 'chinese', done: false },
+  { id: 4, name: '第四关 · 太空漫游',       desc: '英语单词 · 敬请期待',           subj: 'english', done: false }
 ];
 function stageOf(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return STAGES[i]; return STAGES[0]; }
 function stageLocked(id) {
-  if (CFG.allUnlock) return false;      /* 测试开关：全部解锁 */
+  if (!stageOf(id).done) return true;   /* 未做好的关卡：始终锁定，「全部解锁」也进不去 */
+  if (CFG.allUnlock) return false;      /* 测试开关：已做好的关卡全部解锁 */
   return id > loadProg().unlocked;
 }
 function isStage2() { return CFG.stage === 2; }
@@ -2302,7 +2304,7 @@ var SUBJ_NAMES = { math: '数学口算', chinese: '语文知识', english: '英�
 function buildUnlockOpts() {
   mkOpts('optUnlock', [
     { id: 0, name: '按进度解锁', desc: '打过第 N 关才开第 N+1 关' },
-    { id: 1, name: '全部解锁', desc: '测试用：所有关卡都可直接选' }
+    { id: 1, name: '全部解锁', desc: '测试用：已做好的关卡都可直接选' }
   ], CFG.allUnlock ? 1 : 0, function (v) {
     CFG.allUnlock = v ? 1 : 0;
     saveCfg();
@@ -2492,15 +2494,17 @@ function renderEnergy() {
     '</div>';
 }
 function energyLocked() { return !!CFG.energyOn && loadEnergy().pool < CFG.energyNeed; }
-/* 开始按钮统一状态：魔力不足 或 选中关卡未解锁 → 置灰不可点 */
+/* 开始按钮统一状态：魔力不足 或 选中关卡未解锁/未做好 → 置灰不可点 */
 function updateStartBtn() {
   var bs = document.getElementById('btnStart');
   if (!bs) return;
   var lack = energyLocked();          /* 魔力不够门票 */
-  var lock = stageLocked(CFG.stage);  /* 关卡还没解锁 */
+  var lock = stageLocked(CFG.stage);  /* 关卡还没解锁（或还没做好） */
   bs.disabled = lack || lock;
   bs.classList.toggle('off', lack || lock);
-  bs.textContent = lack ? '魔 力 不 足' : (lock ? '关 卡 未 解 锁' : '开 始 战 斗');
+  bs.textContent = lack ? '魔 力 不 足'
+    : (lock ? (stageOf(CFG.stage).done ? '关 卡 未 解 锁' : '关 卡 制 作 中 · 敬请期待')
+            : '开 始 战 斗');
 }
 function syncEnergyUI() {
   renderEnergy();
@@ -2698,7 +2702,9 @@ function startBattle() {
   ac();                       // 用户手势中解锁音频
   readCfg();
   if (stageLocked(CFG.stage)) {              /* 保险：锁定关卡不允许开战 */
-    toast('这一关还没解锁 —— 先通前面的关，或让老师在设置里开启「全部解锁」');
+    toast(stageOf(CFG.stage).done
+      ? '这一关还没解锁 —— 先通前面的关，或让老师在设置里开启「全部解锁」'
+      : '这一关还在制作中，敬请期待！');
     sfx('wrong');
     return;
   }
