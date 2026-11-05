@@ -807,7 +807,9 @@ function newBattle() {
   B = {
     over: false, win: false, paused: false, elapsed: 0,
     boss: {
-      hp: CFG.bossHp, max: CFG.bossHp, phase: 0, name: PH()[0].name,
+      hp: Math.round(CFG.bossHp * stageHpMul()),
+      max: Math.round(CFG.bossHp * stageHpMul()),
+      phase: 0, name: PH()[0].name,
       burn: 0, burnT: 0, burnTick: 0, frozen: 0, immune: 0, stun: 0,
       hitT: 0, shake: 0, morph: 0, atkT: 0, bob: 0
     },
@@ -1215,7 +1217,7 @@ function normalAttack() {
   if (!alive.length) return;
   if (Math.random() > ph.atkChance) { banner('Boss 正在蓄力，这次没有出手'); return; }
   var t = alive[ri(0, alive.length - 1)];
-  var dmg = Math.round(CFG.bossAtk * ph.atkMul * B.dmgMul);   /* 第二关：含怒气加成 */
+  var dmg = Math.round(CFG.bossAtk * ph.atkMul * B.dmgMul * stageAtkMul());   /* 第二关：含怒气 + 关卡攻击系数 */
   B.boss.atkT = 0.65;
   B.fx.push({ type: 'bossatk', t: 0, dur: 0.8, from: { x: BOSS_X - 120, y: BOSS_Y }, to: heroPt(t.i) });
   after(0.42, function () { sfx('hit'); hurtHero(t, dmg); });
@@ -1233,7 +1235,7 @@ function meteorAttack() {
     B.meteorWarn = false;
     if (B.over) return;
     sfx('meteor');
-    var dmg = Math.round(CFG.meteorDmg * ph.meteorMul);
+    var dmg = Math.round(CFG.meteorDmg * ph.meteorMul * stageAtkMul());   /* 大招同样含关卡攻击系数 */
     var alive = aliveHeroes(), broke = false;
     alive.forEach(function (h, k) {
       B.fx.push({ type: 'meteor', t: 0, dur: 0.9, x: heroPt(h.i).x + 30, y: heroPt(h.i).y, delay: k * 0.13 });
@@ -2194,14 +2196,18 @@ var LEVELS = [
 /* ---------- 关卡列表（闯关制）----------
    解锁看班级进度 loadProg().unlocked：打过第 N 关就永久解锁第 N+1 关。
    subj = 该关默认绑定的学科（选关时自动切换；老师可在设置页再改）。
-   done = 关卡是否已做好：false 的占位关（敬请期待）即使开了「全部解锁」也不能进入。 */
+   done = 关卡是否已做好：false 的占位关（敬请期待）即使开了「全部解锁」也不能进入。
+   hpMul / atkMul = Boss 血量 / 攻击系数：从第二关起逐关提升，抵消班级通关成长加成
+   （攻/血/疗最高+20%），否则越玩到后面越简单。改数值即可调整难度。 */
 var STAGES = [
-  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '数学口算 · 三阶段变身大魔王', subj: 'math',    done: true },
-  { id: 2, name: '第二关 · 植物守卫战',     desc: '安全知识 · 僵尸博士开机甲来袭', subj: 'safe',    done: true },
-  { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 敬请期待',           subj: 'chinese', done: false },
-  { id: 4, name: '第四关 · 太空漫游',       desc: '英语单词 · 敬请期待',           subj: 'english', done: false }
+  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '数学口算 · 三阶段变身大魔王', subj: 'math',    done: true,  hpMul: 1,    atkMul: 1    },
+  { id: 2, name: '第二关 · 植物守卫战',     desc: '安全知识 · 僵尸博士开机甲来袭', subj: 'safe',    done: true,  hpMul: 1.25, atkMul: 1.2  },
+  { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 敬请期待',           subj: 'chinese', done: false, hpMul: 1.5,  atkMul: 1.35 },
+  { id: 4, name: '第四关 · 太空漫游',       desc: '英语单词 · 敬请期待',           subj: 'english', done: false, hpMul: 1.75, atkMul: 1.5  }
 ];
 function stageOf(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return STAGES[i]; return STAGES[0]; }
+function stageHpMul() { return stageOf(CFG.stage).hpMul || 1; }
+function stageAtkMul() { return stageOf(CFG.stage).atkMul || 1; }
 function stageLocked(id) {
   if (!stageOf(id).done) return true;   /* 未做好的关卡：始终锁定，「全部解锁」也进不去 */
   if (CFG.allUnlock) return false;      /* 测试开关：已做好的关卡全部解锁 */
@@ -2331,7 +2337,7 @@ function applyStageText() {
   if (h1) h1.textContent = '团队合作知识闯关 · ' + st.name.split(' · ')[0];
   if (sub) {
     sub.innerHTML = isStage2()
-      ? '四株植物各答各的题，答对就朝<b>僵尸博士机甲</b>连喷弹幕：雷芦苇<b>三道电弧</b>连击（末道麻痹机甲）、小火炬连喷<b>火焰豌豆</b>点燃机甲、冰豌豆连喷<b>寒冰豌豆</b>让机甲减速（免疫期也有效）、阳光花治疗队友，全员满血时改种<b>坚果墙</b>挡大招——但巨人的铁桩一击就能砸碎！机甲每 20 秒变怒一次，攻击越来越疼，别拖太久。'
+      ? '四株植物各答各的题，答对就朝<b>僵尸博士机甲</b>连喷弹幕：雷芦苇<b>三道电弧</b>连击（末道麻痹机甲）、小火炬连喷<b>火焰豌豆</b>点燃机甲、冰豌豆连喷<b>寒冰豌豆</b>让机甲减速（免疫期也有效）、阳光花治疗队友，全员满血时改种<b>坚果墙</b>挡大招——但巨人的铁桩一击就能砸碎！机甲每 20 秒变怒一次，攻击越来越疼，别拖太久。本关机甲血量为第一关的 <b>1.25 倍</b>、攻击 <b>1.2 倍</b>，试班级成长来硬碰硬吧！'
       : '四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。题目和难度由老师在设置页统一调整。';
   }
 }
