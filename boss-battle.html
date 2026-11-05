@@ -123,6 +123,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
           border-radius: 16px; background: #ffd45e; color: #241a3d;
           font-size: 34px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .bigBtn.ghost { background: #4a3f74; color: #fff; height: 62px; font-size: 26px; }
+.bigBtn.off { opacity: .4; filter: grayscale(.7); cursor: default; }
 .bigBtn.off { background: #3d3358; color: #8d84a8; }
 .bigBtn:active { filter: brightness(.9); }
 .resBtns { display: flex; gap: 14px; margin-top: 18px; }
@@ -227,7 +228,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         注意：②③ 阶段的 Boss 会免疫灼烧与冰冻，大招陨石也会越来越频繁（30 → 20 → 10 秒），并且一击就能把护盾砸碎。<br>
         💢 每倒下一名队友，剩下的角色攻击力 +10%（愤怒），倒得越多打得越狠。<br>
         🌱 每通关一次，全班攻击 / 血量 / 治疗永久 <b>+2%</b>（上限 20%）—— 打不过没关系，多通关就变强！<br>
-        🎃 第二关特色：治疗改种<b>坚果墙</b>挡伤害（巨人一击砸碎）、博士机甲每 <b>20 秒</b>变怒一次（攻击 +8% · 出手更快），草坪上还会有小僵尸路过凑热闹。</div>
+        🎃 第二关特色：技能全面换新 —— 雷芦苇三道电弧连击（末道麻痹机甲）、小火炬连喷火焰豌豆点燃、冰豌豆连喷寒冰豌豆减速（免疫期也有效）；治疗改种<b>坚果墙</b>挡大招（巨人一击砸碎）、博士机甲每 <b>20 秒</b>变怒一次（攻击 +8% · 出手更快），草坪上还会有小僵尸路过凑热闹。</div>
       </div>
     </div>
 
@@ -551,16 +552,16 @@ var PVZ_PHASES = [
 ];
 function PH() { return isStage2() ? PVZ_PHASES : PHASES; }
 
-/* 四植物：key/配色沿用第一关（技能逻辑不变），只换名字与说明 */
+/* 四植物：技能与第一关完全不同 —— PvZ 式连射弹幕，答对就连喷三发 */
 var PVZ_HEROES = [
-  { cls: '向日葵',   name: '阳光花', skill: '治愈花粉', key: 'heal',
-    desc: '回血最虚弱 · 满血种坚果', robe: '#3fae6a', dark: '#24704a', orb: '#7ff0a8', tone: 392 },
-  { cls: '闪电芦苇', name: '雷芦苇', skill: '闪电',     key: 'thunder',
-    desc: '单体高伤害',       robe: '#5b7ce0', dark: '#33509c', orb: '#cfe3ff', tone: 300 },
-  { cls: '火炬树桩', name: '小火炬', skill: '火球',     key: 'fire',
-    desc: '伤害＋点燃烧机甲', robe: '#e0642c', dark: '#a33f13', orb: '#ffca6a', tone: 240 },
-  { cls: '寒冰射手', name: '冰豌豆', skill: '冰弹',     key: 'ice',
-    desc: '伤害＋冻结机甲',   robe: '#3fa8c4', dark: '#216a80', orb: '#bff0ff', tone: 500 }
+  { cls: '向日葵',   name: '阳光花', skill: '阳光能量', key: 'heal',
+    desc: '治疗最虚队友 · 满血种坚果墙', robe: '#3fae6a', dark: '#24704a', orb: '#7ff0a8', tone: 392 },
+  { cls: '闪电芦苇', name: '雷芦苇', skill: '连环电弧', key: 'thunder',
+    desc: '三道电弧连击 · 末道麻痹机甲', robe: '#5b7ce0', dark: '#33509c', orb: '#cfe3ff', tone: 300 },
+  { cls: '火炬树桩', name: '小火炬', skill: '火焰豌豆', key: 'fire',
+    desc: '连喷三发火豌豆 · 点燃机甲', robe: '#e0642c', dark: '#a33f13', orb: '#ffca6a', tone: 240 },
+  { cls: '寒冰射手', name: '冰豌豆', skill: '寒冰豌豆', key: 'ice',
+    desc: '连喷三发冰豌豆 · 减速机甲', robe: '#3fa8c4', dark: '#216a80', orb: '#bff0ff', tone: 500 }
 ];
 function heroSet() { return isStage2() ? PVZ_HEROES : HEROES; }
 
@@ -807,7 +808,7 @@ function newBattle() {
     over: false, win: false, paused: false, elapsed: 0,
     boss: {
       hp: CFG.bossHp, max: CFG.bossHp, phase: 0, name: PH()[0].name,
-      burn: 0, burnT: 0, burnTick: 0, frozen: 0, immune: 0,
+      burn: 0, burnT: 0, burnTick: 0, frozen: 0, immune: 0, stun: 0,
       hitT: 0, shake: 0, morph: 0, atkT: 0, bob: 0
     },
     heroes: heroSet().map(function (h, i) {
@@ -821,6 +822,7 @@ function newBattle() {
     atkCd: CFG.bossAtkEvery, meteorCd: meteorEveryOf(0), meteorWarn: false,
     /* 第二关专属：怒气机制 + 小怪波次（第一关字段闲置） */
     rageT: 20, rageLvl: 0, dmgMul: 1, atkEveryMul: 1, waveT: 6,
+    slowT: 0,          /* 寒冰豌豆：机甲减速剩余秒数 */
     fx: [], floats: [], banner: '', bannerT: 0,
     stats: {
       start: Date.now(), ms: 0,
@@ -930,46 +932,102 @@ function castSkill(h) {
   h.castT = 0.9;
   var from = heroPt(h.i), to = { x: BOSS_X - 60, y: BOSS_Y };
   var back = 1.15;                       /* 释放完多久给下一题 */
+  var s2 = isStage2();                   /* 第二关：PvZ 连射弹幕技能组 */
 
   if (h.key === 'thunder') {
-    B.fx.push({ type: 'thunder', t: 0, dur: 0.9, from: from, to: to });
-    sfx('thunder');
-    after(0.34, function () { damageBoss(heroDmg(CFG.dmgThunder), 'thunder'); });
+    if (s2) {                            /* 连环电弧：三道电弧连击，末道麻痹机甲 2 秒 */
+      for (var c1 = 0; c1 < 3; c1++) {
+        B.fx.push({ type: 'thunder', t: 0, dur: 0.55, from: from, to: to, delay: c1 * 0.16 });
+      }
+      sfx('thunder');
+      after(0.28, function () { damageBoss(heroDmg(Math.round(CFG.dmgThunder * 0.34)), 'thunder'); });
+      after(0.44, function () { if (B.over) return; damageBoss(heroDmg(Math.round(CFG.dmgThunder * 0.34)), 'thunder'); });
+      after(0.60, function () {
+        if (B.over) return;
+        damageBoss(heroDmg(Math.round(CFG.dmgThunder * 0.36)), 'thunder');
+        B.boss.stun = 2;
+        floatText(to.x, to.y - 150, '麻痹 2 秒！', '#cfe3ff');
+      });
+    } else {
+      B.fx.push({ type: 'thunder', t: 0, dur: 0.9, from: from, to: to });
+      sfx('thunder');
+      after(0.34, function () { damageBoss(heroDmg(CFG.dmgThunder), 'thunder'); });
+    }
 
   } else if (h.key === 'fire') {
-    B.fx.push({ type: 'fire', t: 0, dur: 0.9, from: from, to: to });
-    sfx('fire');
-    after(0.34, function () {
-      if (B.over) return;
-      damageBoss(heroDmg(CFG.dmgFire), 'fire');
-      if (bossImmuneNow()) {                       /* 二阶段起：灼烧免疫，只吃直伤 */
-        floatText(to.x, to.y - 150, 'Boss 免疫灼烧！', '#ffd45e');
-        return;
+    if (s2) {                            /* 火焰豌豆：连喷三发，末发点燃机甲 */
+      for (var c2 = 0; c2 < 3; c2++) {
+        (function (cc) {
+          B.fx.push({ type: 'fire', t: 0, dur: 0.55, from: from, to: to, delay: cc * 0.16 });
+          after(0.28 + cc * 0.16, function () {
+            if (B.over) return;
+            damageBoss(heroDmg(Math.round(CFG.dmgFire * 0.36)), 'fire');
+            if (cc === 2) {
+              if (bossImmuneNow()) {
+                floatText(to.x, to.y - 150, '机甲免疫灼烧！', '#ffd45e');
+                return;
+              }
+              B.boss.burn = heroDmg(CFG.burnDmg);
+              B.boss.burnT = CFG.burnTurns * CFG.burnTickSec;
+              B.boss.burnTick = CFG.burnTickSec;
+              floatText(to.x, to.y - 150, '点燃机甲！', '#ff9a4a');
+            }
+          });
+        })(c2);
       }
-      B.boss.burn = heroDmg(CFG.burnDmg);
-      B.boss.burnT = CFG.burnTurns * CFG.burnTickSec;
-      B.boss.burnTick = CFG.burnTickSec;
-      floatText(to.x, to.y - 150, '灼烧中！', '#ff9a4a');
-    });
+      sfx('fire');
+    } else {
+      B.fx.push({ type: 'fire', t: 0, dur: 0.9, from: from, to: to });
+      sfx('fire');
+      after(0.34, function () {
+        if (B.over) return;
+        damageBoss(heroDmg(CFG.dmgFire), 'fire');
+        if (bossImmuneNow()) {                       /* 二阶段起：灼烧免疫，只吃直伤 */
+          floatText(to.x, to.y - 150, 'Boss 免疫灼烧！', '#ffd45e');
+          return;
+        }
+        B.boss.burn = heroDmg(CFG.burnDmg);
+        B.boss.burnT = CFG.burnTurns * CFG.burnTickSec;
+        B.boss.burnTick = CFG.burnTickSec;
+        floatText(to.x, to.y - 150, '灼烧中！', '#ff9a4a');
+      });
+    }
 
   } else if (h.key === 'ice') {
-    B.fx.push({ type: 'ice', t: 0, dur: 0.9, from: from, to: to });
-    sfx('ice');
-    after(0.34, function () {
-      if (B.over) return;
-      damageBoss(heroDmg(CFG.dmgIce), 'ice');
-      if (bossImmuneNow()) {                       /* 二阶段起：冰冻免疫，只吃直伤 */
-        floatText(to.x, to.y - 150, 'Boss 免疫冰冻！', '#ffd45e');
-      } else if (B.boss.immune > 0 || B.boss.frozen > 0) {   /* Boss 有冻结免疫，冻不住 */
-        floatText(to.x, to.y - 150, '冻结被抵抗！', '#ffd45e');
-      } else {
-        B.boss.frozen = CFG.freezeSec;
-        B.boss.immune = CFG.freezeSec + CFG.freezeImmuneSec;
-        floatText(to.x, to.y - 150, '冻结 ' + CFG.freezeSec + ' 秒', '#8fe6ff');
+    if (s2) {                            /* 寒冰豌豆：连喷三发，末发减速机甲 6 秒（免疫期也有效） */
+      for (var c3 = 0; c3 < 3; c3++) {
+        (function (cc) {
+          B.fx.push({ type: 'ice', t: 0, dur: 0.55, from: from, to: to, delay: cc * 0.16 });
+          after(0.28 + cc * 0.16, function () {
+            if (B.over) return;
+            damageBoss(heroDmg(Math.round(CFG.dmgIce * 0.35)), 'ice');
+            if (cc === 2) {
+              B.slowT = 6;
+              floatText(to.x, to.y - 150, '减速 6 秒！', '#8fe6ff');
+            }
+          });
+        })(c3);
       }
-    });
+      sfx('ice');
+    } else {
+      B.fx.push({ type: 'ice', t: 0, dur: 0.9, from: from, to: to });
+      sfx('ice');
+      after(0.34, function () {
+        if (B.over) return;
+        damageBoss(heroDmg(CFG.dmgIce), 'ice');
+        if (bossImmuneNow()) {                       /* 二阶段起：冰冻免疫，只吃直伤 */
+          floatText(to.x, to.y - 150, 'Boss 免疫冰冻！', '#ffd45e');
+        } else if (B.boss.immune > 0 || B.boss.frozen > 0) {   /* Boss 有冻结免疫，冻不住 */
+          floatText(to.x, to.y - 150, '冻结被抵抗！', '#ffd45e');
+        } else {
+          B.boss.frozen = CFG.freezeSec;
+          B.boss.immune = CFG.freezeSec + CFG.freezeImmuneSec;
+          floatText(to.x, to.y - 150, '冻结 ' + CFG.freezeSec + ' 秒', '#8fe6ff');
+        }
+      });
+    }
 
-  } else {                               /* 治疗师 */
+  } else {                               /* 治疗师（两关通用：治疗/坚果墙） */
     h.healCount++;
     var alive = aliveHeroes();
     if (!alive.length) { after(0.5, function () { giveQuestion(h); }); return; }
@@ -1096,6 +1154,8 @@ function tickBoss(dt) {
 
   if (bs.frozen > 0) { bs.frozen -= dt; if (bs.frozen < 0) bs.frozen = 0; }
   if (bs.immune > 0) { bs.immune -= dt; if (bs.immune < 0) bs.immune = 0; }
+  if (bs.stun > 0) { bs.stun -= dt; if (bs.stun < 0) bs.stun = 0; }   /* 连环电弧：短暂麻痹 */
+  if (B.slowT > 0) { B.slowT -= dt; if (B.slowT < 0) B.slowT = 0; }   /* 寒冰豌豆：减速 */
 
   if (bs.burnT > 0) {                        /* 灼烧：按秒跳伤害 */
     bs.burnT -= dt; bs.burnTick -= dt;
@@ -1111,7 +1171,7 @@ function tickBoss(dt) {
     if (bs.hp <= 0) { after(0.6, win); return; }
   }
 
-  if (bs.frozen > 0) return;                 /* 冻结期间 Boss 完全停手 */
+  if (bs.frozen > 0 || bs.stun > 0) return;  /* 冻结 / 麻痹期间 Boss 完全停手 */
 
   /* ---- 第二关：怒气机制 ----
      每 20 秒博士变怒一次：普通攻击伤害 +8%、出手间隔 -8%（无上限，逐关加陡），
@@ -1138,10 +1198,13 @@ function tickBoss(dt) {
     }
   }
 
-  B.atkCd -= dt;
+  /* 寒冰豌豆减速：机甲出手与大招冷却都按 60% 速度推进 */
+  var bdt = dt * (B.slowT > 0 ? 0.6 : 1);
+
+  B.atkCd -= bdt;
   if (B.atkCd <= 0) { B.atkCd = CFG.bossAtkEvery * B.atkEveryMul; normalAttack(); }
 
-  B.meteorCd -= dt;
+  B.meteorCd -= bdt;
   if (B.meteorCd <= 0) { B.meteorCd = meteorEveryOf(bs.phase); meteorAttack(); }
 }
 
@@ -1854,6 +1917,8 @@ function drawBoss(c) {
   var dc = deadCount();
   if (dc > 0) st.push('我方愤怒 攻击力 +' + (dc * 10) + '%');
   if (isStage2() && B.rageLvl > 0) st.push('💢怒气x' + B.rageLvl + ' 攻击+' + Math.round((B.dmgMul - 1) * 100) + '%');
+  if (isStage2() && B.slowT > 0) st.push('❄减速中 ' + Math.ceil(B.slowT) + 's');
+  if (isStage2() && B.boss.stun > 0) st.push('⚡麻痹 ' + Math.ceil(B.boss.stun) + 's');
   if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, (dc > 0 || (isStage2() && B.rageLvl > 0)) ? '#ffb27a' : '#ffe08a', 'center');
 }
 
@@ -2221,6 +2286,8 @@ function buildSetup() {
   mkOpts('optStage', STAGES.map(function (s) {
     return { id: s.id, name: s.name, desc: s.desc, locked: stageLocked(s.id) };
   }), CFG.stage, function (id) { pickStage(id); });
+  /* 开始按钮状态：魔力不足 或 选中关卡锁定 → 置灰 */
+  updateStartBtn();
   mkOpts('optSubj', SUBJECTS, CFG.subject, function (id) { CFG.subject = id; });
   mkOpts('optLevel', LEVELS, CFG.level, function (id) { CFG.level = id; });
   buildUnlockOpts();
@@ -2239,8 +2306,10 @@ function buildUnlockOpts() {
   ], CFG.allUnlock ? 1 : 0, function (v) {
     CFG.allUnlock = v ? 1 : 0;
     saveCfg();
-    buildSetup();                    /* 刷新首页关卡按钮的锁定态 */
-    toast(v ? '已解锁全部关卡（测试模式），关闭设置后生效' : '已恢复按班级通关进度解锁');
+    buildSetup();                    /* 刷新首页关卡按钮的锁定态 + 开始按钮 */
+    toast(v ? '已解锁全部关卡（测试模式），关闭设置后生效'
+            : (stageLocked(CFG.stage) ? '已恢复按进度解锁；当前选中的关卡被锁回，请在首页另选已解锁关卡'
+                                      : '已恢复按班级通关进度解锁'));
   });
 }
 function pickStage(id) {
@@ -2248,6 +2317,7 @@ function pickStage(id) {
   CFG.subject = stageOf(id).subj;     /* 每关默认绑定学科，老师可在设置页改 */
   saveCfg();
   applyStageText();
+  updateStartBtn();    /* 换关后刷新开始按钮（锁定态/魔力态） */
   sfx('click');
   toast(stageOf(id).name + '：题目已绑定「' + SUBJ_NAMES[CFG.subject] + '」（老师可在设置页更换）');
 }
@@ -2259,7 +2329,7 @@ function applyStageText() {
   if (h1) h1.textContent = '团队合作知识闯关 · ' + st.name.split(' · ')[0];
   if (sub) {
     sub.innerHTML = isStage2()
-      ? '四株植物各答各的题，随时出手（自由攻击），合力打倒三阶段变身的<b>僵尸博士机甲</b>。满血时治疗改种<b>坚果墙</b>挡伤害——但巨人的铁桩一击就能把它砸碎！机甲每 20 秒变怒一次，攻击越来越疼，别拖太久。'
+      ? '四株植物各答各的题，答对就朝<b>僵尸博士机甲</b>连喷弹幕：雷芦苇<b>三道电弧</b>连击（末道麻痹机甲）、小火炬连喷<b>火焰豌豆</b>点燃机甲、冰豌豆连喷<b>寒冰豌豆</b>让机甲减速（免疫期也有效）、阳光花治疗队友，全员满血时改种<b>坚果墙</b>挡大招——但巨人的铁桩一击就能砸碎！机甲每 20 秒变怒一次，攻击越来越疼，别拖太久。'
       : '四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。题目和难度由老师在设置页统一调整。';
   }
 }
@@ -2422,15 +2492,21 @@ function renderEnergy() {
     '</div>';
 }
 function energyLocked() { return !!CFG.energyOn && loadEnergy().pool < CFG.energyNeed; }
+/* 开始按钮统一状态：魔力不足 或 选中关卡未解锁 → 置灰不可点 */
+function updateStartBtn() {
+  var bs = document.getElementById('btnStart');
+  if (!bs) return;
+  var lack = energyLocked();          /* 魔力不够门票 */
+  var lock = stageLocked(CFG.stage);  /* 关卡还没解锁 */
+  bs.disabled = lack || lock;
+  bs.classList.toggle('off', lack || lock);
+  bs.textContent = lack ? '魔 力 不 足' : (lock ? '关 卡 未 解 锁' : '开 始 战 斗');
+}
 function syncEnergyUI() {
   renderEnergy();
-  var bs = document.getElementById('btnStart');
   var ba = document.getElementById('btnToArena');
   var lack = energyLocked();
-  if (bs) {
-    if (lack) { bs.classList.add('off'); bs.textContent = '魔 力 不 足'; }
-    else { bs.classList.remove('off'); bs.textContent = '开 始 战 斗'; }
-  }
+  updateStartBtn();
   if (ba) { if (lack) ba.classList.remove('gone'); else ba.classList.add('gone'); }
 }
 function writeEnergyMeta() {
@@ -2621,6 +2697,11 @@ function showResult() {
 function startBattle() {
   ac();                       // 用户手势中解锁音频
   readCfg();
+  if (stageLocked(CFG.stage)) {              /* 保险：锁定关卡不允许开战 */
+    toast('这一关还没解锁 —— 先通前面的关，或让老师在设置里开启「全部解锁」');
+    sfx('wrong');
+    return;
+  }
   if (CFG.energyOn) {                        /* 魔力门票：开战时扣除 */
     var d = loadEnergy();
     if (d.pool < CFG.energyNeed) {
