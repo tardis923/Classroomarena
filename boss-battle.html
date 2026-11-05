@@ -96,7 +96,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .opt.on { background: #ffd45e; color: #241a3d; border-color: #ffd45e; }
 .opt .small { display: block; font-size: 14px; font-weight: 400; opacity: .8; margin-top: 2px; }
 
-/* 三年级难度：只在每周二 00:00–12:00 开放，其余时段不可选 */
+/* 未解锁的关卡 / 不可用选项 */
 .opt.off {
   background: #262034; color: #6e6489; border-color: rgba(255,255,255,.10);
   cursor: not-allowed; filter: grayscale(.55);
@@ -189,37 +189,35 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
   <div id="overlay">
     <div id="setup" class="card">
       <div class="cardHead">
-        <h1>团队合作知识闯关 · 进阶版</h1>
-        <p class="sub">四人争霸赛里「团队闯关」的<b>进阶版</b>：四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。默认参数已按小学生平均水平调成中等难度。</p>
+        <h1>团队合作知识闯关 · 第一关</h1>
+        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。题目和难度由老师在设置页统一调整。</p>
       </div>
       <div class="cardBody">
+      <div class="setRow">
+        <div class="setLabel">选 择 关 卡</div>
+        <div class="opts" id="optStage"></div>
+      </div>
+
       <div class="setRow">
         <div class="energyBar" id="energyBar"></div>
       </div>
 
       <div class="setRow">
-        <div class="setLabel">题库（决定答题方式）</div>
-        <div class="opts" id="optSubj"></div>
-      </div>
-
-      <div class="setRow" id="rowLevel">
-        <div class="setLabel">题目难度（基准年级）</div>
-        <div class="tip" style="text-align:left;margin:0 0 8px">P1 用所选年级，Boss 每变身一次升一年级：P2 = +1 年级，P3 = +2 年级（封顶六年级）。<br>
-        ⏰ <b>三年级</b>只在<b>每周二 00:00–12:00</b>开放，其余时段该按钮变灰、不可选。</div>
-        <div class="opts" id="optLevel"></div>
+        <div class="energyBar" id="growthBar"></div>
       </div>
 
       <div class="setRow">
-        <div class="tip" style="text-align:left;margin:0">想改 Boss 血量、技能伤害、角色血量等数值？点屏幕左上角的「设 置」按钮，输入管理密码后即可调整，保存后会自动存在本机，下次打开仍然生效。</div>
+        <div class="tip" style="text-align:left;margin:0">想改题库、难度、Boss 血量、技能伤害等数值？点屏幕左上角的「设 置」按钮，输入管理密码后即可调整，保存后会自动存在本机，下次打开仍然生效。</div>
       </div>
       </div>
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
-        <button id="btnToArena" class="bigBtn ghost gone">先去「四人争霸赛」玩团队闯关攒魔力 →</button>
+        <button id="btnToArena" class="bigBtn ghost gone">先去「四人争霸赛」通关攒魔力 →</button>
         <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。<br>
         ⏭ 每人每局最多「跳过 / 换一题」<b>6 次</b>（按钮上会显示剩余次数，用完就不能再跳了），遇到难题要努力想一想哦。<br>
         注意：②③ 阶段的 Boss 会免疫灼烧与冰冻，大招陨石也会越来越频繁（30 → 20 → 10 秒），并且一击就能把护盾砸碎。<br>
-        💢 每倒下一名队友，剩下的角色攻击力 +10%（愤怒），倒得越多打得越狠。</div>
+        💢 每倒下一名队友，剩下的角色攻击力 +10%（愤怒），倒得越多打得越狠。<br>
+        🌱 每通关一次，全班攻击 / 血量 / 治疗永久 <b>+2%</b>（上限 20%）—— 打不过没关系，多通关就变强！</div>
       </div>
     </div>
 
@@ -231,12 +229,23 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       </div>
       <div class="cardBody">
         <div class="setRow">
+          <div class="setLabel">题库（决定答题方式；第一关默认绑数学，可在此更换）</div>
+          <div class="opts" id="optSubj"></div>
+        </div>
+
+        <div class="setRow">
+          <div class="setLabel">题目难度（基准年级）</div>
+          <div class="tip" style="text-align:left;margin:0 0 8px">P1 用所选年级，Boss 每变身一次升一年级：P2 = +1 年级，P3 = +2 年级（封顶六年级）。</div>
+          <div class="opts" id="optLevel"></div>
+        </div>
+
+        <div class="setRow">
           <div class="setLabel">魔力门票（与「四人争霸赛」联动）</div>
           <div class="opts" id="optEnergy"></div>
         </div>
 
         <div class="setRow">
-          <div class="setLabel">开战消耗魔力点数（在「四人争霸赛 · 团队闯关」里攒：基础题 0.5 点/题，提高题 1 点/题）</div>
+          <div class="setLabel">开战消耗魔力点数（在「四人争霸赛」通关热身赛攒：一次奖 30 点）</div>
           <div class="grid4" id="fldEnergy"></div>
         </div>
 
@@ -745,7 +754,7 @@ function newBattle() {
     heroes: HEROES.map(function (h, i) {
       return {
         i: i, cls: h.cls, name: h.name, key: h.key, ref: h,
-        hp: CFG.heroHp, max: CFG.heroHp, alive: true, shield: 0,
+        hp: heroMaxHp(), max: heroMaxHp(), alive: true, shield: 0,
         hitT: 0, castT: 0, glow: 0, shieldT: 0,
         q: null, input: '', locked: false, wrongT: 0, healCount: 0, wrongRun: 0
       };
@@ -864,19 +873,19 @@ function castSkill(h) {
   if (h.key === 'thunder') {
     B.fx.push({ type: 'thunder', t: 0, dur: 0.9, from: from, to: to });
     sfx('thunder');
-    after(0.34, function () { damageBoss(CFG.dmgThunder, 'thunder'); });
+    after(0.34, function () { damageBoss(heroDmg(CFG.dmgThunder), 'thunder'); });
 
   } else if (h.key === 'fire') {
     B.fx.push({ type: 'fire', t: 0, dur: 0.9, from: from, to: to });
     sfx('fire');
     after(0.34, function () {
       if (B.over) return;
-      damageBoss(CFG.dmgFire, 'fire');
+      damageBoss(heroDmg(CFG.dmgFire), 'fire');
       if (bossImmuneNow()) {                       /* 二阶段起：灼烧免疫，只吃直伤 */
         floatText(to.x, to.y - 150, 'Boss 免疫灼烧！', '#ffd45e');
         return;
       }
-      B.boss.burn = CFG.burnDmg;
+      B.boss.burn = heroDmg(CFG.burnDmg);
       B.boss.burnT = CFG.burnTurns * CFG.burnTickSec;
       B.boss.burnTick = CFG.burnTickSec;
       floatText(to.x, to.y - 150, '灼烧中！', '#ff9a4a');
@@ -887,7 +896,7 @@ function castSkill(h) {
     sfx('ice');
     after(0.34, function () {
       if (B.over) return;
-      damageBoss(CFG.dmgIce, 'ice');
+      damageBoss(heroDmg(CFG.dmgIce), 'ice');
       if (bossImmuneNow()) {                       /* 二阶段起：冰冻免疫，只吃直伤 */
         floatText(to.x, to.y - 150, 'Boss 免疫冰冻！', '#ffd45e');
       } else if (B.boss.immune > 0 || B.boss.frozen > 0) {   /* Boss 有冻结免疫，冻不住 */
@@ -910,7 +919,7 @@ function castSkill(h) {
 
     var group = CFG.healGroupEvery > 0 && (h.healCount % CFG.healGroupEvery === 0);
     var kind = allFull ? 'shield' : (group ? 'group' : 'single');
-    var amt = (kind === 'single') ? CFG.healAmt : CFG.healGroupAmt;
+    var amt = (kind === 'single') ? heroHeal(CFG.healAmt) : heroHeal(CFG.healGroupAmt);
     var list = (kind === 'single') ? [weakestHero()] : alive;
 
     sfx('heal');
@@ -929,7 +938,7 @@ function castSkill(h) {
         if (!t.alive || B.over) return;
         t.glow = 1.0;
         if (kind === 'shield') {
-          var add = Math.min(CFG.shieldAmt, CFG.shieldMax - t.shield);
+          var add = Math.min(heroHeal(CFG.shieldAmt), CFG.shieldMax - t.shield);
           if (add <= 0) floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '盾已满', '#8fe6ff');
           else { t.shield += add; floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '盾+' + add, '#8fe6ff'); }
         } else {
@@ -949,10 +958,10 @@ function castSkill(h) {
 
     if (kind === 'shield') {
       B.stats.per[h.i].shield++;
-      banner('大家都是满血，' + h.name + ' 给全队套上护盾 +' + CFG.shieldAmt + '！');
+      banner('大家都是满血，' + h.name + ' 给全队套上护盾 +' + heroHeal(CFG.shieldAmt) + '！');
     } else if (kind === 'group') {
       B.stats.per[h.i].group++;
-      banner('★ 治愈之光 · 全队回复 ' + CFG.healGroupAmt + ' 点血量！（' + h.name + ' 累计答对 ' + h.healCount + ' 题）');
+      banner('★ 治愈之光 · 全队回复 ' + amt + ' 点血量！（' + h.name + ' 累计答对 ' + h.healCount + ' 题）');
     }
   }
   after(back, function () { giveQuestion(h); });
@@ -1113,6 +1122,8 @@ function checkLose() {
 function win() {
   if (B.over) return;
   B.over = true; B.win = true;
+  /* 班级成长：通关次数 +1（存本机，永久有效），攻/血/疗各 +2% */
+  var pr = loadProg(); pr.wins++; saveProg(pr);
   B.stats.ms = Date.now() - B.stats.start;
   B.fx.push({ type: 'winburst', t: 0, dur: 2.0 });
   sfx('win'); after(1.2, showResult);
@@ -1694,47 +1705,51 @@ var SUBJECTS = [
   { id: 'safe', name: '安全知识', desc: '出行 · 消防 · 防骗' }
 ];
 var LEVELS = [
-  { id: 3, name: '三年级', desc: '两个两位数相加减 · 乘法口诀±一个数 · 比大小', tueOnly: true },
+  { id: 3, name: '三年级', desc: '两个两位数相加减 · 乘法口诀±一个数 · 比大小' },
   { id: 4, name: '四年级', desc: '三年级题型 ＋ 整除除法' },
   { id: 5, name: '五年级', desc: '四年级题型 ＋ 两位数×一位数±一个数' },
   { id: 6, name: '六年级', desc: '五年级题型 ＋ 三位数÷一位数±一个数' }
 ];
 
-/* ---------- 三年级难度开放时段 ----------
-   只在「每周二 00:00 ~ 12:00」可选，其余时段按钮变灰、点了不开战。
-   想改时段：把 TUE_ONLY 里的条件改掉即可（day 用 getDay()：0=周日，2=周二）。 */
-function lv3Open(d) {
-  d = d || new Date();
-  return d.getDay() === 2 && d.getHours() < 12;
-}
-function lv3Msg() {
-  if (lv3Open()) return '✔ 周二上午限定 · 现在可选择';
-  var d = new Date();
-  if (d.getDay() === 2) return '🔒 今天已过 12:00，下周二上午再来';
-  return '🔒 仅每周二 00:00–12:00 可选';
-}
-/* 刷新三年级按钮的可用状态；不可用时若正选中它，自动退到四年级 */
-function refreshLevelLock() {
-  var box = document.getElementById('optLevel');
-  if (!box) return;
-  var open = lv3Open();
-  var bs = box.querySelectorAll('.opt');
-  for (var i = 0; i < bs.length; i++) {
-    if (String(bs[i].getAttribute('data-id')) !== '3') continue;
-    var note = bs[i].querySelector('.lockNote');
-    if (!note) { note = document.createElement('span'); note.className = 'lockNote'; bs[i].appendChild(note); }
-    note.textContent = lv3Msg();
-    if (open) bs[i].classList.remove('off');
-    else bs[i].classList.add('off');
-  }
-  if (!open && CFG.level === 3) {
-    CFG.level = 4;
-    for (var k = 0; k < bs.length; k++) {
-      if (String(bs[k].getAttribute('data-id')) === '4') bs[k].classList.add('on');
-      else bs[k].classList.remove('on');
+/* ---------- 关卡列表（闯关制）----------
+   unlocked 由班级进度控制：打过第一关就永久解锁第二关（班级共进度，存本机）。
+   后续关卡上线后把 locked 去掉、补上对应玩法即可。 */
+var STAGES = [
+  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '数学口算 · 三阶段变身大魔王' },
+  { id: 2, name: '第二关 · 植物守卫战', desc: '安全知识 · 敬请期待', locked: true },
+  { id: 3, name: '第三关 · 海底探险', desc: '语文知识 · 敬请期待', locked: true },
+  { id: 4, name: '第四关 · 太空漫游', desc: '英语单词 · 敬请期待', locked: true }
+];
+
+/* ---------- 班级进度（关卡解锁 + 通关次数）----------
+   班级共进度：永久解锁、可反复挑战；每台一体机各自保存。 */
+var PROG_KEY = 'bossbattle_progress_v1';
+function loadProg() {
+  var d = { unlocked: 1, wins: 0 };
+  try {
+    var s = window.localStorage.getItem(PROG_KEY);
+    if (s) {
+      var o = JSON.parse(s);
+      if (o && typeof o === 'object') {
+        if (typeof o.unlocked === 'number' && o.unlocked >= 1) d.unlocked = Math.floor(o.unlocked);
+        if (typeof o.wins === 'number' && o.wins >= 0) d.wins = Math.floor(o.wins);
+      }
     }
-  }
+  } catch (e) { }
+  return d;
 }
+function saveProg(d) { try { window.localStorage.setItem(PROG_KEY, JSON.stringify(d)); } catch (e) { } }
+
+/* ---------- 班级成长系统 ----------
+   每通关 1 次：我方攻击 / 血量 / 治疗 +2%，上限 20%（通关 10 次满级）。
+   解决「后面的关卡太难、打不过就泄气」：多通关就整体变强。 */
+function growPct() { return Math.min(20, loadProg().wins * 2); }
+function growMul() { return 1 + growPct() / 100; }
+/* 我方数值统一走这三个换算（数值取整，飘字好看） */
+function heroMaxHp() { return Math.round(CFG.heroHp * growMul()); }
+function heroDmg(x) { return Math.round(x * growMul()); }
+function heroHeal(x) { return Math.round(x * growMul()); }
+
 
 var FIELDS = {
   fldBoss: [['bossHp', 'Boss 血量'], ['bossAtk', 'Boss 攻击力'], ['bossAtkEvery', 'Boss 出手间隔（秒）'],
@@ -1754,14 +1769,14 @@ function mkOpts(boxId, list, cur, onPick) {
   var box = document.getElementById(boxId); box.innerHTML = '';
   list.forEach(function (it) {
     var b = document.createElement('button');
-    b.className = 'opt' + (it.id === cur ? ' on' : '');
+    b.className = 'opt' + (it.id === cur ? ' on' : '') + (it.locked ? ' off' : '');
     b.setAttribute('data-id', it.id);
     b.innerHTML = it.name + '<span class="small">' + it.desc + '</span>';
     b.addEventListener('pointerdown', function (e) {
       e.preventDefault();
-      /* 时段未开放的档位（三年级）：点了只提示，不切换 */
+      /* 锁定项（未解锁的关卡）：点了只提示，不切换 */
       if (b.classList.contains('off')) {
-        sfx('wrong'); toast('三年级难度只在每周二上午 12:00 前开放');
+        sfx('wrong'); toast('这一关还没解锁 —— 先通前面的关，敬请期待！');
         return;
       }
       sfx('click');
@@ -1781,18 +1796,27 @@ function mkFields(boxId, list) {
   });
 }
 function buildSetup() {
-  mkOpts('optSubj', SUBJECTS, CFG.subject, function (id) {
-    CFG.subject = id;
-    document.getElementById('rowLevel').style.display = (id === 'math') ? '' : 'none';
-  });
-  /* 读档就读到三年级、但现在不是开放时段 → 先退到四年级，避免「选中却开不了」 */
-  if (CFG.level === 3 && !lv3Open()) CFG.level = 4;
+  mkOpts('optStage', STAGES, 1, function () { });   /* 关卡选择：目前只开放第一关 */
+  mkOpts('optSubj', SUBJECTS, CFG.subject, function (id) { CFG.subject = id; });
   mkOpts('optLevel', LEVELS, CFG.level, function (id) { CFG.level = id; });
-  refreshLevelLock();
+  renderGrowth();
   mkFields('fldBoss', FIELDS.fldBoss);
   mkFields('fldSkill', FIELDS.fldSkill);
   mkFields('fldHero', FIELDS.fldHero);
-  document.getElementById('rowLevel').style.display = (CFG.subject === 'math') ? '' : 'none';
+}
+/* 班级成长条：通关次数 → 攻/血/疗加成，显示在设置页 */
+function renderGrowth() {
+  var el = document.getElementById('growthBar');
+  if (!el) return;
+  var p = loadProg();
+  var pct = growPct();
+  el.innerHTML =
+    '<div class="eLine">班级成长 <b>+' + pct + '%</b>　攻击 / 血量 / 治疗　·　累计通关 <b>' + p.wins + '</b> 次</div>' +
+    '<div class="eTrack"><div class="eFill' + (pct >= 20 ? ' ok' : '') + '" style="width:' + (pct / 20 * 100) + '%"></div></div>' +
+    '<div class="eTip' + (pct >= 20 ? ' ok' : '') + '">' +
+    (pct >= 20 ? '🌱 成长已满级（上限 +20%）！全班都是身经百战的强者了。'
+               : '每通关一次 +2%（上限 +20%），还差 ' + Math.max(0, 10 - p.wins) + ' 次通关满级。打不过就多打几轮热身赛，越打越强！') +
+    '</div>';
 }
 function readCfg() {
   var keys = ['bossHp', 'bossAtk', 'bossAtkEvery', 'meteorEvery', 'meteorEvery2', 'meteorEvery3', 'meteorDmg',
@@ -1931,8 +1955,8 @@ function renderEnergy() {
     '<div class="eLine">班级魔力 <b>' + eNum(d.pool) + '</b> / ' + CFG.energyNeed + ' 点</div>' +
     '<div class="eTrack"><div class="eFill' + (ok ? ' ok' : '') + '" style="width:' + pct + '%"></div></div>' +
     '<div class="eTip' + (ok ? ' ok' : '') + '">' +
-    (ok ? '魔力充足！开战会消耗 ' + CFG.energyNeed + ' 点班级魔力。'
-        : '还差 ' + eNum(CFG.energyNeed - d.pool) + ' 点魔力才能挑战 —— 去「四人争霸赛」选<b>团队闯关</b>模式：基础题 0.5 点/题，提高题 1 点/题。') +
+    (ok ? '魔力充足！开战会消耗 ' + CFG.energyNeed + ' 点班级魔力（每次挑战都要付门票）。'
+        : '还差 ' + eNum(CFG.energyNeed - d.pool) + ' 点魔力才能挑战 —— 去「四人争霸赛」通关热身赛，一次奖 <b>30</b> 点魔力。') +
     '</div>';
 }
 function energyLocked() { return !!CFG.energyOn && loadEnergy().pool < CFG.energyNeed; }
@@ -2134,14 +2158,6 @@ function showResult() {
 function startBattle() {
   ac();                       // 用户手势中解锁音频
   readCfg();
-  /* 三年级难度：不在开放时段（每周二 00:00–12:00）就不许开战 */
-  if (CFG.subject === 'math' && CFG.level === 3 && !lv3Open()) {
-    sfx('wrong');
-    buildSetup();
-    syncEnergyUI();
-    toast('三年级难度只在每周二上午 12:00 前开放，已切到四年级');
-    return;
-  }
   if (CFG.energyOn) {                        /* 魔力门票：开战时扣除 */
     var d = loadEnergy();
     if (d.pool < CFG.energyNeed) {
@@ -2163,7 +2179,7 @@ function backToSetup() {
   document.getElementById('setup').classList.remove('hidden');
   newBattle();
   parkBattle();
-  refreshLevelLock();                        /* 回到首页时重新检查三年级时段 */
+  buildSetup();                              /* 回到首页：刷新关卡/成长/魔力显示 */
   syncEnergyUI();
 }
 
@@ -2210,7 +2226,6 @@ function loop(ts) {
 /* ============================ 初始化 ============================ */
 loadCfg();                                    // 先读本机保存过的参数
 buildSetup();
-setInterval(refreshLevelLock, 20000);         // 时段一到/一过，按钮状态自动跟着变
 buildPanels();
 bindPanels();
 buildPwKeys();
