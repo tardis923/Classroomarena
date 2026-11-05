@@ -72,7 +72,16 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 
 /* ================= 覆盖层 ================= */
 /* 关键：覆盖层铺满整屏，若不关闭命中测试会把四个答题区的点击全部吃掉 */
-#overlay { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+#overlay {
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+  pointer-events: none;
+}
+/* 弹窗出现时：暗色遮罩盖住背后的战斗画面（同热身赛弹窗的效果） */
+#overlay.dim {
+  background: rgba(12, 8, 26, .88);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
 #overlay .card { pointer-events: auto; }
 /* 卡片用弹性布局：头尾固定，中间可滚动 —— 保证「开始战斗」按钮永远露在外面 */
 .card { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
@@ -2308,11 +2317,13 @@ function openSettings() {
   document.getElementById('result').classList.add('hidden');
   document.getElementById('settings').classList.remove('hidden');
   parkBattle();                              /* 调参时暂停出题与计时 */
+  syncOverlayDim();
 }
 function closeSettings() {
   document.getElementById('settings').classList.add('hidden');
   if (setWasRunning) resumeBattle();
   else backToSetup();
+  syncOverlayDim();
 }
 function resumeBattle() {
   if (!B) return;
@@ -2323,6 +2334,7 @@ function resumeBattle() {
     if (h.alive && !h.q) { h.locked = false; h.input = ''; giveQuestion(h); }
   }
   renderPanels();
+  syncOverlayDim();
 }
 function saveSettings() {
   var en = parseInt(document.getElementById('cf_energyNeed').value, 10);
@@ -2565,6 +2577,7 @@ function showResult() {
       (h.key === 'heal' ? '<br>全队治疗 ' + s.group + ' 次<br>套护盾 ' + s.shield + ' 次' : '') + '</div></div>';
   }).join('');
   document.getElementById('result').classList.remove('hidden');
+  syncOverlayDim();
 }
 
 /* ============================ 开局 / 主循环 ============================ */
@@ -2585,6 +2598,7 @@ function startBattle() {
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('result').classList.add('hidden');
   newBattle();
+  syncOverlayDim();                          /* 进战斗：去掉弹窗遮罩 */
   sfx('click');
 }
 function backToSetup() {
@@ -2594,6 +2608,17 @@ function backToSetup() {
   parkBattle();
   buildSetup();                              /* 回到首页：刷新关卡/成长/魔力显示 */
   syncEnergyUI();
+  syncOverlayDim();
+}
+/* 弹窗（设置页 / 结算页 / 开战界面）出现时给 overlay 加暗遮罩，
+   盖住背后的战斗画面；进入战斗后恢复透明。 */
+function syncOverlayDim() {
+  var on = false, ids = ['setup', 'settings', 'result'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (el && !el.classList.contains('hidden')) { on = true; break; }
+  }
+  document.getElementById('overlay').classList.toggle('dim', on);
 }
 
 var last = 0;
@@ -2639,6 +2664,7 @@ function loop(ts) {
 /* ============================ 初始化 ============================ */
 loadCfg();                                    // 先读本机保存过的参数
 buildSetup();
+syncOverlayDim();                             // 首页弹窗态：先盖上暗遮罩
 buildPanels();
 bindPanels();
 buildPwKeys();
