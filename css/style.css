@@ -133,6 +133,36 @@ html, body {
 .kbtn.go  { background: linear-gradient(#8fd66a, #4faa34); color: #15360a; font-size: 30px; }
 .kbtn.go:active { background: #6fc04a; }
 
+/* ---------- 选择题（ABCD 四选一）：占位数字键盘的位置 ---------- */
+.popts { flex: 1; display: none; flex-wrap: wrap; align-content: flex-start; }
+.pcol.optMode .popts { display: flex; }
+.pcol.optMode .pkeys { display: none; }
+/* 选择题题干可能较长：允许换行居中 */
+.pq.optQ { white-space: normal; text-align: center; padding: 4px 10px; }
+.popt {
+  font-family: inherit; color: #4a2c11;
+  background: linear-gradient(#fffdf3, #f4e2bd);
+  border: 3px solid rgba(140,90,38,.4); border-radius: 12px;
+  cursor: pointer; touch-action: none; transition: transform .05s, background .05s;
+  width: calc(50% - 6px); height: calc(50% - 6px); margin: 3px;
+  display: flex; align-items: center; gap: 10px; padding: 0 12px; text-align: left;
+}
+.popt:active, .popt.press { background: #ffd694; transform: translateY(3px); }
+.popt i {
+  font-style: normal; font-size: 22px; font-weight: 800; flex: none;
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(140,90,38,.15); color: #6b3f14;
+}
+.popt span {
+  font-size: 22px; font-weight: 700; line-height: 1.25;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.popt.showAns { background: linear-gradient(#b8f0c0, #7cd98c); border-color: #2e8b3d; color: #14421c; }
+.popt.showAns i { background: #2e8b3d; color: #fff; }
+.popt.badSel { background: linear-gradient(#ffc4bd, #ff9d92); border-color: #c0392b; color: #5a120c; }
+.popt.badSel i { background: #c0392b; color: #fff; }
+
 /* ---------- 覆盖层 ---------- */
 #overlay {
   position: absolute; inset: 0; z-index: 50;

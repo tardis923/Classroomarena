@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>数学大作战</title>
+<title>知识争霸赛 · 热身赛</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -31,13 +31,8 @@
   <div id="overlay">
 
     <div id="setup" class="card">
-      <h1>数学大作战</h1>
-      <p class="sub"></p>
-
-      <div class="setRow">
-        <div class="setLabel">游戏模式</div>
-        <div class="opts" id="optMode"></div>
-      </div>
+      <h1>四人争霸赛</h1>
+      <p class="sub">四科混合题 · 团队闯关 · 通关赢魔力</p>
 
       <div class="setRow">
         <div class="setLabel">场景角色</div>
@@ -45,16 +40,11 @@
       </div>
 
       <div class="setRow" id="rowBuns">
-        <div class="setLabel" id="lbBun">食物数量</div>
+        <div class="setLabel" id="lbBun">题目数量</div>
         <div class="opts" id="optBuns"></div>
         <div class="fixedVal gone" id="bunsFixed">平均<b>15</b> 题 / 人　四人共 <b>60</b> 题　限时 <b>100</b> 秒
-          <span class="fxsub">100 秒内打完才通关 · 通关可以玩进阶版</span>
+          <span class="fxsub">数学 + 语文 + 英语 + 安全 混合题 · 100 秒内答完才通关</span>
         </div>
-      </div>
-
-      <div class="setRow">
-        <div class="setLabel">题目难度</div>
-        <div class="opts" id="optLevel"></div>
       </div>
 
       <div class="setRow">
@@ -68,7 +58,7 @@
       </div>
 
       <button id="btnStart" class="bigBtn">开 始 比 赛</button>
-      <div class="tip">提示：答错不会失去食物，但会换新题并浪费时间 —— 抢答要准！</div>
+      <div class="tip">提示：答错不扣魔力，但会换新题并浪费时间 —— 抢答要准！通关奖励 30 魔力，失败不得魔力。</div>
     </div>
 
     <div id="result" class="card hidden">
@@ -76,7 +66,7 @@
       <div id="podium"></div>
       <div id="rankList"></div>
       <div id="energyBox" class="energyBox"></div>
-      <button id="btnBoss" class="bigBtn bossBtn">挑 战 大 魔 王 →</button>
+      <button id="btnBoss" class="bigBtn bossBtn">挑 战 第 一 关 →</button>
       <div class="resBtns">
         <button id="btnAgain" class="bigBtn">再 来 一 局</button>
         <button id="btnBack" class="bigBtn ghost">返 回 设 置</button>
@@ -89,31 +79,32 @@
   <div id="timeout">
     <div class="toInner">
       <div class="toKicker">时 间 到</div>
-      <div class="toTitle">魔 王 逃 跑 了</div>
-      <div class="toSub">100 秒内没能打倒大魔王，他撕开裂缝溜走了……<br>换一组同学上台，重新选模式、场景和难度吧！</div>
+      <div class="toTitle">闯 关 失 败</div>
+      <div class="toSub">100 秒内没能完成闯关……换一组同学上台，重新来过吧！</div>
       <button id="btnRetry" class="bigBtn toBtn">重 来 一 次</button>
     </div>
   </div>
 
-  <!-- ============ 团队闯关：100 秒内打倒魔王（黑屏 · 进进阶版） ============ -->
+  <!-- ============ 团队闯关：100 秒内完成（黑屏 · 赢魔力进第一关） ============ -->
   <div id="victory">
     <div class="vicInner">
       <div class="vicKicker">胜 利</div>
-      <div class="vicTitle">大 魔 王 倒 下 了</div>
+      <div class="vicTitle">热 身 赛 通 关</div>
       <div class="vicFlavor">
-        最后一题落下的那一刻，魔王的大血条炸成了满天星光。<br>
+        最后一题落下的那一刻，全场欢呼！<br>
         60 道题、四个人、一条心 —— 你们做到了！
       </div>
       <div class="vicStats" id="vicStats"></div>
       <div class="vicEnergy" id="vicEnergy"></div>
-      <button id="btnVicGo" class="bigBtn vicBtn">进 入 进 阶 版 · 挑 战 真 正 的 魔 王 →</button>
-      <div class="vicTip">门后面还站着一只三阶段的大魔王，正等着你们。</div>
+      <button id="btnVicGo" class="bigBtn vicBtn">挑 战 第 一 关 · 魔法师大战魔王 →</button>
+      <div class="vicTip">用赢到的魔力换一张门票，第一关的魔王正等着你们。</div>
     </div>
   </div>
 
 </div>
 
 <script src="js/questions.js"></script>
+<script src="js/banks.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/game.js"></script>
 </body>

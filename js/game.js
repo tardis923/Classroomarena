@@ -34,15 +34,15 @@
   var W = 1920, H = 1080;
 
   var state = 'setup';           // setup | count | play | pause | over
-  var cfg = { buns: 10, level: 0, theme: 'forest', mode: 'eat', names: [] };
+  var cfg = { buns: 15, level: 0, theme: 'forest', mode: 'team', names: [] };
   var players = [];
   var startMs = 0, pausedMs = 0, elapsed = 0;
 
   /* 团队闯关：一关定胜负，需要全队答对 buns × 4 题（固定 15×4 = 60 题）
    * 用「本关已答对题数」计数，血量只是它的显示形式，
    * 这样过场动画期间打出的伤害也不会丢。 */
-  /* 团队闯关：一关定胜负，每人固定 15 题（四人 60 题）
-     基础难度 60 × 0.5 = 30 点，正好够换一局进阶版；提高难度 60 点够两局。 */
+  /* 团队闯关：一关定胜负，每人固定 15 题（四人 60 题），限时 100 秒
+     通关奖励 30 点魔力（正好够换一张第一关门票）；失败不产魔力。 */
   var TEAM_MAX_LEVEL = 1;
   var TEAM_BUNS = 15;
   /* 团队闯关限时：100 秒内没打空魔王血条 → 魔王逃跑（黑屏，换下一批学生） */
@@ -55,38 +55,43 @@
   /* 赛道竞速：是否已有人冲线 */
   var raceFirst = false;
 
-  /* ---------------- 三种玩法 ---------------- */
+  /* ---------------- 玩法已固定为「团队闯关」 ----------------
+   * 热身赛 = 关卡制的门票流水线：四人合力答完 60 题，通关奖 30 魔力，
+   * 失败不产魔力。吃食物 / 赛道竞速的代码保留但不进设置页。 */
   var MODES = [
-    { id: 'eat', name: '吃食物大赛', desc: '答对就开吃，先吃完者获胜' },
-    { id: 'race', name: '赛道竞速', desc: '答对向前冲，先到终点者获胜' },
     { id: 'team', name: '团队闯关（推荐！）', desc: '四人合力打倒大魔王，攒魔力值玩进阶版团队闯关！' }
   ];
 
-  var TIPS = {
-    eat: '提示：答错不会失去食物，但会换新题并浪费时间 —— 抢答要准！',
-    race: '提示：答对立刻冲出一段，答错原地打滑 —— 又快又准才能夺冠！',
-    team: '提示：四个人的题目全班都能看到，可以一起算！每人 15 题、四人共 60 题，限时 <b>100 秒</b>，打空魔王血条即胜利。' +
-      '只有本模式攒魔力：基础题 0.5 点/题，提高题 1 点/题 —— 打完基础难度正好 30 点，够换一局进阶版。' +
-      '<br>⏱ 100 秒内没打完，魔王就逃跑了，这局不产魔力，换下一批同学上台。'
-  };
-
-  var BUN_LABEL = {
-    eat: '食物数量（每人题数）',
-    race: '赛道长度（每人题数）',
-    team: '关卡血量（固定）'
-  };
+  /* ================= 四科混合出题（三年级水平） =================
+   * 数学 40%（基础档：不进位加减、表内乘除，用键盘输答案）
+   * 语文 20% · 英语 20% · 安全 20%（ABCD 四选一，即点即判）
+   * 题库来自 js/banks.js（与进阶版共享）。 */
+  function bankQuestion(bank) {
+    var it = bank[Math.floor(Math.random() * bank.length)];
+    /* 每次抽题把选项顺序打乱（正确答案源数据固定在 o[0]） */
+    var idx = [0, 1, 2, 3], o = [], a = 0;
+    for (var i = 3; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+    for (var k = 0; k < 4; k++) { o.push(it.o[idx[k]]); if (idx[k] === it.a) a = k; }
+    return { type: 'opt', text: it.q, opts: o, ans: a };
+  }
+  function mixedQuestion() {
+    var r = Math.random();
+    if (r < 0.4) {
+      var mq = QGen.next(0);                       // 数学 · 基础档
+      return { type: 'key', text: mq.text, ans: mq.ans };
+    }
+    return bankQuestion(r < 0.6 ? CN_BANK : (r < 0.8 ? EN_BANK : SAFE_BANK));
+  }
 
   /* 标题统一为「四人争霸赛」：不含学科词，以后加语文知识竞赛也不用改 */
-  var GAME_TITLE = '数学大作战';
+  var GAME_TITLE = '四人争霸赛';
   var ROSTER = {
     forest: '熊大、熊二、光头强、蹦蹦',
     tavern: '四位壮士'
   };
-  /* 副标题按 主题（角色 + 食物）× 模式 自动生成，同样不含学科词 */
+  /* 副标题按主题自动生成，同样不含学科词 */
   var SUBS = {
-    eat: function (f, r) { return r + '同场竞技：答对题目，角色吃掉一个' + f + '。先吃完全部' + f + '者获胜！'; },
-    race: function (f, r) { return r + '各驾一辆卡丁车：答对一题就向前冲一段，先冲过终点线者获胜！'; },
-    team: function (f, r) { return r + '并肩作战：答对的题目变成' + f + '炮弹砸向大魔王，' + '打空魔王血条即团队胜利！'; }
+    team: function (r) { return r + '并肩作战：答对的题目变成炮弹砸向大魔王，四人共 60 题答完即胜利！'; }
   };
 
   /* 刷新设置页标题与副标题 */
@@ -94,7 +99,7 @@
     var h1 = document.querySelector('#setup h1');
     var sub = document.querySelector('#setup .sub');
     if (h1) h1.textContent = GAME_TITLE;
-    if (sub) sub.textContent = (SUBS[cfg.mode] || SUBS.eat)(Scene.food(), ROSTER[cfg.theme] || ROSTER.forest);
+    if (sub) sub.textContent = (SUBS[cfg.mode] || SUBS.team)(ROSTER[cfg.theme] || ROSTER.forest);
   }
 
   /* ================= 魔力池（与 boss-battle.html 共享） =================
@@ -136,27 +141,25 @@
     return { ed: ed, poolAfter: poolAfter, cleared: cleared };
   }
 
-  /* earned: 本局是否产魔力（只有团队闯关产）  poolAfter: 清零前算出来的池子  cleared: 是否已清零 */
+  /* earned: 本局是否产魔力（只有通关才产）  poolAfter: 清零前算出来的池子  cleared: 是否已清零 */
   function renderEnergyResult(totalRight, gain, ed, earned, poolAfter, cleared) {
     var eb = $('energyBox');
     if (eb) {
-      var per = QGen.energyPer(cfg.level);
       var html = '';
       if (!earned) {
-        html += '<div class="eGain">本局四人共答对 ' + totalRight + ' 题 · <b>本模式不产魔力</b></div>';
-        html += '<div class="ePool eTip2">只有「<b>团队闯关</b>」能攒魔力，想挑战大魔王请切到该模式再玩一局。</div>';
+        html += '<div class="eGain">本局四人共答对 ' + totalRight + ' 题 · 未通关，<b>本局不产魔力</b></div>';
+        html += '<div class="ePool eTip2">热身赛<b>通关</b>（100 秒内答完 60 题）才能拿到 <b>30</b> 点魔力 —— 再来一局吧！</div>';
       } else {
-        html += '<div class="eGain">本局四人共答对 ' + totalRight + ' 题（' +
-          QGen.LEVELS[cfg.level].name + '题 ' + eNum(per) + ' 点/题）　→　获得 <b>+' + eNum(gain) + '</b> 点魔力</div>';
+        html += '<div class="eGain">热身赛通关！　→　获得 <b>+' + eNum(gain) + '</b> 点魔力</div>';
         if (!ed.on) {
-          html += '<div class="ePool">魔力门槛已由老师关闭，可随时挑战大魔王</div>';
+          html += '<div class="ePool">魔力门槛已由老师关闭，可随时挑战第一关</div>';
         } else if (cleared) {
           html += '<div class="ePool">本局攒到 <b>' + eNum(poolAfter) + '</b> / ' + ed.need +
             ' 点，<span class="eNo">没攒够 ' + ed.need + ' 点，魔力已清零</span></div>';
           html += '<div class="ePool" style="font-size:19px">换下一批学生上台，从 0 点重新开始攒。</div>';
         } else {
           html += '<div class="ePool">班级魔力池：<b>' + eNum(ed.pool) + '</b> / ' + ed.need + ' 点' +
-            '<span class="eOk">魔力充足，可以去挑战大魔王！</span></div>';
+            '<span class="eOk">魔力充足，可以去挑战第一关！</span></div>';
         }
       }
       eb.innerHTML = html;
@@ -164,7 +167,7 @@
     var bb = $('btnBoss');
     if (bb) {
       var can = !ed.on || ed.pool >= ed.need;
-      if (can) { bb.classList.remove('locked'); bb.textContent = '挑 战 大 魔 王 →'; }
+      if (can) { bb.classList.remove('locked'); bb.textContent = '挑 战 第 一 关 →'; }
       else { bb.classList.add('locked'); bb.textContent = '魔 力 不 足 ' + eNum(ed.pool) + '/' + ed.need; }
     }
   }
@@ -218,21 +221,7 @@
   /* ================= 设置面板 ================= */
   var syncBuns = function () { };   // 由 buildSetup 赋值：同步「数量」按钮的选中态
   function buildSetup() {
-    // 游戏模式
-    var mdBox = $('optMode');
-    MODES.forEach(function (md) {
-      var b = document.createElement('button');
-      b.className = 'opt optCard' + (md.id === cfg.mode ? ' on' : '');
-      b.innerHTML = md.name + '<span class="small">' + md.desc + '</span>';
-      bindTap(b, function (e) {
-        e.preventDefault(); cfg.mode = md.id; Sound.click();
-        var bs = mdBox.querySelectorAll('.opt');
-        for (var i = 0; i < bs.length; i++) bs[i].classList.remove('on');
-        b.classList.add('on');
-        applyMode();
-      });
-      mdBox.appendChild(b);
-    });
+    /* 玩法固定为团队闯关、难度固定为三年级混合题：模式/难度选择已移除 */
 
     var bunBox = $('optBuns');
     var bunOpts = [5, 10, 15, 20];
@@ -253,19 +242,7 @@
       bunBox.appendChild(b);
     });
 
-    var lvBox = $('optLevel');
-    QGen.LEVELS.forEach(function (lv) {
-      var b = document.createElement('button');
-      b.className = 'opt' + (lv.id === cfg.level ? ' on' : '');
-      b.innerHTML = lv.name + '<span class="small">' + lv.desc + '</span>';
-      bindTap(b, function (e) {
-        e.preventDefault(); cfg.level = lv.id; Sound.click();
-        var bs = lvBox.querySelectorAll('.opt');
-        for (var i = 0; i < bs.length; i++) bs[i].classList.remove('on');
-        b.classList.add('on');
-      });
-      lvBox.appendChild(b);
-    });
+    /* 题目难度已移除：热身赛固定三年级水平混合题（难度档移到进阶版老师设置页） */
 
     // 场景 / 角色主题
     var thBox = $('optTheme');
@@ -295,21 +272,12 @@
   }
 
 
-  /* 切换玩法：更新提示文案、数量标签、背景预览 */
+  /* 刷新题量说明（玩法固定团队闯关，题量固定）：更新背景预览 */
   function applyMode() {
-    var tipEl = document.querySelector('#setup .tip');
-    if (tipEl && state === 'setup') tipEl.innerHTML = TIPS[cfg.mode] || TIPS.eat;
-    var lb = $('lbBun');
-    if (lb) {
-      lb.innerHTML = (BUN_LABEL[cfg.mode] || BUN_LABEL.eat)
-        .replace('食物', '<span id="lbFood">' + Scene.food() + '</span>');
-    }
-    /* 团队闯关题量固定：隐藏选项，显示说明 */
-    var isTeam = (cfg.mode === 'team');
-    if (isTeam) cfg.buns = TEAM_BUNS;
+    cfg.buns = TEAM_BUNS;
     var ob = $('optBuns'), fb = $('bunsFixed');
-    if (ob) { if (isTeam) ob.classList.add('gone'); else ob.classList.remove('gone'); }
-    if (fb) { if (isTeam) fb.classList.remove('gone'); else fb.classList.add('gone'); }
+    if (ob) ob.classList.add('gone');
+    if (fb) fb.classList.remove('gone');
     syncBuns();
     applyTitle();
     showDemo();
@@ -355,11 +323,18 @@
   function buildPanels() {
     var box = $('panels');
     box.innerHTML = '';
+    var OPT_LETTERS = ['A', 'B', 'C', 'D'];
     for (var i = 0; i < 4; i++) {
       var col = Scene.skins()[i];
       var d = document.createElement('div');
       d.className = 'pcol';
+      d.id = 'pcol' + i;
       d.dataset.i = i;
+      var optsHtml = '';
+      for (var k = 0; k < 4; k++) {
+        optsHtml += '<button class="popt" data-o="' + k + '"><i>' + OPT_LETTERS[k] + '</i>' +
+          '<span id="pt' + i + '_' + k + '">—</span></button>';
+      }
       d.innerHTML =
         '<div class="phead">' +
         '<span class="pdot" style="background:' + col.main + '"></span>' +
@@ -370,10 +345,11 @@
         '<div class="pbar"><div class="pbarIn" id="pbar' + i + '" style="background:' + col.main + '"></div></div>' +
         '<div class="pq" id="pq' + i + '">' +
         '<span class="qt" id="qt' + i + '">—</span>' +
-        '<span class="qeq" style="color:' + col.dark + '">=</span>' +
+        '<span class="qeq" id="qe' + i + '" style="color:' + col.dark + '">=</span>' +
         '<span class="qbox" id="qb' + i + '" style="border-color:' + col.main + ';color:' + col.dark + '"></span>' +
         '</div>' +
-        '<div class="pkeys">' + KEY_HTML + '</div>';
+        '<div class="pkeys">' + KEY_HTML + '</div>' +
+        '<div class="popts">' + optsHtml + '</div>';
       box.appendChild(d);
     }
   }
@@ -385,11 +361,12 @@
     var box = $('panels');
     bindTap(box, function (e) {
       var btn = e.target;
-      while (btn && btn !== box && !(btn.classList && btn.classList.contains('kbtn'))) btn = btn.parentNode;
+      while (btn && btn !== box && !(btn.classList && (btn.classList.contains('kbtn') || btn.classList.contains('popt')))) btn = btn.parentNode;
       if (!btn || btn === box) return;
       e.preventDefault();
       var colEl = btn.closest ? btn.closest('.pcol') : null;
       var idx = colEl ? +colEl.dataset.i : +btn.getAttribute('data-i');
+      if (btn.classList.contains('popt')) { submitOpt(idx, +btn.getAttribute('data-o')); return; }
       onKey(idx, btn.getAttribute('data-k'));
     });
   }
@@ -459,22 +436,38 @@
     })();
   }
 
-  /* 算式较长时自动缩小字号，保证答案框不溢出 */
+  /* 题目文本按长度自动缩小字号，保证不溢出 */
   function setQuestion(i, text) {
     var el = $('qt' + i);
     el.textContent = text;
     var len = text.length;
-    el.style.fontSize = len > 13 ? '30px' : (len > 10 ? '35px' : '43px');
+    el.style.fontSize = len > 22 ? '22px' : (len > 14 ? '28px' : (len > 10 ? '35px' : '43px'));
   }
 
   function newQuestion(i) {
     var p = players[i];
-    p.q = QGen.next(cfg.level);
+    p.q = mixedQuestion();
     p.input = '';
     p.busy = false;
     p.qStart = elapsed;
     setQuestion(i, p.q.text);
-    $('qb' + i).textContent = '';
+
+    var col = $('pcol' + i);
+    var qb = $('qb' + i), qe = $('qe' + i);
+    /* 数学题：显示「= 答案框 + 数字键盘」；选择题：隐藏答案框，亮出 ABCD */
+    var isOpt = (p.q.type === 'opt');
+    qb.style.display = isOpt ? 'none' : '';
+    qe.style.display = isOpt ? 'none' : '';
+    qb.textContent = '';
+    qb.classList.remove('bad', 'hint', 'ok');
+    if (col) col.classList.toggle('optMode', isOpt);
+    $('pq' + i).classList.toggle('optQ', isOpt);
+    if (isOpt) {
+      for (var k = 0; k < 4; k++) {
+        var sp = $('pt' + i + '_' + k);
+        if (sp) sp.textContent = p.q.opts[k];
+      }
+    }
     $('pq' + i).classList.remove('done');
     // 吃食物模式：盘中数量 = 还没吃掉的总数（含正在答的这一个），开局即与设置数量一致
     if (cfg.mode === 'eat') Scene.char(i).giveBun(cfg.buns - p.eaten);
@@ -515,6 +508,8 @@
     if (cfg.mode === 'team' && teamBusy) return;
     var p = players[i];
     if (p.done || p.busy || !p.q) return;
+    /* 选择题面板不收数字输入（键盘已隐藏，防误触） */
+    if (p.q.type === 'opt' && k !== 'ok') return;
 
     if (k >= '0' && k <= '9') {
       if (p.input.length >= 4) return;
@@ -538,6 +533,67 @@
   }
 
   var COMBO_WORDS = { 2: '二连击', 3: '三连击', 4: '四连击', 5: '五连击', 8: '八连击', 10: '十连击!' };
+
+  /* 团队答对公共流程：数字题与选择题共用 */
+  function teamRight(i) {
+    Sound.ok();
+    var p = players[i];
+    p.combo++;
+    if (p.combo > p.bestCombo) p.bestCombo = p.combo;
+
+    // 速度奖励（8 秒内作答）
+    var used = elapsed - p.qStart;
+    if (used > 0 && (!p.fastest || used < p.fastest)) p.fastest = used;
+
+    // 连击 / 神速播报
+    if (COMBO_WORDS[p.combo]) {
+      Scene.addFloat(i, COMBO_WORDS[p.combo] + ' x' + p.combo, '#ffb03a');
+      Scene.sparkleAt(i);
+    }
+    if (used > 0 && used < 8000) Scene.addFloat(i, '神速!', '#7ce07c');
+
+    p.eaten++;
+    if (Scene.char(i)) Scene.char(i).teamScore(p.eaten);
+    teamDone++;
+    Scene.bossHit(i, Math.max(0, 1 - teamDone / teamNeed()), teamInfoText());
+    updateProgress(i);
+    checkTeamHp();                         // 本关打空：过关 / 通关
+    if (state === 'play') newQuestion(i); // 节奏不断，马上出新题
+  }
+
+  /* 选择题判定：即点即判 */
+  function submitOpt(i, c) {
+    if (state !== 'play') return;
+    if (cfg.mode === 'team' && teamBusy) return;
+    var p = players[i];
+    if (p.done || p.busy || !p.q || p.q.type !== 'opt') return;
+
+    if (c === p.q.ans) {
+      var el = $('qb' + i);
+      el.classList.remove('bad'); void el.offsetWidth;
+      el.classList.add('ok');
+      teamRight(i);
+      return;
+    }
+
+    /* ---- 答错：亮出正确选项，1 秒后换题 ---- */
+    Sound.bad();
+    p.wrong++;
+    p.combo = 0;
+    p.busy = true;                       // 亮答案期间不收二次点击
+    var col = $('pcol' + i);
+    if (col) {
+      var btns = col.querySelectorAll('.popt');
+      for (var k = 0; k < btns.length; k++) {
+        var v = +btns[k].getAttribute('data-o');
+        if (v === p.q.ans) btns[k].classList.add('showAns');
+        else if (v === c) btns[k].classList.add('badSel');
+      }
+    }
+    Scene.char(i).wrong();
+    updateProgress(i);
+    setTimeout(function () { if (players[i]) newQuestion(i); }, 950);
+  }
 
   function submit(i) {
     var p = players[i];
@@ -587,13 +643,7 @@
         }
       } else {
         /* 团队闯关：把手里的食物当炮弹扔向大魔王 */
-        p.eaten++;
-        if (Scene.char(i)) Scene.char(i).teamScore(p.eaten);
-        teamDone++;
-        Scene.bossHit(i, Math.max(0, 1 - teamDone / teamNeed()), teamInfoText());
-        updateProgress(i);
-        checkTeamHp();                         // 本关打空：过关 / 通关
-        if (state === 'play') newQuestion(i); // 节奏不断，马上出新题
+        teamRight(i);
       }
       return;
     }
@@ -612,9 +662,8 @@
     if (cfg.mode === 'race') Scene.stumble(i); else Scene.char(i).wrong();
 
     // 换一题（食物/进度不丢，只是浪费了时间）
-    p.q = QGen.next(cfg.level);
-    setQuestion(i, p.q.text);
     p.input = '';
+    newQuestion(i);
 
     setTimeout(function () {
       var e3 = $('qb' + i);
@@ -678,8 +727,8 @@
       per.push(players[i].name + ' <b>' + (players[i].eaten || 0) + '</b>');
     }
 
-    /* 魔力照常结算：60 题 × 0.5 = 30 点，正好够开一局进阶版 */
-    var gain = Math.round(totalRight * QGen.energyPer(cfg.level) * 10) / 10;
+    /* 魔力结算：热身赛通关固定奖励 30 点，正好够换一张第一关门票 */
+    var gain = 30;
     var st = addEnergy(gain, true);
     var ed = st.ed;
     var enough = !ed.on || ed.pool >= ed.need;
@@ -697,21 +746,21 @@
     var ve = $('vicEnergy');
     if (ve) {
       if (!ed.on) {
-        ve.innerHTML = '本局获得 <b>+' + eNum(gain) + '</b> 点魔力（老师已关闭魔力门槛，随时都能进进阶版）';
+        ve.innerHTML = '通关奖励 <b>+' + eNum(gain) + '</b> 点魔力（老师已关闭魔力门槛，随时都能挑战第一关）';
       } else if (st.cleared) {
-        ve.innerHTML = '本局获得 <b>+' + eNum(gain) + '</b> 点魔力，但还没到 <b>' + ed.need +
-          '</b> 点门槛，<span class="vNo">已清零</span>　→　再打一局团队闯关就能解锁进阶版';
+        ve.innerHTML = '本局奖励 <b>+' + eNum(gain) + '</b> 点魔力，但还没到 <b>' + ed.need +
+          '</b> 点门槛，<span class="vNo">已清零</span>　→　再通一次关就能解锁第一关';
       } else {
-        ve.innerHTML = '✨ 本局 <b>+' + eNum(gain) + '</b> 点魔力　·　魔力池 <b>' +
+        ve.innerHTML = '✨ 通关奖励 <b>+' + eNum(gain) + '</b> 点魔力　·　魔力池 <b>' +
           eNum(ed.pool) + ' / ' + ed.need + '</b>　→　' +
-          (enough ? '已解锁进阶版！' : '<span class="vNo">还差 ' + eNum(ed.need - ed.pool) + ' 点</span>');
+          (enough ? '已攒够门票，去挑战第一关！' : '<span class="vNo">还差 ' + eNum(ed.need - ed.pool) + ' 点</span>');
       }
     }
 
     var bg = $('btnVicGo');
     if (bg) {
-      if (enough) { bg.classList.remove('locked'); bg.textContent = '进 入 进 阶 版 · 挑 战 真 正 的 魔 王 →'; }
-      else { bg.classList.add('locked'); bg.textContent = '魔 力 不 足 · 再 打 一 局 团 队 闯 关 →'; }
+      if (enough) { bg.classList.remove('locked'); bg.textContent = '挑 战 第 一 关 · 魔 法 师 大 战 魔 王 →'; }
+      else { bg.classList.add('locked'); bg.textContent = '魔 力 不 足 · 再 打 一 局 热 身 赛 →'; }
     }
 
     var v = $('victory'); if (v) v.classList.add('show');
@@ -820,7 +869,7 @@
         (rank[i] === 0 ? '<div class="crown">👑</div>' : '') +
         '<div class="rk">' + medals[rank[i]] + '</div>' +
         '<div class="who">' + p.name + '</div>' +
-        '<div class="sc">' + p.eaten + ' ' + Scene.food() + ' · ' + stat +
+        '<div class="sc">' + (cfg.mode === 'team' ? stat : (p.eaten + ' ' + Scene.food() + ' · ' + stat)) +
         (p.bestCombo >= 2 ? ' · 最高连击 x' + p.bestCombo : '') + '</div>';
       pod.appendChild(d);
     }
@@ -840,8 +889,7 @@
       row.innerHTML =
         '<div class="no">No.' + (rank[i] + 1) + '</div>' +
         '<div class="nm">' + p.name + '</div>' +
-        '<div class="st">' + Scene.food() + ' ' + p.eaten +
-        (cfg.mode === 'team' ? ' 题' : '/' + cfg.buns) +
+        '<div class="st">' + (cfg.mode === 'team' ? '答对 ' + p.eaten + ' 题' : (Scene.food() + ' ' + p.eaten + '/' + cfg.buns)) +
         ' · 答错 ' + p.wrong + ' 次 · 正确率 ' + acc +
         (cfg.mode === 'team' ? '' : (p.done ? ' · 用时 ' + fmt(p.finishMs) : ' · 未完成')) +
         extra + '</div>';
@@ -863,13 +911,13 @@
       else $('resultTitle').textContent = ranked[0].name + ' ' + verb + '！';
     }
     /* ---- 魔力结算 ----
-       ① 只有「团队闯关」产魔力（进阶版同样是团队合力打魔王）
-       ② 基础题 0.5 点/题，提高题 1 点/题，不设单局上限；开局就点「提前结算」只能拿 0 点
+       ① 热身赛通关（100 秒内答完 60 题）固定奖励 30 点魔力
+       ② 失败（提前结算 / 超时）不产魔力
        ③ 本局结束后仍不满 30 点 → 清零，换下一批学生从 0 开始攒               */
     var totalRight = 0;
     for (var k = 0; k < players.length; k++) totalRight += (players[k].eaten || 0);
-    var earned = (cfg.mode === 'team');
-    var gain = earned ? totalRight * QGen.energyPer(cfg.level) : 0;
+    var earned = teamWon;
+    var gain = earned ? 30 : 0;
     var st = addEnergy(gain, earned);
     renderEnergyResult(totalRight, gain, st.ed, earned, st.poolAfter, st.cleared);
 
@@ -971,6 +1019,10 @@
       else if (k === 'Backspace') onKey(0, 'del');
       else if (k === 'Enter') onKey(0, 'ok');
       else if (k === 'Escape') onKey(0, 'clr');
+      else if (k === 'a' || k === 'A') submitOpt(0, 0);
+      else if (k === 'b' || k === 'B') submitOpt(0, 1);
+      else if (k === 'c' || k === 'C') submitOpt(0, 2);
+      else if (k === 'd' || k === 'D') submitOpt(0, 3);
     });
 
     // 首次交互解锁音频
