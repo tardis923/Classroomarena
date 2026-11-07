@@ -38,7 +38,7 @@
   try { shuffleBank(CN_BANK); shuffleBank(EN_BANK); shuffleBank(SAFE_BANK); } catch (e) { }
 
   var state = 'setup';           // setup | count | play | pause | over
-  var cfg = { buns: 15, level: 0, theme: 'forest', mode: 'team', names: [] };
+  var cfg = { buns: 15, level: 0, theme: 'star', mode: 'team', names: [] };
   var players = [];
   var startMs = 0, pausedMs = 0, elapsed = 0;
 
@@ -49,12 +49,12 @@
      通关奖励 30 点魔力（正好够换一张第一关门票）；失败不产魔力。 */
   var TEAM_MAX_LEVEL = 1;
   var TEAM_BUNS = 15;
-  /* 团队闯关限时：100 秒内没打空魔王血条 → 魔王逃跑（黑屏，换下一批学生） */
+  /* 团队闯关限时：100 秒内没点亮星门 → 星门熄灭（黑屏，换下一批学生） */
   var TEAM_TIME = 100;
   var teamDone = 0, teamLevel = 1, teamWon = false, teamBusy = false;
   function teamNeed() { return cfg.buns * 4; }
   function teamInfoText() {
-    return Scene.bossName() + ' · 还差 ' + Math.max(0, teamNeed() - teamDone) + ' 题';
+    return '星门充能 ' + Math.round(Math.min(1, teamDone / teamNeed()) * 100) + '% · 还差 ' + Math.max(0, teamNeed() - teamDone) + ' 题';
   }
   /* 赛道竞速：是否已有人冲线 */
   var raceFirst = false;
@@ -63,7 +63,7 @@
    * 热身赛 = 关卡制的门票流水线：四人合力答完 60 题，通关奖 30 魔力，
    * 失败不产魔力。吃食物 / 赛道竞速的代码保留但不进设置页。 */
   var MODES = [
-    { id: 'team', name: '团队闯关（推荐！）', desc: '四人合力打倒大魔王，攒魔力值玩进阶版团队闯关！' }
+    { id: 'team', name: '团队闯关（推荐！）', desc: '四人合力点亮星门，攒星尘去追回散落各界的星核碎片！' }
   ];
 
   /* ================= 四科混合出题（三年级水平） =================
@@ -88,14 +88,15 @@
   }
 
   /* 标题统一为「热身赛」：不含学科词，以后加语文知识竞赛也不用改 */
-  var GAME_TITLE = '热身赛';
+  var GAME_TITLE = '学院晨练 · 热身赛';
   var ROSTER = {
+    star: '四位星图学员',
     forest: '熊大、熊二、光头强、蹦蹦',
     tavern: '四位壮士'
   };
   /* 副标题按主题自动生成，同样不含学科词 */
   var SUBS = {
-    team: function (r) { return r + '并肩作战：答对的题目变成炮弹砸向大魔王，四人共 60 题答完即胜利！'; }
+    team: function (r) { return r + '齐心答题：答对凝聚星尘，光束汇入中央星门 —— 四人共 60 题点亮星门，攒够星尘出发追光！'; }
   };
 
   /* 刷新设置页标题与副标题 */
@@ -107,7 +108,7 @@
   }
 
   /* ================= 魔力池（与 boss-battle.html 共享） =================
-     pool = 班级攒的魔力；need = 挑战大魔王要几张点；on = 门槛开关
+     pool = 班级攒的星尘（魔力）；need = 点亮关卡星门要几张点；on = 门槛开关
      本游戏只负责「产出魔力」，消耗由 boss-battle.html 开战时扣。      */
   var ENERGY_KEY = 'arena_energy_v1';
   function loadEnergy() {
@@ -251,8 +252,7 @@
     // 场景 / 角色主题
     var thBox = $('optTheme');
     var TH_LIST = [
-      { id: 'forest', name: '森林大赛', desc: '苹果 · 树桩长桌', roles: '熊大 / 熊二 / 光头强 / 蹦蹦' },
-      { id: 'tavern', name: '包子擂台', desc: '包子 · 中式酒楼', roles: '红袍 / 蓝袍 / 绿袍 / 黄袍壮士' }
+      { id: 'star', name: '星空学院', desc: '星尘 · 星门充能', roles: '四位星图学员 · 答对即汇入星门' }
     ];
     TH_LIST.forEach(function (th) {
       var b = document.createElement('button');
@@ -513,7 +513,7 @@
 
   function onKey(i, k) {
     if (state !== 'play') return;
-    /* 魔王已被打倒、正在播过关过场：不再收题，保证答对题数正好是 teamNeed() */
+    /* 星门已点亮、正在播过关过场：不再收题，保证答对题数正好是 teamNeed() */
     if (cfg.mode === 'team' && teamBusy) return;
     var p = players[i];
     if (p.done || p.busy || !p.q) return;
@@ -651,7 +651,7 @@
           newQuestion(i);
         }
       } else {
-        /* 团队闯关：把手里的食物当炮弹扔向大魔王 */
+        /* 团队闯关：把手里的星尘投向中央星门 */
         teamRight(i);
       }
       return;
@@ -689,7 +689,7 @@
     teamLevelClear();
   }
 
-  /* 过关：撒彩带 + 横幅 + 换下一关魔王 */
+  /* 过关：撒彩带 + 横幅 + 星门点亮 */
   function teamLevelClear() {
     if (teamBusy) return;
     teamBusy = true;
@@ -699,17 +699,17 @@
 
     if (teamLevel >= TEAM_MAX_LEVEL) {
       teamWon = true;
-      Scene.banner('打倒大魔王 · 团队胜利！', '#7ce07c');
+      Scene.banner('星门点亮 · 团队胜利！', '#ffe14b');
       /* 四块面板统一提示「已打倒」，并停止收题（见 onKey 的 teamBusy 判断） */
       for (var k = 0; k < 4; k++) {
-        var qt = $('qt' + k); if (qt) qt.textContent = '魔王已被打倒！';
+        var qt = $('qt' + k); if (qt) qt.textContent = '星门已点亮！';
         var qb = $('qb' + k); if (qb) qb.textContent = '';
         if (players[k]) players[k].input = '';
       }
       setTimeout(teamWinScreen, 2200);
       return;
     }
-    Scene.banner('第 ' + teamLevel + ' 关 · 通关！', '#ffe14b');
+    Scene.banner('星门充能完成！', '#ffe14b');
     var next = teamLevel + 1;
     setTimeout(function () {
       teamBusy = false;
@@ -775,7 +775,7 @@
     var v = $('victory'); if (v) v.classList.add('show');
   }
 
-  /* ================= 团队闯关：100 秒到点，魔王逃跑 ================= */
+  /* ================= 团队闯关：100 秒到点，星门熄灭 ================= */
   function teamTimeout() {
     if (state !== 'play') return;
     state = 'timeout';
@@ -909,7 +909,7 @@
     for (i = 0; i < tops.length; i++) topNames.push(tops[i].name);
 
     if (cfg.mode === 'team') {
-      if (teamWon) $('resultTitle').textContent = '团结就是力量 · 打倒大魔王！';
+      if (teamWon) $('resultTitle').textContent = '团结就是力量 · 星门已点亮！';
       else if (nobody) $('resultTitle').textContent = '本局无人作答 · 再接再厉！';
       else if (tied) $('resultTitle').textContent = topNames.join('、') + ' 贡献并列第一！';
       else $('resultTitle').textContent = ranked[0].name + ' 贡献最多！';
@@ -951,7 +951,7 @@
       if (state === 'play') {
         elapsed += dt * 1000;
         if (cfg.mode === 'team') {
-          /* 团队闯关：显示剩余秒数，到点魔王逃跑 */
+          /* 团队闯关：显示剩余秒数，到点星门熄灭 */
           var left = TEAM_TIME - elapsed / 1000;
           if (left < 0) left = 0;
           var ht = $('hudTime');
@@ -990,7 +990,7 @@
       e.preventDefault();
       location.reload();
     });
-    /* 魔王逃跑的「重来一次」：直接刷新页面，方便下一批学生重新选模式 / 场景 / 难度 */
+    /* 星门熄灭的「重来一次」：直接刷新页面，方便下一批学生重新晨练 */
     var rt = $('btnRetry');
     if (rt) bindTap(rt, function (e) { e.preventDefault(); location.reload(); });
     /* 胜利黑屏的按钮：魔力够 → 进进阶版；不够 → 刷新重来 */

@@ -3,109 +3,287 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>热身赛 · 知识闯关</title>
-<link rel="stylesheet" href="css/style.css">
+<title>知识星核 · 四界追光</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #070612; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: #0d0a20; color: #f3eeff; }
+#sky { position: absolute; inset: 0; background:
+  radial-gradient(900px 620px at 72% 34%, rgba(96,72,190,.34), transparent 70%),
+  radial-gradient(700px 560px at 18% 86%, rgba(30,105,150,.22), transparent 72%),
+  linear-gradient(160deg, #0d0a20 0%, #140e30 48%, #080a1c 100%); }
+.star { position: absolute; border-radius: 50%; background: #fff; opacity: .55; animation: tw 3.4s ease-in-out infinite; }
+@keyframes tw { 0%,100% { opacity: .2; } 50% { opacity: .9; } }
+.glowRing { position: absolute; left: 1180px; top: 90px; width: 620px; height: 620px; border-radius: 50%;
+  border: 1px solid rgba(174,150,255,.16); box-shadow: 0 0 0 60px rgba(120,90,220,.035), 0 0 0 140px rgba(120,90,220,.025); }
+.topbar { position: absolute; left: 80px; top: 48px; right: 80px; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 30px; letter-spacing: 4px; color: #cfc2ff; font-weight: 500; }
+.logo b { color: #ffe6a6; font-weight: 500; }
+.classTag { font-size: 22px; color: #bdb2e6; border: 1px solid rgba(190,170,255,.28); padding: 10px 22px; border-radius: 30px; background: rgba(40,30,80,.4); }
+.classTag small { color: #8d82b8; margin-left: 14px; font-size: 17px; cursor: pointer; }
+
+.hero { position: absolute; left: 100px; top: 168px; width: 760px; }
+.eyebrow { font-size: 21px; letter-spacing: 8px; color: #9b8bd8; margin-bottom: 22px; }
+h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-weight: 500;
+  color: #fff; text-shadow: 0 6px 42px rgba(150,110,255,.55); }
+.tagline { margin: 10px 0 34px; font-size: 30px; letter-spacing: 10px; color: #ffd98a; }
+.prologue { width: 700px; font-size: 22px; line-height: 1.95; color: #c9bfe8; margin: 0 0 22px; }
+.prologue b { color: #ffe6a6; font-weight: 500; }
+
+.menu { width: 620px; }
+.mbtn { display: flex; align-items: center; width: 100%; height: 88px; margin-bottom: 14px; padding: 0 34px;
+  border-radius: 18px; border: 1px solid rgba(180,160,255,.3); background: rgba(48,36,96,.72);
+  color: #fff; text-align: left; cursor: pointer; font-family: inherit; transition: transform .12s, background .12s; }
+.mbtn:active { transform: scale(.985); }
+.mbtn:hover { background: rgba(70,52,140,.9); }
+.mbtn.primary { background: linear-gradient(100deg, #6a48c8, #9a5fd0); border-color: rgba(230,200,255,.55); }
+.mbtn .mt { font-size: 32px; letter-spacing: 3px; }
+.mbtn .ms { display: block; font-size: 17px; color: rgba(255,255,255,.72); letter-spacing: 1px; margin-top: 4px; }
+.mbtn .arrow { margin-left: auto; font-size: 36px; color: #ffe6a6; }
+
+.status { position: absolute; left: 100px; bottom: 26px; width: 860px; font-size: 17px; color: #9f94c8; letter-spacing: 1px; }
+.status b { color: #ffe6a6; font-weight: 500; }
+
+.map { position: absolute; left: 940px; top: 132px; width: 880px; height: 800px; }
+.mapHead { font-size: 24px; letter-spacing: 5px; color: #bfb0f0; margin: 0 0 8px 12px; }
+.mapSub { font-size: 17px; color: #7f76a8; margin: 0 0 24px 12px; }
+#mapSvg { position: absolute; left: 0; top: 90px; width: 880px; height: 660px; }
+.node { position: absolute; width: 330px; padding: 24px 26px; border-radius: 20px;
+  border: 1px solid rgba(180,160,255,.32); background: rgba(30,22,66,.86); cursor: default; }
+.node.lit { border-color: #ffd98a; background: rgba(66,46,112,.92); box-shadow: 0 0 34px rgba(255,205,120,.16); }
+.node.wip { border-style: dashed; opacity: .62; }
+.node .nno { font-size: 16px; color: #9a8bc8; letter-spacing: 3px; }
+.node .nname { font-size: 30px; color: #fff; margin: 8px 0 6px; letter-spacing: 2px; }
+.node.lit .nname { color: #ffe6a6; }
+.node .nsub { font-size: 17px; color: #a99cd0; }
+.node .nstate { display: inline-block; margin-top: 14px; font-size: 16px; padding: 5px 14px; border-radius: 20px;
+  background: rgba(255,255,255,.07); color: #bdb2e6; }
+.node.lit .nstate { background: rgba(255,215,130,.16); color: #ffd98a; }
+.n1 { left: 0; top: 90px; } .n2 { left: 480px; top: 210px; }
+.n3 { left: 40px; top: 400px; } .n4 { left: 480px; top: 520px; }
+.more { position: absolute; left: 300px; top: 690px; width: 300px; text-align: center;
+  font-size: 18px; color: #7f76a8; letter-spacing: 2px; }
+
+#login { position: absolute; inset: 0; background: rgba(8,6,20,.94); display: flex; align-items: center; justify-content: center; z-index: 20; }
+.loginCard { width: 760px; padding: 62px 70px 56px; border-radius: 28px; text-align: center;
+  border: 1px solid rgba(180,160,255,.34); background: rgba(28,20,60,.96); box-shadow: 0 30px 100px rgba(0,0,0,.5); }
+.loginCard .lg1 { font-size: 20px; letter-spacing: 9px; color: #9b8bd8; }
+.loginCard h2 { font-size: 62px; letter-spacing: 10px; font-weight: 500; margin: 16px 0 10px; color: #fff; }
+.loginCard .lg2 { font-size: 21px; color: #ffd98a; letter-spacing: 5px; margin-bottom: 34px; }
+.loginCard p { font-size: 20px; line-height: 1.9; color: #bdb2e6; margin: 0 0 34px; }
+#className { width: 100%; height: 76px; border-radius: 14px; border: 1px solid rgba(190,170,255,.45);
+  background: rgba(12,8,32,.9); color: #fff; font-size: 27px; text-align: center; letter-spacing: 2px;
+  font-family: inherit; outline: none; }
+#className::placeholder { color: #6f6598; }
+#btnEnter { width: 100%; height: 84px; margin-top: 24px; border: none; border-radius: 14px; cursor: pointer;
+  background: linear-gradient(100deg, #6a48c8, #a267d8); color: #fff; font-size: 30px; letter-spacing: 6px; font-family: inherit; }
+#btnEnter:active { transform: scale(.99); }
+.loginTip { margin-top: 22px !important; margin-bottom: 0 !important; font-size: 17px !important; color: #7f76a8 !important; }
+#toast { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); padding: 16px 34px;
+  border-radius: 14px; background: rgba(30,20,70,.95); border: 1px solid rgba(190,170,255,.4);
+  color: #ffe6a6; font-size: 22px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 30; }
+
+#story { position: absolute; inset: 0; background: rgba(8,6,20,.92); display: none; align-items: center; justify-content: center; z-index: 25; }
+.storyCard { width: 1060px; padding: 56px 66px; border-radius: 26px; border: 1px solid rgba(180,160,255,.34); background: rgba(26,18,56,.97); }
+.storyCard h2 { font-size: 42px; letter-spacing: 6px; font-weight: 500; margin: 0 0 26px; color: #ffe6a6; }
+.storyCard .act { display: flex; gap: 26px; padding: 18px 0; border-bottom: 1px solid rgba(180,160,255,.14); }
+.storyCard .act .no { flex: 0 0 64px; font-size: 30px; color: #9b8bd8; }
+.storyCard .act .tt { font-size: 23px; color: #fff; margin-bottom: 6px; }
+.storyCard .act .dd { font-size: 19px; color: #bdb2e6; line-height: 1.7; }
+#btnStoryClose { margin-top: 30px; width: 100%; height: 70px; border: none; border-radius: 14px; cursor: pointer;
+  background: rgba(90,66,160,.85); color: #fff; font-size: 25px; letter-spacing: 4px; font-family: inherit; }
+</style>
 </head>
 <body>
 <div id="stage">
+  <div id="sky"></div>
+  <div class="glowRing"></div>
 
-  <!-- ================= 上方 2/3：动画区 ================= -->
-  <div id="sceneWrap">
-    <canvas id="scene" width="1920" height="720"></canvas>
-    <div id="hud">
-      <div id="hudTime">00:00</div>
-      <div class="hudBtns">
-        <button id="btnSound" class="hudBtn" title="音效开关">🔊</button>
-        <button id="btnPause" class="hudBtn" title="暂停/继续">⏸</button>
-        <button id="btnFinish" class="hudBtn">提前结算</button>
-        <button id="btnHome" class="hudBtn">重开</button>
-      </div>
-    </div>
-    <div id="countdown"></div>
+  <div class="topbar">
+    <div class="logo">知识星核 <b>· 四界追光</b></div>
+    <div class="classTag" id="classTag">尚未签到 <small id="btnSwitch">切换班级</small></div>
   </div>
 
-  <!-- ================= 下方 1/3：四人操作区 ================= -->
-  <div id="panels"></div>
-
-  <!-- ================= 覆盖层：设置 / 结算 ================= -->
-  <div id="overlay">
-
-    <div id="setup" class="card">
-      <h1>热身赛</h1>
-      <p class="sub">四科混合题 · 团队闯关 · 通关赢魔力</p>
-
-      <div class="setRow">
-        <div class="setLabel">场景角色</div>
-        <div class="opts" id="optTheme"></div>
-      </div>
-
-      <div class="setRow" id="rowBuns">
-        <div class="setLabel" id="lbBun">题目数量</div>
-        <div class="opts" id="optBuns"></div>
-        <div class="fixedVal gone" id="bunsFixed">平均<b>15</b> 题 / 人　四人共 <b>60</b> 题　限时 <b>100</b> 秒
-          <span class="fxsub">数学 + 语文 + 英语 + 安全 混合题 · 100 秒内答完才通关</span>
-        </div>
-      </div>
-
-      <div class="setRow">
-        <div class="setLabel">选手名字</div>
-        <div class="nameInputs">
-          <div class="nameCell"><input class="nameIn" id="nm0" maxlength="6"></div>
-          <div class="nameCell"><input class="nameIn" id="nm1" maxlength="6"></div>
-          <div class="nameCell"><input class="nameIn" id="nm2" maxlength="6"></div>
-          <div class="nameCell"><input class="nameIn" id="nm3" maxlength="6"></div>
-        </div>
-      </div>
-
-      <button id="btnStart" class="bigBtn">开 始 比 赛</button>
-      <div class="tip">提示：答错不扣魔力，但会换新题并浪费时间 —— 抢答要准！通关奖励 30 魔力，失败不得魔力。</div>
-    </div>
-
-    <div id="result" class="card hidden">
-      <h1 id="resultTitle">比赛结束</h1>
-      <div id="podium"></div>
-      <div id="rankList"></div>
-      <div id="energyBox" class="energyBox"></div>
-      <button id="btnBoss" class="bigBtn bossBtn">挑 战 第 一 关 →</button>
-      <div class="resBtns">
-        <button id="btnAgain" class="bigBtn">再 来 一 局</button>
-        <button id="btnBack" class="bigBtn ghost">返 回 设 置</button>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ============ 团队闯关：100 秒没打死魔王（黑屏） ============ -->
-  <div id="timeout">
-    <div class="toInner">
-      <div class="toKicker">时 间 到</div>
-      <div class="toTitle">闯 关 失 败</div>
-      <div class="toSub">100 秒内没能完成闯关……换一组同学上台，重新来过吧！</div>
-      <button id="btnRetry" class="bigBtn toBtn">重 来 一 次</button>
+  <div class="hero">
+    <div class="eyebrow">知识学院 · 星图计划</div>
+    <h1>知 识 星 核</h1>
+    <div class="tagline">四 界 追 光</div>
+    <p class="prologue">学院里的星图忽然暗了。终焉知识魔君打碎星核，把碎片撒进一个个世界——<b>每片碎片都会点亮一道星门，也唤醒一名守核者</b>。<br>
+      于是四个人背上书包出发：先在学院晨练攒星尘，再沿着星门一界一界追回碎片。星核会按当地的法则给你们换身行头……别担心，还是你们四个。</p>
+    <div class="menu">
+      <button class="mbtn primary" id="btnWarmup"><div><span class="mt">学院晨练 · 热身赛</span><span class="ms">四科混合闯关 · 攒星尘点亮星门</span></div><span class="arrow">→</span></button>
+      <button class="mbtn" id="btnBoss"><div><span class="mt">关卡挑战 · 继续追光</span><span class="ms" id="bossSub">追回散落各界的星核碎片</span></div><span class="arrow">→</span></button>
+      <button class="mbtn" id="btnStory"><div><span class="mt">旅 途 记 事</span><span class="ms">看看已经走过的世界</span></div><span class="arrow">→</span></button>
     </div>
   </div>
 
-  <!-- ============ 团队闯关：100 秒内完成（黑屏 · 赢魔力进第一关） ============ -->
-  <div id="victory">
-    <div class="vicInner">
-      <div class="vicKicker">胜 利</div>
-      <div class="vicTitle">热 身 赛 通 关</div>
-      <div class="vicFlavor">
-        最后一题落下的那一刻，全场欢呼！<br>
-        60 道题、四个人、一条心 —— 你们做到了！
-      </div>
-      <div class="vicStats" id="vicStats"></div>
-      <div class="vicEnergy" id="vicEnergy"></div>
-      <button id="btnVicGo" class="bigBtn vicBtn">挑 战 第 一 关 · 魔法师大战魔王 →</button>
-      <div class="vicTip">用赢到的魔力换一张门票，第一关的魔王正等着你们。</div>
+  <div class="status" id="status">读取本机进度中…</div>
+
+  <div class="map">
+    <div class="mapHead">知 识 星 图</div>
+    <div class="mapSub">每夺回一片星核碎片，下一界的坐标就会亮起来</div>
+    <svg id="mapSvg" viewBox="0 0 880 660" aria-hidden="true">
+      <path d="M165 105 C 320 105, 380 190, 480 190 S 620 310, 480 310 S 220 400, 205 400 S 300 520, 480 520 S 640 640, 460 655"
+        fill="none" stroke="rgba(180,160,255,.3)" stroke-width="2" stroke-dasharray="8 10"/>
+    </svg>
+    <div class="node n1" id="nd1"></div>
+    <div class="node n2" id="nd2"></div>
+    <div class="node n3" id="nd3"></div>
+    <div class="node n4" id="nd4"></div>
+    <div class="more">· 星图之外，还有更多世界 ·</div>
+  </div>
+
+  <div id="login">
+    <div class="loginCard">
+      <div class="lg1">知识学院 · 星图计划</div>
+      <h2>班 级 签 到</h2>
+      <div class="lg2">四人小队，准备出发</div>
+      <p>星图已经暗了，先写上你们班的名字吧。<br>进度只保存在这台一体机上，不用密码，下次打开自动认出你们。</p>
+      <input id="className" maxlength="12" placeholder="输入班级名，如 三年级二班" autocomplete="off">
+      <button id="btnEnter">进 入 知 识 学 院</button>
+      <p class="loginTip">换班级或想重填，可在右上角「切换班级」修改 · 不影响已有进度</p>
     </div>
   </div>
 
+  <div id="story">
+    <div class="storyCard">
+      <h2>旅 途 记 事</h2>
+      <div id="storyActs"></div>
+      <button id="btnStoryClose">返 回 星 图</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
 </div>
 
-<script src="js/questions.js"></script>
-<script src="js/banks.js"></script>
-<script src="js/scene.js"></script>
-<script src="js/game.js"></script>
+<script>
+(function () {
+  var W = 1920, H = 1080;
+  var stage = document.getElementById('stage');
+  function fit() {
+    var s = Math.min(window.innerWidth / W, window.innerHeight / H);
+    stage.style.transform = 'scale(' + s + ')';
+    stage.style.left = Math.max(0, (window.innerWidth - W * s) / 2) + 'px';
+    stage.style.top = Math.max(0, (window.innerHeight - H * s) / 2) + 'px';
+  }
+  window.addEventListener('resize', fit); fit();
+
+  /* 星空点缀 */
+  var sky = document.getElementById('sky'), frag = document.createDocumentFragment();
+  for (var i = 0; i < 110; i++) {
+    var d = document.createElement('div'); d.className = 'star';
+    var sz = 1 + Math.random() * 2.4;
+    d.style.width = sz + 'px'; d.style.height = sz + 'px';
+    d.style.left = (Math.random() * 1920) + 'px'; d.style.top = (Math.random() * 1080) + 'px';
+    d.style.animationDelay = (Math.random() * 3.4) + 's';
+    frag.appendChild(d);
+  }
+  sky.appendChild(frag);
+
+  var CLASS_KEY = 'classarena_class_v1';
+  var PROG_KEY = 'bossbattle_progress_v1';
+  var CFG_KEY = 'bossbattle_cfg_v1';
+  var ENERGY_KEY = 'arena_energy_v1';
+
+  /* 与关卡表对应的世界（开放式：星图之外还能继续加） */
+  var WORLDS = [
+    { id: 1, name: '数学森林', subj: '数学口算 · 魔法师小队', done: true,
+      intro: '森林的咒语全失灵了 —— 答对口算，把魔君的影子打回去！' },
+    { id: 2, name: '安全草坪', subj: '安全知识 · 植物小队', done: true,
+      intro: '星核把四个人变成了植物。连喷豌豆，拆掉博士的机甲！' },
+    { id: 3, name: '语文海底', subj: '语文知识 · 敬请期待', done: false,
+      intro: '碑文被搅乱了字词，要破译鲸歌密码才能继续追。' },
+    { id: 4, name: '英语星河', subj: '英语单词 · 敬请期待', done: false,
+      intro: '最后一道星门，要用英语单词才打得开。' }
+  ];
+
+  function readJSON(k, d) {
+    try { var s = localStorage.getItem(k); if (!s) return d; var o = JSON.parse(s); return o && typeof o === 'object' ? o : d; }
+    catch (e) { return d; }
+  }
+  function loadProg() {
+    var d = { unlocked: 1, wins: 0 }, o = readJSON(PROG_KEY, {});
+    if (typeof o.unlocked === 'number' && o.unlocked >= 1) d.unlocked = Math.floor(o.unlocked);
+    if (typeof o.wins === 'number' && o.wins >= 0) d.wins = Math.floor(o.wins);
+    return d;
+  }
+  function getClassName() { try { return localStorage.getItem(CLASS_KEY) || ''; } catch (e) { return ''; } }
+  function setClassName(n) { try { localStorage.setItem(CLASS_KEY, n); } catch (e) { } }
+
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._tm); t._tm = setTimeout(function () { t.style.opacity = '0'; }, 2600);
+  }
+
+  function renderWorlds(p) {
+    WORLDS.forEach(function (w) {
+      var el = document.getElementById('nd' + w.id);
+      var lit = w.done && w.id <= p.unlocked;
+      el.className = 'node n' + w.id + (lit ? ' lit' : (w.done ? '' : ' wip'));
+      var state = !w.done ? '坐标解析中 · 敬请期待' : (lit ? '已点亮 · 可进入' : '尚未解锁');
+      el.innerHTML = '<div class="nno">WORLD ' + w.id + ' · ' + (w.done ? '主线' : '待开放') + '</div>' +
+        '<div class="nname">' + w.name + '</div>' +
+        '<div class="nsub">' + w.subj + '</div>' +
+        '<div class="nstate">' + state + '</div>';
+    });
+  }
+
+  function renderStatus(p) {
+    var en = readJSON(ENERGY_KEY, { pool: 0, need: 30, on: 1 });
+    var grow = Math.min(20, p.wins * 2);
+    var lit = 0;
+    WORLDS.forEach(function (w) { if (w.done && w.id <= p.unlocked) lit++; });
+    document.getElementById('status').innerHTML =
+      '本机存档 · 已点亮 <b>' + lit + '</b> 个世界　|　通关 <b>' + p.wins + '</b> 次　|　' +
+      '小队成长 <b>+' + grow + '%</b>　|　星尘（魔力）<b>' + (en.pool || 0) + '</b> 点　|　进度只存在这台一体机';
+    document.getElementById('bossSub').textContent = '已解锁 ' + p.unlocked + ' 个世界 · 追回散落各界的星核碎片';
+  }
+
+  function renderStory() {
+    var p = loadProg(), h = '';
+    WORLDS.forEach(function (w) {
+      var lit = w.done && w.id <= p.unlocked;
+      h += '<div class="act"><div class="no">0' + w.id + '</div><div>' +
+        '<div class="tt">' + w.name + ' · ' + (lit ? '已夺回星核碎片' : (w.done ? '尚未抵达' : '坐标解析中')) + '</div>' +
+        '<div class="dd">' + w.intro + '</div></div></div>';
+    });
+    h += '<div class="act"><div class="no">∞</div><div><div class="tt">星图之外</div>' +
+      '<div class="dd">星图每亮一块，就会指出下一界的坐标。等整张星图亮起，魔君真身才会现身——旅程还长着呢。</div></div></div>';
+    document.getElementById('storyActs').innerHTML = h;
+  }
+
+  function showMain(name, isBack) {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('classTag').innerHTML = name + ' <small id="btnSwitch">切换班级</small>';
+    document.getElementById('btnSwitch').addEventListener('click', openLogin);
+    var p = loadProg();
+    renderWorlds(p); renderStatus(p); renderStory();
+    if (isBack) toast('欢迎回来，' + name + '！');
+  }
+  function openLogin() {
+    document.getElementById('className').value = getClassName();
+    document.getElementById('login').style.display = 'flex';
+    setTimeout(function () { document.getElementById('className').focus(); }, 60);
+  }
+  function doEnter() {
+    var v = (document.getElementById('className').value || '').replace(/^\s+|\s+$/g, '');
+    if (!v) { toast('先写上班级名，再出发吧'); return; }
+    setClassName(v); showMain(v, false);
+    toast('签到成功，' + v + '！星图已为你点亮');
+  }
+
+  document.getElementById('btnEnter').addEventListener('click', doEnter);
+  document.getElementById('className').addEventListener('keydown', function (e) { if (e.key === 'Enter') doEnter(); });
+  document.getElementById('btnSwitch').addEventListener('click', openLogin);
+  document.getElementById('btnWarmup').addEventListener('click', function () { location.href = 'warmup.html'; });
+  document.getElementById('btnBoss').addEventListener('click', function () { location.href = 'boss-battle.html'; });
+  document.getElementById('btnStory').addEventListener('click', function () { document.getElementById('story').style.display = 'flex'; });
+  document.getElementById('btnStoryClose').addEventListener('click', function () { document.getElementById('story').style.display = 'none'; });
+
+  var saved = getClassName();
+  if (saved) showMain(saved, true); else openLogin();
+})();
+</script>
 </body>
 </html>

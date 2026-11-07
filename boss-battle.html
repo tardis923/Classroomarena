@@ -124,6 +124,9 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
           font-size: 34px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .bigBtn.ghost { background: #4a3f74; color: #fff; height: 62px; font-size: 26px; }
 .bigBtn.off { opacity: .4; filter: grayscale(.7); cursor: default; }
+.storyLine { margin: 0 0 10px; font-size: 22px; line-height: 1.5; color: #ffd98a; letter-spacing: 1px; }
+.storyOutro { margin: 14px 0 0; padding: 14px 20px; border-radius: 12px; background: rgba(120,90,190,.2);
+  border: 1px solid rgba(200,170,255,.28); font-size: 20px; line-height: 1.65; color: #ffe6b0; text-align: left; }
 .bigBtn.off { background: #3d3358; color: #8d84a8; }
 .bigBtn:active { filter: brightness(.9); }
 .resBtns { display: flex; gap: 14px; margin-top: 18px; }
@@ -199,6 +202,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
   <div id="overlay">
     <div id="setup" class="card">
       <div class="cardHead">
+        <div id="storyLine" class="storyLine"></div>
         <h1>团队合作知识闯关 · 第一关</h1>
         <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。题目和难度由老师在设置页统一调整。</p>
       </div>
@@ -223,6 +227,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
         <button id="btnToArena" class="bigBtn ghost gone">先去「热身赛」通关攒魔力 →</button>
+        <a href="index.html" style="display:block;text-align:center;margin-top:14px;color:#b9a9f0;font-size:19px;text-decoration:none">← 返回星图首页</a>
         <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。<br>
         ⏭ 每人每局最多「跳过 / 换一题」<b>6 次</b>（按钮上会显示剩余次数，用完就不能再跳了），遇到难题要努力想一想哦。<br>
         注意：②③ 阶段的 Boss 会免疫灼烧与冰冻，大招陨石也会越来越频繁（30 → 20 → 10 秒），并且一击就能把护盾砸碎。<br>
@@ -303,6 +308,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
       <div class="cardHead"><div id="resTitle">战斗结束</div></div>
       <div class="cardBody">
         <div id="resSum" class="sumline"></div>
+        <div id="resStory" class="storyOutro"></div>
         <div class="statGrid" id="resGrid"></div>
       </div>
       <div class="cardFoot">
@@ -2198,12 +2204,22 @@ var LEVELS = [
    subj = 该关默认绑定的学科（选关时自动切换；老师可在设置页再改）。
    done = 关卡是否已做好：false 的占位关（敬请期待）即使开了「全部解锁」也不能进入。
    hpMul / atkMul = Boss 血量 / 攻击系数：从第二关起逐关提升，抵消班级通关成长加成
-   （攻/血/疗最高+20%），否则越玩到后面越简单。改数值即可调整难度。 */
+   （攻/血/疗最高+20%），否则越玩到后面越简单。改数值即可调整难度。
+   intro = 开战旁白（星核指路 → 换装 → 夺核），outro = 通关后指向下一界的衔接语。
+   故事是开放式的「知识星图」：碎片散落各界，星图亮完魔君真身才现身，可继续追加世界。 */
 var STAGES = [
-  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '数学口算 · 三阶段变身大魔王', subj: 'math',    done: true,  hpMul: 1,    atkMul: 1    },
-  { id: 2, name: '第二关 · 植物守卫战',     desc: '安全知识 · 僵尸博士开机甲来袭', subj: 'safe',    done: true,  hpMul: 1.25, atkMul: 1.2  },
-  { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 敬请期待',           subj: 'chinese', done: false, hpMul: 1.5,  atkMul: 1.35 },
-  { id: 4, name: '第四关 · 太空漫游',       desc: '英语单词 · 敬请期待',           subj: 'english', done: false, hpMul: 1.75, atkMul: 1.5  }
+  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '数学口算 · 三阶段变身大魔王', subj: 'math',    done: true,  hpMul: 1,    atkMul: 1,
+    intro: '数学森林的咒语全失灵了 —— 答对口算，把魔君的影子打回去！',
+    outro: '第一片星核碎片归位！星图亮起一块，指向一片长满杂草的草坪……那里有个开机甲的博士。' },
+  { id: 2, name: '第二关 · 植物守卫战',     desc: '安全知识 · 僵尸博士开机甲来袭', subj: 'safe',    done: true,  hpMul: 1.25, atkMul: 1.2,
+    intro: '星核把四个人变成了植物 —— 种好坚果墙，连喷豌豆，拆掉博士的机甲！',
+    outro: '又一片星核碎片归位！星图更亮了，下一块坐标还在解析：珊瑚碑林的字词声从远处传来……新世界正在制作中，敬请期待。' },
+  { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 敬请期待',           subj: 'chinese', done: false, hpMul: 1.5,  atkMul: 1.35,
+    intro: '海底碑文被搅乱了字词 —— 破译鲸歌密码，找回下一片星核碎片！',
+    outro: '碎片归位，星图指向星河之上：最后一道星门，要用英语单词才打得开。' },
+  { id: 4, name: '第四关 · 太空漫游',       desc: '英语单词 · 敬请期待',           subj: 'english', done: false, hpMul: 1.75, atkMul: 1.5,
+    intro: '英语星河的星门就在这里 —— 读对单词，把碎片追回来！',
+    outro: '又一片碎片归位，星图更亮了 —— 新的坐标正在浮现，旅程还长着呢。' }
 ];
 function stageOf(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return STAGES[i]; return STAGES[0]; }
 function stageHpMul() { return stageOf(CFG.stage).hpMul || 1; }
@@ -2334,6 +2350,8 @@ function applyStageText() {
   var h1 = document.querySelector('#setup h1');
   var sub = document.querySelector('#setup .sub');
   var st = stageOf(CFG.stage);
+  var sl = document.getElementById('storyLine');
+  if (sl) sl.textContent = '◆ ' + st.intro;
   if (h1) h1.textContent = '团队合作知识闯关 · ' + st.name.split(' · ')[0];
   if (sub) {
     sub.innerHTML = isStage2()
@@ -2691,6 +2709,11 @@ function showResult() {
   document.getElementById('resSum').textContent =
     (B.win ? '打倒了 ' + B.boss.name + '！' : 'Boss 还剩 ' + B.boss.hp + ' 点血量') +
     '　·　总用时 ' + Math.floor(sec / 60) + ' 分 ' + (sec % 60) + ' 秒';
+  var rs = document.getElementById('resStory');
+  if (rs) {
+    if (B.win) { rs.textContent = '✦ ' + stageOf(CFG.stage).outro; rs.style.color = '#ffe6b0'; }
+    else { rs.textContent = '✦ 星尘耗尽，小队被送回了知识学院 —— 去晨练攒点星尘，再来追回碎片吧！'; rs.style.color = '#c9bfe8'; }
+  }
   document.getElementById('resGrid').innerHTML = B.heroes.map(function (h, i) {
     var s = B.stats.per[i];
     return '<div class="statCard"><div class="nm">' + h.name + '</div>' +
@@ -2728,6 +2751,7 @@ function startBattle() {
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('result').classList.add('hidden');
   newBattle();
+  banner(stageOf(CFG.stage).intro);         /* 开场旁白：星核指路 → 换装 → 夺核 */
   syncOverlayDim();                          /* 进战斗：去掉弹窗遮罩 */
   sfx('click');
 }
@@ -2813,7 +2837,7 @@ document.getElementById('pwCancel').addEventListener('click', function () { sfx(
 document.getElementById('btnSaveCfg').addEventListener('click', saveSettings);
 document.getElementById('btnResetCfg').addEventListener('click', resetSettings);
 document.getElementById('btnCloseCfg').addEventListener('click', function () { sfx('click'); closeSettings(); });
-document.getElementById('btnToArena').addEventListener('click', function () { sfx('click'); location.href = 'index.html'; });
+document.getElementById('btnToArena').addEventListener('click', function () { sfx('click'); location.href = 'warmup.html'; });
 document.getElementById('btnClearEnergy').addEventListener('click', clearEnergy);
 requestAnimationFrame(loop);
 

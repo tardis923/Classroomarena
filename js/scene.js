@@ -1,10 +1,9 @@
 /* ============================================================
  * scene.js —— 上方动画区（Canvas）
- * 两套场景主题：
- *   tavern  中式酒楼 + 包子（街机三国志吃包子风格）
- *   forest  森林 + 苹果（熊大 / 熊二 / 光头强 / 蹦蹦）
- * 角色状态机：伸手拿食物 → 拿在手上等答题 → 张嘴咬两口 →
- * 咀嚼吞咽；答错摇头冒汗；吃完庆祝冒泡。
+ * 主场景：星空学院（star）——四人小队答对题目 → 星尘光束汇入中央星门 →
+ *         星门充能满即点亮下一道星门，攒够星尘出发追光。
+ * 旧的两套主题（酒楼包子 / 森林苹果）保留在代码里但未启用，供以后做支线世界参考。
+ * 角色状态机：伸手凝聚星尘 → 举着星尘等答题 → 答对把星尘投向星门。
  * ============================================================ */
 
 /* IE / 老 Trident 内核没有 canvas ellipse()：补一个等价实现 */
@@ -26,7 +25,7 @@ var Scene = (function () {
   var TABLE_Y = 545;
   var chars = [];
   var particles = [], floats = [], confetti = [];
-  var themeId = 'forest';
+  var themeId = 'star';
 
   /* ---------------- 三种玩法模式 ---------------- */
   var mode = 'eat';                 // eat（吃食物） | race（赛道竞速） | team（团队闯关）
@@ -42,9 +41,7 @@ var Scene = (function () {
     flash: 0, shake: 0, dying: -1, enter: 1, projs: []
   };
   var BOSSES = [
-    { name: '算术大魔王', col: '#7a4bd9', dark: '#55309c', light: '#a985ec' },
-    { name: '数字九头怪', col: '#2a9ad9', dark: '#1a6ba8', light: '#7ac6f0' },
-    { name: '错题大怪兽', col: '#d94b3d', dark: '#a82f22', light: '#f28573' }
+    { name: '星门 · 待点亮', col: '#7a5ad8', dark: '#40308c', light: '#c5b0ff' }
   ];
   function setBoss(lv) {
     team.boss = BOSSES[(lv - 1) % BOSSES.length];
@@ -93,6 +90,18 @@ var Scene = (function () {
         { kind: 'squirrel', name: '蹦蹦', main: '#e07b2a', dark: '#b35815', light: '#f2a55c', accent: '#fff0d0', scale: 1.12, imgSrc: 'images/bengbeng.png', mrow: 0.40, mcx: 0.43, ms: 0.75, hcx: 0.62, hcy: 0.56 }
       ],
       drawBg: bgForest, drawTable: tableForest, drawTray: traySlab, drawFood: drawApple
+    },
+
+    /* 主场景：星空学院 · 星门充能（不再出现食物与魔王） */
+    star: {
+      food: '星尘',
+      skins: [
+        { kind: 'human', name: '星蓝学员', main: '#4a6fd8', dark: '#2b479c', light: '#8fb2f5', accent: '#ffd970', scale: 1 },
+        { kind: 'human', name: '星紫学员', main: '#8a5cd0', dark: '#5b369e', light: '#c2a2f2', accent: '#ffe28a', scale: 1 },
+        { kind: 'human', name: '星青学员', main: '#2fa39c', dark: '#1c6e6b', light: '#7fdad2', accent: '#ffd970', scale: 1 },
+        { kind: 'human', name: '星橙学员', main: '#d98a3d', dark: '#a05d20', light: '#f5c184', accent: '#ffe28a', scale: 1 }
+      ],
+      drawBg: bgStar, drawTable: tableStar, drawTray: trayStar, drawFood: drawStarDust
     }
   };
 
@@ -306,7 +315,109 @@ var Scene = (function () {
   }
 
   /* ============================================================
-   * 食物：包子 / 苹果
+   * 主题三：星空学院 · 星门充能
+   * ============================================================ */
+  function bgStar(c) {
+    var g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0c0a22'); g.addColorStop(0.55, '#1c1545'); g.addColorStop(1, '#2b1e58');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+
+    /* 星门背后的光晕 */
+    var rg = c.createRadialGradient(960, 230, 20, 960, 230, 430);
+    rg.addColorStop(0, 'rgba(160,120,255,.30)'); rg.addColorStop(1, 'rgba(160,120,255,0)');
+    c.fillStyle = rg; c.fillRect(500, 0, 920, 620);
+
+    /* 星点（固定坐标 + 轻微呼吸，不随机跳闪） */
+    for (var i = 0; i < 110; i++) {
+      var x = (i * 137.5 + 37) % W, y = (i * 83.3 + 21) % 520;
+      c.globalAlpha = 0.25 + 0.6 * Math.abs(Math.sin(T * 1.15 + i));
+      c.fillStyle = (i % 7 === 0) ? '#ffe6a6' : '#ffffff';
+      circle(c, x, y, (i % 11 === 0) ? 2.6 : 1.3); c.fill();
+    }
+    c.globalAlpha = 1;
+
+    /* 星图连线：把「四界」串在一起 */
+    var pts = [[120, 160], [300, 96], [470, 190], [700, 120], [860, 210],
+               [1120, 104], [1300, 196], [1520, 116], [1780, 176]];
+    c.strokeStyle = 'rgba(180,160,255,.26)'; c.lineWidth = 1.6;
+    c.beginPath();
+    for (var j = 0; j < pts.length; j++) {
+      if (j === 0) c.moveTo(pts[j][0], pts[j][1]); else c.lineTo(pts[j][0], pts[j][1]);
+    }
+    c.stroke();
+    for (var k = 0; k < pts.length; k++) {
+      c.fillStyle = (k % 3 === 0) ? '#ffe6a6' : 'rgba(205,188,255,.8)';
+      circle(c, pts[k][0], pts[k][1], 4.5); c.fill();
+    }
+
+    /* 缓慢上浮的星尘 */
+    for (var m = 0; m < 22; m++) {
+      var dx = (m * 219 + 61) % W;
+      var dy = 620 - ((T * 16 + m * 47) % 620);
+      c.globalAlpha = 0.18 + 0.22 * Math.abs(Math.sin(T + m));
+      c.fillStyle = '#ffe6a6'; circle(c, dx, dy, 2 + (m % 3)); c.fill();
+    }
+    c.globalAlpha = 1;
+  }
+
+  function tableStar(c) {
+    var g = c.createLinearGradient(0, TABLE_Y, 0, H);
+    g.addColorStop(0, '#2d2465'); g.addColorStop(1, '#120f2d');
+    c.fillStyle = g; c.fillRect(0, TABLE_Y, W, H - TABLE_Y);
+    c.fillStyle = 'rgba(190,170,255,.55)'; c.fillRect(0, TABLE_Y, W, 3);
+    c.strokeStyle = 'rgba(175,155,255,.18)'; c.lineWidth = 2;
+    for (var i = 0; i < 5; i++) {
+      c.beginPath(); c.moveTo(0, TABLE_Y + 30 + i * 34); c.lineTo(W, TABLE_Y + 30 + i * 34); c.stroke();
+    }
+    /* 四个人的充能法阵 */
+    for (var n = 0; n < 4; n++) {
+      var cx = 240 + n * 480, cy = TABLE_Y + 88;
+      c.fillStyle = 'rgba(130,100,225,.16)';
+      c.beginPath(); c.ellipse(cx, cy, 152, 34, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = 'rgba(190,170,255,.42)'; c.lineWidth = 2.5;
+      c.beginPath(); c.ellipse(cx, cy, 152, 34, 0, 0, Math.PI * 2); c.stroke();
+      c.strokeStyle = 'rgba(190,170,255,.22)'; c.lineWidth = 1.5;
+      c.beginPath(); c.ellipse(cx, cy, 112, 24, 0, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = 'rgba(255,230,166,' + (0.35 + 0.25 * Math.sin(T * 2 + n)) + ')';
+      circle(c, cx, cy - 2, 5); c.fill();
+    }
+  }
+
+  function trayStar(c, cx, py) {
+    c.save();
+    c.fillStyle = 'rgba(90,66,170,.55)';
+    c.beginPath(); c.ellipse(cx, py, 112, 30, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(210,190,255,.6)'; c.lineWidth = 2.5;
+    c.beginPath(); c.ellipse(cx, py, 112, 30, 0, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = 'rgba(255,225,150,.45)'; c.lineWidth = 1.5;
+    c.beginPath(); c.ellipse(cx, py, 78, 20, 0, 0, Math.PI * 2); c.stroke();
+    for (var i = 0; i < 8; i++) {
+      var a = T * 0.5 + i * Math.PI / 4;
+      c.fillStyle = 'rgba(255,230,166,.75)';
+      circle(c, cx + Math.cos(a) * 96, py + Math.sin(a) * 25, 2.6); c.fill();
+    }
+    c.restore();
+  }
+
+  /* 星尘光球：角色手里举的、答对时飞向星门的都是它 */
+  function drawStarDust(c, x, y, r, bites) {
+    c.save();
+    var g = c.createRadialGradient(x, y, 1, x, y, r * 1.8);
+    g.addColorStop(0, 'rgba(255,245,205,1)');
+    g.addColorStop(0.35, 'rgba(255,214,110,.9)');
+    g.addColorStop(1, 'rgba(255,190,80,0)');
+    c.fillStyle = g; circle(c, x, y, r * 1.8); c.fill();
+    c.fillStyle = '#fff6cf'; circle(c, x, y, r * 0.42); c.fill();
+    c.strokeStyle = 'rgba(255,245,205,.9)'; c.lineWidth = Math.max(1.5, r * 0.09);
+    c.beginPath();
+    c.moveTo(x - r, y); c.lineTo(x + r, y);
+    c.moveTo(x, y - r); c.lineTo(x, y + r);
+    c.stroke();
+    c.restore();
+  }
+
+  /* ============================================================
+   * 食物：包子 / 苹果（旧主题保留）
    * ============================================================ */
   function biteMask(c, x, y, r, bites) {
     if (!bites) return;
@@ -1184,98 +1295,108 @@ var Scene = (function () {
   }
 
   /* ============================================================
-   * 模式三：团队闯关 —— 大魔王 / 投掷物
+   * 模式三：团队闯关 —— 中央星门（答对 → 星尘汇入 → 充能点亮）
+   * team.hp 从 1 降到 0，这里把它反过来当作「充能度」用。
    * ============================================================ */
   function drawBoss(c) {
-    var B = team.boss;
-    if (!B) return;
+    if (!team.boss) return;
     var dead = (team.dying >= 0);
     var du = dead ? clamp01(team.dying / 0.7) : 0;
     if (dead && du >= 1) return;
 
-    var bx = 960, by = 170;
-    var shakeX = team.shake > 0 ? Math.sin(T * 55) * 9 * team.shake : 0;
-    var bob = Math.sin(T * 1.7) * 7;
+    var bx = 960, by = 186;
     var sc = backOut(clamp01(team.enter));
-    var hurt = team.flash > 0.02;
+    var charge = clamp01(1 - team.hp);            /* 答对越多，星门越亮 */
+    if (dead) charge = 1;
+    var pulse = 1 + Math.sin(T * 2.1) * 0.03;
+    var flash = team.flash > 0.02;
 
     c.save();
-    c.globalAlpha = 1 - du * 0.95;
-    c.translate(bx + shakeX, by + bob + du * 150);
-    c.scale(sc * (1 + du * 0.3), sc * (1 - du * 0.55));
+    c.translate(bx, by);
+    c.scale(sc * pulse * (1 + du * 0.28), sc * pulse * (1 + du * 0.28));
 
-    // 角
-    c.fillStyle = hurt ? '#ffffff' : B.dark;
-    c.beginPath(); c.moveTo(-70, -56); c.lineTo(-98, -130); c.lineTo(-32, -72); c.closePath(); c.fill();
-    c.beginPath(); c.moveTo(70, -56); c.lineTo(98, -130); c.lineTo(32, -72); c.closePath(); c.fill();
+    /* 外层光晕 */
+    var glow = c.createRadialGradient(0, 0, 40, 0, 0, 230);
+    glow.addColorStop(0, 'rgba(190,150,255,' + (0.22 + charge * 0.4) + ')');
+    glow.addColorStop(1, 'rgba(190,150,255,0)');
+    c.fillStyle = glow; circle(c, 0, 0, 230); c.fill();
 
-    // 身体
-    c.fillStyle = hurt ? '#ffffff' : B.col;
-    c.beginPath(); c.ellipse(0, 22, 112, 96, 0, 0, Math.PI * 2); c.fill();
-    c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 5; c.stroke();
-
-    // 肚皮
-    c.fillStyle = hurt ? '#ffffff' : B.light;
-    c.beginPath(); c.ellipse(0, 64, 66, 46, 0, 0, Math.PI * 2); c.fill();
-
-    // 手
-    c.fillStyle = hurt ? '#ffffff' : B.col;
-    circle(c, -114, 44 + Math.sin(T * 2.4) * 8, 23); c.fill();
-    circle(c, 114, 44 + Math.cos(T * 2.4) * 8, 23); c.fill();
-
-    // 眼睛
-    var look = Math.sin(T * 0.9) * 5;
-    c.fillStyle = '#fffdf6';
-    c.beginPath(); c.ellipse(-34, -16, 23, 27, 0, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(34, -16, 23, 27, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#2a1030';
-    circle(c, -34 + look, -12, 10); c.fill();
-    circle(c, 34 + look, -12, 10); c.fill();
-    // 怒眉
-    c.strokeStyle = hurt ? '#cccccc' : B.dark;
-    c.lineWidth = 9; c.lineCap = 'round';
-    c.beginPath();
-    c.moveTo(-58, -48); c.lineTo(-16, -32);
-    c.moveTo(58, -48); c.lineTo(16, -32);
-    c.stroke();
-
-    // 嘴 + 獠牙
-    var mo = 11 + Math.abs(Math.sin(T * 2.2)) * 5 + team.flash * 13;
-    c.fillStyle = '#5a1830';
-    c.beginPath(); c.ellipse(0, 30, 40, mo, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#fffdf4';
-    c.beginPath();
-    c.moveTo(-26, 30 - mo + 3); c.lineTo(-16, 30 - mo + 16); c.lineTo(-6, 30 - mo + 3);
-    c.closePath(); c.fill();
-    c.beginPath();
-    c.moveTo(6, 30 - mo + 3); c.lineTo(16, 30 - mo + 16); c.lineTo(26, 30 - mo + 3);
-    c.closePath(); c.fill();
-
+    /* 旋转的星图外环 */
+    c.save(); c.rotate(T * 0.16);
+    c.strokeStyle = 'rgba(200,180,255,.55)'; c.lineWidth = 3;
+    c.beginPath(); c.arc(0, 0, 132, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = 'rgba(255,225,150,.45)'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(0, 0, 118, 0, Math.PI * 2); c.stroke();
+    for (var i = 0; i < 12; i++) {
+      var a = i * Math.PI / 6;
+      c.save(); c.rotate(a); c.translate(132, 0); c.rotate(Math.PI / 4);
+      c.fillStyle = (i % 3 === 0) ? '#ffe6a6' : 'rgba(205,188,255,.75)';
+      c.fillRect(-5, -5, 10, 10);
+      c.restore();
+    }
     c.restore();
 
+    /* 充能环：按进度画一段圆弧 */
+    c.strokeStyle = flash ? '#ffffff' : '#ffd970';
+    c.lineWidth = 11; c.lineCap = 'round';
+    c.beginPath(); c.arc(0, 0, 100, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.001, charge)); c.stroke();
+
+    /* 门内：随充能上升的星光液面 */
+    c.save();
+    c.beginPath(); c.arc(0, 0, 88, 0, Math.PI * 2); c.clip();
+    c.fillStyle = '#241a52'; c.fillRect(-90, -90, 180, 180);
+    var lv = 88 - charge * 176;
+    var lg = c.createLinearGradient(0, lv, 0, 88);
+    lg.addColorStop(0, 'rgba(255,235,170,.95)'); lg.addColorStop(1, 'rgba(140,100,230,.65)');
+    c.fillStyle = lg; c.fillRect(-90, lv, 180, 180 - (lv + 90));
+    c.restore();
+
+    /* 中央星核：四角星 */
+    c.save(); c.rotate(T * 0.35);
+    c.fillStyle = flash ? '#ffffff' : '#fff3c4';
+    c.beginPath();
+    for (var k = 0; k < 8; k++) {
+      var ang = k * Math.PI / 4 - Math.PI / 2;
+      var rad = (k % 2 === 0) ? 40 + charge * 8 : 15;
+      var px = Math.cos(ang) * rad, py = Math.sin(ang) * rad;
+      if (k === 0) c.moveTo(px, py); else c.lineTo(px, py);
+    }
+    c.closePath(); c.fill();
+    c.restore();
+
+    /* 两侧立柱 */
+    c.fillStyle = '#3a2c78';
+    rr(c, -168, -40, 22, 210, 8); c.fill();
+    rr(c, 146, -40, 22, 210, 8); c.fill();
+    c.fillStyle = '#9b7ce8';
+    rr(c, -168, -40, 22, 14, 6); c.fill();
+    rr(c, 146, -40, 22, 14, 6); c.fill();
+    c.fillStyle = 'rgba(255,225,150,' + (0.4 + charge * 0.6) + ')';
+    circle(c, -157, -46, 7); c.fill();
+    circle(c, 157, -46, 7); c.fill();
+
+    c.restore();
     if (!dead) drawBossHp(c);
   }
 
   function drawBossHp(c) {
     var x = 540, y = 8, w = 780, h = 28;
-    c.fillStyle = 'rgba(30,15,5,.55)';
+    var charge = clamp01(1 - team.hp);
+    c.fillStyle = 'rgba(12,8,32,.62)';
     rr(c, x - 7, y - 7, w + 14, h + 14, 15); c.fill();
-    c.fillStyle = '#2c1a10';
+    c.fillStyle = '#1d1542';
     rr(c, x, y, w, h, 11); c.fill();
-
-    var f = clamp01(team.hp);
-    if (f > 0.004) {
-      var fw = Math.max(12, w * f);
-      c.fillStyle = f > 0.5 ? '#58c46a' : (f > 0.25 ? '#f0b23a' : '#e84a3a');
-      rr(c, x, y, fw, h, 11); c.fill();
-      c.fillStyle = 'rgba(255,255,255,.28)';
-      rr(c, x + 3, y + 3, Math.max(6, fw - 6), 10, 5); c.fill();
-    }
+    var fw = Math.max(6, w * charge);
+    var g = c.createLinearGradient(x, 0, x + w, 0);
+    g.addColorStop(0, '#7a5ad8'); g.addColorStop(1, '#ffd970');
+    c.fillStyle = g; rr(c, x, y, fw, h, 11); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.28)';
+    rr(c, x + 3, y + 3, Math.max(6, fw - 6), 10, 5); c.fill();
     c.font = 'bold 21px "Microsoft YaHei", sans-serif';
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.lineWidth = 4; c.strokeStyle = 'rgba(30,15,5,.85)';
+    c.lineWidth = 4; c.strokeStyle = 'rgba(10,6,26,.9)';
     c.strokeText(team.info, x + w / 2, y + h / 2 + 1);
-    c.fillStyle = '#ffe9c0';
+    c.fillStyle = '#fff0c8';
     c.fillText(team.info, x + w / 2, y + h / 2 + 1);
   }
 

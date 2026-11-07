@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>学院晨练 · 热身赛</title>
+<link rel="stylesheet" href="css/style.css">
+<style id="starSkin">
+/* 星空学院皮肤：把旧暖棕配色换成星图紫，玩法结构完全不动 */
+html, body { background: #0b0820; }
+#stage { background: #171032; }
+#panels { border-top-color: #6a50b8; background: #1c1544; }
+.pcol { background: #241a54; border-right-color: rgba(190,170,255,.22); }
+.pname { color: #f2eaff; background: rgba(255,255,255,.08); border-color: rgba(190,170,255,.4); }
+.pprog { color: #d8caff; } .pbadge { color: #ffb0a2; }
+.pbar { background: rgba(190,170,255,.2); }
+.pq { background: linear-gradient(#302568, #211a52); border-color: rgba(190,170,255,.45); }
+.qt { color: #fff4d6; } .qeq { color: #ffe6a6; }
+.qbox { background: #140e34; border-color: #8b78d8; color: #fff; }
+.qbox.hint::before { color: #c9b6ff; }
+.pq.done { background: linear-gradient(#24503f, #1b3a30); }
+.pq.done .qt { color: #b6f0c8; }
+.kbtn, .popt { color: #fff2d6; background: linear-gradient(#3d2d84, #2b2060); border-color: rgba(190,170,255,.38); }
+.kbtn:active, .kbtn.press, .popt:active, .popt.press { background: #6a4ec0; }
+.popt i { background: rgba(190,170,255,.2); color: #ffe6a6; }
+#hudTime, .hudBtn { color: #ffe6a6; background: rgba(30,20,70,.88); border-color: rgba(190,170,255,.55); }
+.hudBtn:active { background: #4a3690; }
+#overlay { background: rgba(10,6,28,.72); }
+.card { background: linear-gradient(#2a2058, #1b1440); border-color: #6a50b8; }
+.card h1 { color: #ffe6a6; } .card .sub { color: #cfc2f5; }
+.setLabel, .opt, .nameIn { color: #e8ddff; }
+.opt { background: #302568; border-color: rgba(190,170,255,.4); }
+.opt .small, .optCard .roles, .tip { color: #b6a6e0; }
+.opt.on { background: linear-gradient(#8a63d8, #6a48c8); border-color: #ffd970; color: #fff; }
+.nameIn { background: rgba(255,255,255,.08); }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- ================= 上方 2/3：动画区 ================= -->
+  <div id="sceneWrap">
+    <canvas id="scene" width="1920" height="720"></canvas>
+    <div id="hud">
+      <div id="hudTime">00:00</div>
+      <div class="hudBtns">
+        <button id="btnSound" class="hudBtn" title="音效开关">🔊</button>
+        <button id="btnPause" class="hudBtn" title="暂停/继续">⏸</button>
+        <button id="btnFinish" class="hudBtn">提前结算</button>
+        <button id="btnHome" class="hudBtn">重开</button>
+      </div>
+    </div>
+    <div id="countdown"></div>
+  </div>
+
+  <!-- ================= 下方 1/3：四人操作区 ================= -->
+  <div id="panels"></div>
+
+  <!-- ================= 覆盖层：设置 / 结算 ================= -->
+  <div id="overlay">
+
+    <div id="setup" class="card">
+      <h1>热身赛</h1>
+      <p class="sub">知识学院 · 晨练：四科混合题 · 团队闯关 · 攒星尘点亮星门</p>
+
+      <div class="setRow">
+        <div class="setLabel">场景角色</div>
+        <div class="opts" id="optTheme"></div>
+      </div>
+
+      <div class="setRow" id="rowBuns">
+        <div class="setLabel" id="lbBun">题目数量</div>
+        <div class="opts" id="optBuns"></div>
+        <div class="fixedVal gone" id="bunsFixed">平均<b>15</b> 题 / 人　四人共 <b>60</b> 题　限时 <b>100</b> 秒
+          <span class="fxsub">数学 + 语文 + 英语 + 安全 混合题 · 100 秒内答完才通关</span>
+        </div>
+      </div>
+
+      <div class="setRow">
+        <div class="setLabel">选手名字</div>
+        <div class="nameInputs">
+          <div class="nameCell"><input class="nameIn" id="nm0" maxlength="6"></div>
+          <div class="nameCell"><input class="nameIn" id="nm1" maxlength="6"></div>
+          <div class="nameCell"><input class="nameIn" id="nm2" maxlength="6"></div>
+          <div class="nameCell"><input class="nameIn" id="nm3" maxlength="6"></div>
+        </div>
+      </div>
+
+      <button id="btnStart" class="bigBtn">开 始 比 赛</button>
+      <div class="tip">提示：答错不扣魔力，但会换新题并浪费时间 —— 抢答要准！通关奖励 30 魔力，失败不得魔力。</div>
+      <a href="index.html" style="display:block;text-align:center;margin-top:16px;color:#b9a9f0;font-size:19px;text-decoration:none">← 返回星图首页</a>
+    </div>
+
+    <div id="result" class="card hidden">
+      <h1 id="resultTitle">比赛结束</h1>
+      <div id="podium"></div>
+      <div id="rankList"></div>
+      <div id="energyBox" class="energyBox"></div>
+      <button id="btnBoss" class="bigBtn bossBtn">挑 战 第 一 关 →</button>
+      <div class="resBtns">
+        <button id="btnAgain" class="bigBtn">再 来 一 局</button>
+        <button id="btnBack" class="bigBtn ghost">返 回 设 置</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ 团队闯关：100 秒没点亮星门（黑屏） ============ -->
+  <div id="timeout">
+    <div class="toInner">
+      <div class="toKicker">时 间 到</div>
+      <div class="toTitle">闯 关 失 败</div>
+      <div class="toSub">星门还没充满就到时间了……换一组同学上台，重新晨练吧！</div>
+      <button id="btnRetry" class="bigBtn toBtn">重 来 一 次</button>
+    </div>
+  </div>
+
+  <!-- ============ 团队闯关：100 秒内完成（黑屏 · 赢魔力进第一关） ============ -->
+  <div id="victory">
+    <div class="vicInner">
+      <div class="vicKicker">胜 利</div>
+      <div class="vicTitle">热 身 赛 通 关</div>
+      <div class="vicFlavor">
+        最后一道星尘落入星门，全场欢呼！<br>
+        60 道题、四个人、一条心 —— 第一道星门亮了！
+      </div>
+      <div class="vicStats" id="vicStats"></div>
+      <div class="vicEnergy" id="vicEnergy"></div>
+      <button id="btnVicGo" class="bigBtn vicBtn">挑 战 第 一 关 · 魔法师大战魔王 →</button>
+      <div class="vicTip">星尘够了！第一道星门亮起 —— 数学森林里，魔君的影子正守着第一片星核碎片。</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/questions.js"></script>
+<script src="js/banks.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
