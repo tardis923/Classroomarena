@@ -191,8 +191,8 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
       intro: '森林的咒语全失灵了 —— 答对口算，把魔君的影子打回去！' },
     { id: 2, name: '安全草坪', subj: '安全知识 · 植物小队', done: true,
       intro: '星核把四个人变成了植物。连喷豌豆，拆掉博士的机甲！' },
-    { id: 3, name: '语文海底', subj: '语文知识 · 敬请期待', done: false,
-      intro: '碑文被搅乱了字词，要破译鲸歌密码才能继续追。' },
+    { id: 3, name: '海底碑林', subj: '语文知识 · 深海潜水小队', done: true,
+      intro: '珊瑚碑林的字词被章鱼怪搅乱了 —— 穿上潜水服，破译鲸歌密码！' },
     { id: 4, name: '英语星河', subj: '英语单词 · 敬请期待', done: false,
       intro: '最后一道星门，要用英语单词才打得开。' }
   ];
@@ -216,15 +216,25 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     clearTimeout(t._tm); t._tm = setTimeout(function () { t.style.opacity = '0'; }, 2600);
   }
 
+  /* 老师在关卡挑战设置页关掉的关卡：首页显示「敬请期待」 */
+  function closedStages() {
+    var o = readJSON(CFG_KEY, {});
+    var a = o.offStages;
+    return Object.prototype.toString.call(a) === '[object Array]' ? a : [];
+  }
+
   function renderWorlds(p) {
+    var off = closedStages();
     WORLDS.forEach(function (w) {
       var el = document.getElementById('nd' + w.id);
-      var lit = w.done && w.id <= p.unlocked;
-      el.className = 'node n' + w.id + (lit ? ' lit' : (w.done ? '' : ' wip'));
-      var state = !w.done ? '坐标解析中 · 敬请期待' : (lit ? '已点亮 · 可进入' : '尚未解锁');
+      var isOff = w.done && off.indexOf(w.id) >= 0;
+      var lit = w.done && !isOff && w.id <= p.unlocked;
+      el.className = 'node n' + w.id + (lit ? ' lit' : ((isOff || !w.done) ? ' wip' : ''));
+      var state = isOff ? '敬请期待 · 老师已关闭'
+        : (!w.done ? '坐标解析中 · 敬请期待' : (lit ? '已点亮 · 可进入' : '尚未解锁'));
       el.innerHTML = '<div class="nno">WORLD ' + w.id + ' · ' + (w.done ? '主线' : '待开放') + '</div>' +
         '<div class="nname">' + w.name + '</div>' +
-        '<div class="nsub">' + w.subj + '</div>' +
+        '<div class="nsub">' + (isOff ? '敬请期待' : w.subj) + '</div>' +
         '<div class="nstate">' + state + '</div>';
     });
   }
@@ -232,21 +242,24 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
   function renderStatus(p) {
     var en = readJSON(ENERGY_KEY, { pool: 0, need: 30, on: 1 });
     var grow = Math.min(20, p.wins * 2);
-    var lit = 0;
-    WORLDS.forEach(function (w) { if (w.done && w.id <= p.unlocked) lit++; });
+    var lit = 0, off = closedStages();
+    WORLDS.forEach(function (w) { if (w.done && off.indexOf(w.id) < 0 && w.id <= p.unlocked) lit++; });
     document.getElementById('status').innerHTML =
       '本机存档 · 已点亮 <b>' + lit + '</b> 个世界　|　通关 <b>' + p.wins + '</b> 次　|　' +
-      '小队成长 <b>+' + grow + '%</b>　|　星尘（魔力）<b>' + (en.pool || 0) + '</b> 点　|　进度只存在这台一体机';
+      '小队成长 <b>+' + grow + '%</b>　|　星尘（魔力）<b>' + (en.pool || 0) + '</b> 点' +
+      (off.length ? '　|　<b>' + off.length + '</b> 关已由老师关闭（敬请期待）' : '') +
+      '　|　进度只存在这台一体机';
     document.getElementById('bossSub').textContent = '已解锁 ' + p.unlocked + ' 个世界 · 追回散落各界的星核碎片';
   }
 
   function renderStory() {
-    var p = loadProg(), h = '';
+    var p = loadProg(), off = closedStages(), h = '';
     WORLDS.forEach(function (w) {
-      var lit = w.done && w.id <= p.unlocked;
+      var isOff = w.done && off.indexOf(w.id) >= 0;
+      var lit = w.done && !isOff && w.id <= p.unlocked;
       h += '<div class="act"><div class="no">0' + w.id + '</div><div>' +
-        '<div class="tt">' + w.name + ' · ' + (lit ? '已夺回星核碎片' : (w.done ? '尚未抵达' : '坐标解析中')) + '</div>' +
-        '<div class="dd">' + w.intro + '</div></div></div>';
+        '<div class="tt">' + w.name + ' · ' + (isOff ? '敬请期待' : (lit ? '已夺回星核碎片' : (w.done ? '尚未抵达' : '坐标解析中'))) + '</div>' +
+        '<div class="dd">' + (isOff ? '老师暂时关闭了这一界，星图坐标被收了起来。' : w.intro) + '</div></div></div>';
     });
     h += '<div class="act"><div class="no">∞</div><div><div class="tt">星图之外</div>' +
       '<div class="dd">星图每亮一块，就会指出下一界的坐标。等整张星图亮起，魔君真身才会现身——旅程还长着呢。</div></div></div>';

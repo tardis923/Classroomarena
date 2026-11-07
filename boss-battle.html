@@ -301,6 +301,12 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
         </div>
 
         <div class="setRow">
+          <div class="setLabel">关卡开放（关掉后首页显示「敬请期待」）</div>
+          <div class="opts" id="optStageOn"></div>
+          <div class="tip" style="text-align:left;margin:6px 0 0">老师可单独关闭某一关：该关在首页星图和选关页都显示「敬请期待」，学生无法进入；随时可重新打开。第一关不建议关闭。设置会存到本机浏览器，并同步给首页。</div>
+        </div>
+
+        <div class="setRow">
           <div class="setLabel">魔力门票（与「热身赛」联动）</div>
           <div class="opts" id="optEnergy"></div>
         </div>
@@ -461,12 +467,15 @@ var DEFAULTS = {
   energyOn: 1,        // 魔力门槛：1 需要门票才能开战 / 0 不需要
   energyNeed: 30,     // 开战消耗多少点班级魔力
 
-  allUnlock: 0        // 测试用：1 = 解锁全部关卡（设置页可切换）
+  allUnlock: 0,       // 测试用：1 = 解锁全部关卡（设置页可切换）
+  offStages: []       // 老师关闭的关卡 id；首页显示「敬请期待」，且不能进入
 };
 
 var CFG = {};
 function resetCfg() {
-  for (var k in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, k)) CFG[k] = DEFAULTS[k];
+  for (var k in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, k)) {
+    CFG[k] = (k === 'offStages') ? [] : DEFAULTS[k];   /* 数组要拷贝，别共享引用 */
+  }
 }
 resetCfg();
 
@@ -486,6 +495,12 @@ function loadCfg() {
       var v = o[k];
       if (k === 'energyOn') { CFG[k] = v ? 1 : 0; continue; }   /* 允许为 0（关闭门槛） */
       if (k === 'allUnlock') { CFG[k] = v ? 1 : 0; continue; }  /* 允许为 0（按进度解锁） */
+      if (k === 'offStages') {                                   /* 老师关闭的关卡列表 */
+        if (Object.prototype.toString.call(v) === '[object Array]') {
+          CFG[k] = v.filter(function (n) { return typeof n === 'number' && n >= 1 && n <= 4; });
+        }
+        continue;
+      }
       if (typeof DEFAULTS[k] === 'number') {
         if (typeof v === 'number' && isFinite(v) && v > 0) CFG[k] = v;
       } else if (k === 'subject') {
@@ -623,7 +638,7 @@ var PVZ_PHASES = [
   { name: '机甲 · 狂暴形态', scale: 1.58, atkMul: 2.3, atkChance: 0.62, meteorMul: 1.2, bossImmune: true,
     body: '#b0453a', dark: '#6e2318', horn: '#ffd45e', eye: '#ffe08a', spikes: 2 }
 ];
-function PH() { return isStage2() ? PVZ_PHASES : PHASES; }
+function PH() { return isStage3() ? (SEA_PHASES || PHASES) : (isStage2() ? PVZ_PHASES : PHASES); }
 
 /* 四植物：技能与第一关完全不同 —— PvZ 式连射弹幕，答对就连喷三发 */
 var PVZ_HEROES = [
@@ -636,7 +651,31 @@ var PVZ_HEROES = [
   { cls: '寒冰射手', name: '冰豌豆', skill: '寒冰豌豆', key: 'ice',
     desc: '连喷三发冰豌豆 · 减速机甲', robe: '#3fa8c4', dark: '#216a80', orb: '#bff0ff', tone: 500 }
 ];
-function heroSet() { return isStage2() ? PVZ_HEROES : HEROES; }
+function heroSet() { return isStage3() ? (SEA_HEROES || HEROES) : (isStage2() ? PVZ_HEROES : HEROES); }
+
+/* ============================ 第三关 · 海底探险（主题层） ============================
+   星核把四人换成了海底小队；守核者是吞了碑文的巨型章鱼怪。
+   机制复用第一关的单发技能组（第二关的连射/怒气/小怪波次是第二关专属），
+   只换皮：海洋小队 / 章鱼怪三阶段 / 墨汁漩涡大招 / 珊瑚碑林背景。 */
+var SEA_PHASES = [
+  { name: '珊瑚小章鱼',   scale: 1.00, atkMul: 1.0, atkChance: 1.00, meteorMul: 1.0, bossImmune: false,
+    body: '#e0798c', dark: '#8e3355', horn: '#ffd0a0', eye: '#fff4d0', spikes: 0 },
+  { name: '墨汁大章鱼',   scale: 1.28, atkMul: 1.6, atkChance: 0.80, meteorMul: 1.1, bossImmune: true,
+    body: '#8e6ad0', dark: '#48307e', horn: '#c9a8ff', eye: '#ffe0a0', spikes: 1 },
+  { name: '深渊碑文章鱼', scale: 1.58, atkMul: 2.3, atkChance: 0.62, meteorMul: 1.2, bossImmune: true,
+    body: '#3f7fb0', dark: '#1d3f68', horn: '#9fe0ff', eye: '#fff0a0', spikes: 2 }
+];
+var SEA_HEROES = [
+  { cls: '珊瑚医师', name: '珊瑚', skill: '珊瑚之光', key: 'heal',
+    desc: '回血最虚弱 · 满血套气泡盾', robe: '#3fb894', dark: '#1d6e5c', orb: '#8ff0d0', tone: 392 },
+  { cls: '电鳗术士', name: '电鳗', skill: '电鳗雷击', key: 'thunder',
+    desc: '单体高伤害',       robe: '#5b7ce0', dark: '#2d4a9c', orb: '#cfe3ff', tone: 300 },
+  { cls: '灯笼鱼法师', name: '灯灯', skill: '深海焰弹', key: 'fire',
+    desc: '伤害＋灼烧持续掉血', robe: '#e8902c', dark: '#9c5310', orb: '#ffd47a', tone: 240 },
+  { cls: '冰海豚',   name: '冰豚', skill: '寒冰气泡', key: 'ice',
+    desc: '伤害＋冻结 Boss',   robe: '#49b6d8', dark: '#206a86', orb: '#c8f4ff', tone: 500 }
+];
+function isStage3() { return CFG.stage === 3; }
 
 /* ============================ 音效（纯合成，无外部文件） ============================ */
 var AC = null, sfxOn = true;
@@ -879,6 +918,7 @@ function newBattle() {
   clearTimers();
   B = {
     over: false, win: false, paused: false, elapsed: 0,
+    tide: 0,                 /* 第三关：潮汐印记层数（每层我方伤害 +12%，满 3 层触发鲸歌共鸣） */
     boss: {
       hp: Math.round(CFG.bossHp * stageHpMul()),
       max: Math.round(CFG.bossHp * stageHpMul()),
@@ -1002,11 +1042,97 @@ function skipQuestion(i) {
   renderPanels();
 }
 
+/* ============================ 第三关专属技能组：鲸歌连携 ============================
+   四个技能都会给章鱼怪叠「潮汐印记」：每层让我方伤害 +12%，
+   叠满 3 层触发「鲸歌共鸣」额外一击 + 全队小回血，然后清空重来。
+   技能动作也与前两关完全不同：全队潮汐回血 / 电鳗两连击 /
+   灯笼照亮一次叠两层 / 寒冰气泡把 Boss 封住 3.5 秒（不走冻结免疫）。 */
+function addTide(n) {
+  if (!B || B.over) return;
+  B.tide = (B.tide || 0) + n;
+  floatText(BOSS_X, BOSS_Y - 210, '潮汐印记 +' + n + '（' + Math.min(3, B.tide) + '/3）', '#8fe8ff');
+  if (B.tide >= 3) {
+    var bonus = heroDmg(180);          /* 先按 3 层加成算伤害，再清层 */
+    B.tide = 0;
+    banner('★ 鲸歌共鸣！碑文被破译，星核震出一道浪！');
+    floatText(BOSS_X, BOSS_Y - 252, '鲸 歌 共 鸣 ！', '#ffe6a6');
+    sfx('win');
+    after(0.28, function () {
+      if (B.over) return;
+      damageBoss(bonus, 'thunder');
+      for (var q = 0; q < B.heroes.length; q++) {
+        var hh = B.heroes[q];
+        if (!hh.alive) continue;
+        hh.hp = Math.min(hh.max, hh.hp + heroHeal(20));
+        floatText(heroPt(q).x, heroPt(q).y - 46, '+20', '#7ff0d0');
+      }
+      renderPanels();
+    });
+  }
+}
+
+function castSeaSkill(h, from, to) {
+  var back = 1.15, tideN = 1;
+
+  if (h.key === 'heal') {
+    /* 珊瑚潮汐：全队同时回血，不再是「只奶最虚的那个」 */
+    var amt = heroHeal(Math.round(CFG.healAmt * 0.72));
+    sfx('heal');
+    aliveHeroes().forEach(function (t, k) {
+      B.fx.push({ type: 'heal', t: 0, dur: 1.0, from: from, to: heroPt(t.i),
+        delay: k * 0.08, tint: '#7ff0d0', tint2: '#d8fff0' });
+      after(0.34 + k * 0.08, function () {
+        if (!t.alive || B.over) return;
+        var real = Math.min(amt, t.max - t.hp);
+        t.hp += real; t.glow = 1;
+        floatText(heroPt(t.i).x, heroPt(t.i).y - 46, '+' + real, '#7ff0d0');
+        renderPanels();
+      });
+    });
+    banner(h.name + ' 唤起珊瑚潮汐：全队回血 ' + amt + '！');
+    back = 1.6;
+
+  } else if (h.key === 'thunder') {
+    /* 电鳗连锁：两道电光接连劈下（第一关单发 / 第二关三连发） */
+    sfx('thunder');
+    for (var c = 0; c < 2; c++) {
+      B.fx.push({ type: 'thunder', t: 0, dur: 0.6, from: from, to: to, delay: c * 0.2 });
+    }
+    after(0.28, function () { damageBoss(heroDmg(Math.round(CFG.dmgThunder * 0.58)), 'thunder'); });
+    after(0.50, function () { if (B.over) return; damageBoss(heroDmg(Math.round(CFG.dmgThunder * 0.58)), 'thunder'); });
+    banner(h.name + ' 放出电鳗连锁：两道电光接连劈下！');
+
+  } else if (h.key === 'fire') {
+    /* 灯笼焰弹：照亮被搅乱的碑文，一次叠两层印记 */
+    sfx('fire');
+    B.fx.push({ type: 'fire', t: 0, dur: 0.7, from: from, to: to });
+    after(0.32, function () { damageBoss(heroDmg(CFG.dmgFire), 'fire'); });
+    banner(h.name + ' 点亮灯笼，碑文显形 —— 潮汐印记 +2！');
+    tideN = 2;
+
+  } else {
+    /* 寒冰气泡：把 Boss 封进气泡完全停手（复用 stun，但不触发冻结免疫） */
+    sfx('ice');
+    B.fx.push({ type: 'ice', t: 0, dur: 0.8, from: from, to: to });
+    after(0.32, function () { damageBoss(heroDmg(CFG.dmgIce), 'ice'); });
+    after(0.42, function () {
+      if (B.over) return;
+      B.boss.stun = 3.5;
+      floatText(to.x, to.y - 150, '气泡禁锢 3.5 秒！', '#bff0ff');
+    });
+    banner(h.name + ' 吹出寒冰气泡，章鱼怪被封住了！');
+  }
+
+  addTide(tideN);
+  after(back, function () { giveQuestion(h); });
+}
+
 /* ---------- 释放技能 ---------- */
 function castSkill(h) {
   h.castT = 0.9;
   var from = heroPt(h.i), to = { x: BOSS_X - 60, y: BOSS_Y };
   var back = 1.15;                       /* 释放完多久给下一题 */
+  if (isStage3()) { castSeaSkill(h, from, to); return; }
   var s2 = isStage2();                   /* 第二关：PvZ 连射弹幕技能组 */
 
   if (h.key === 'thunder') {
@@ -1212,9 +1338,9 @@ function checkPhase() {
     if (PH()[want].bossImmune) {
       /* 二阶段起免疫控制：身上的灼烧 / 冻结一并清掉 */
       B.boss.burn = 0; B.boss.burnT = 0; B.boss.frozen = 0;
-      banner((isStage2() ? '机甲升级！' : 'Boss 变身！') + PH()[want].name + ' 登场：免疫灼烧与冰冻，大招更快了！');
+      banner((isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！')) + PH()[want].name + ' 登场：免疫灼烧与冰冻，大招更快了！');
     } else {
-      banner((isStage2() ? '机甲升级！' : 'Boss 变身！') + PH()[want].name + ' 登场，题目难度提升！');
+      banner((isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！')) + PH()[want].name + ' 登场，题目难度提升！');
     }
     /* 阶段变了，大招节奏跟着变快：剩余倒计时不超过新间隔 */
     var mv = meteorEveryOf(want);
@@ -1397,8 +1523,70 @@ function txt(c, s, x, y, size, color, align, weight) {
   c.fillText(s, x, y);
 }
 
+/* ---------- 第三关：海底碑林背景 ---------- */
+function drawSeaBg(c) {
+  var g = c.createLinearGradient(0, 0, 0, AH);
+  g.addColorStop(0, '#0d5680'); g.addColorStop(0.45, '#0a3358'); g.addColorStop(1, '#05182f');
+  c.fillStyle = g; c.fillRect(0, 0, W, AH);
+
+  /* 海面斜射光柱 */
+  c.save(); c.globalAlpha = 0.09;
+  for (var i = 0; i < 6; i++) {
+    var lx = 90 + i * 340 + Math.sin(B.boss.bob * 0.3 + i) * 28;
+    c.fillStyle = '#c8f4ff';
+    c.beginPath();
+    c.moveTo(lx, 0); c.lineTo(lx + 96, 0);
+    c.lineTo(lx + 260, AH); c.lineTo(lx + 58, AH);
+    c.closePath(); c.fill();
+  }
+  c.restore();
+
+  /* 远处的珊瑚碑林：被搅乱字词的石碑 */
+  for (var p = 0; p < 5; p++) {
+    var px = 150 + p * 400, ph = 160 + (p % 3) * 44;
+    c.fillStyle = 'rgba(18,64,94,.6)';
+    rr(c, px - 34, AH - 250 - ph, 68, ph + 170, 16); c.fill();
+    c.strokeStyle = 'rgba(150,225,240,.3)'; c.lineWidth = 3;
+    for (var q = 0; q < 4; q++) {
+      var ly = AH - 222 - ph + q * 30;
+      c.beginPath(); c.moveTo(px - 18, ly); c.lineTo(px + 18, ly); c.stroke();
+    }
+    c.strokeStyle = 'rgba(240,120,155,.55)'; c.lineWidth = 9; c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(px + 20, AH - 96); c.lineTo(px + 44, AH - 148); c.lineTo(px + 32, AH - 190);
+    c.moveTo(px + 44, AH - 148); c.lineTo(px + 74, AH - 172);
+    c.stroke();
+  }
+
+  /* 海底沙地 */
+  var sg = c.createLinearGradient(0, AH - 140, 0, AH);
+  sg.addColorStop(0, 'rgba(30,90,110,0)'); sg.addColorStop(1, 'rgba(20,78,96,.9)');
+  c.fillStyle = sg; c.fillRect(0, AH - 140, W, 140);
+
+  /* 摆动的海草 */
+  for (var k = 0; k < 14; k++) {
+    var sx = 40 + k * 145, sh = 58 + (k % 4) * 24;
+    var sway = Math.sin(B.boss.bob * 1.2 + k) * 14;
+    c.strokeStyle = 'rgba(64,190,150,.55)'; c.lineWidth = 8; c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(sx, AH); c.quadraticCurveTo(sx + sway, AH - sh * 0.6, sx + sway * 1.6, AH - sh);
+    c.stroke();
+  }
+
+  /* 上浮气泡 */
+  for (var b = 0; b < 26; b++) {
+    var bx = (b * 271 + 47) % W;
+    var by = AH - ((B.boss.bob * 22 + b * 53) % (AH + 60));
+    c.globalAlpha = 0.16 + 0.24 * Math.abs(Math.sin(B.boss.bob + b));
+    c.fillStyle = '#cdf4ff';
+    c.beginPath(); c.arc(bx, by, 2 + (b % 4) * 1.6, 0, 6.2832); c.fill();
+  }
+  c.globalAlpha = 1;
+}
+
 /* ---------- 背景 ---------- */
 function drawBg(c) {
+  if (isStage3()) { drawSeaBg(c); return; }
   if (isStage2()) {                            /* 第二关：白天的植物草坪 */
     var sky = c.createLinearGradient(0, 0, 0, AH);
     sky.addColorStop(0, '#9fd8f5'); sky.addColorStop(0.45, '#c8ecfb'); sky.addColorStop(1, '#e2f6fd');
@@ -1504,8 +1692,8 @@ function drawTopBar(c) {
 
   /* 陨石/巨人倒计时 */
   var ml = Math.max(0, B.meteorCd);
-  txt(c, ml < 5 ? (isStage2() ? '巨人即将来袭！' : '陨石即将来临！')
-              : (isStage2() ? '巨人倒计时 ' + secs(ml) + ' 秒' : '陨石倒计时 ' + secs(ml) + ' 秒'),
+  txt(c, ml < 5 ? (isStage3() ? '墨汁漩涡即将来袭！' : (isStage2() ? '巨人即将来袭！' : '陨石即将来临！'))
+              : (isStage3() ? '墨汁倒计时 ' : (isStage2() ? '巨人倒计时 ' : '陨石倒计时 ')) + secs(ml) + ' 秒',
       1620, 58, 18, ml < 8 ? '#ff7a6a' : '#b9aed6');
 }
 
@@ -1626,12 +1814,112 @@ function drawPlantBody(c, h, castP) {
   }
 }
 
+/* ---------- 第三关：穿潜水服的海底小队 ---------- */
+function drawSeaEmblem(c, key, x, y) {
+  c.fillStyle = '#123048';
+  if (key === 'heal') {
+    rr(c, x - 2, y - 6, 4, 12, 1); c.fill();
+    rr(c, x - 6, y - 2, 12, 4, 1); c.fill();
+  } else if (key === 'thunder') {
+    c.beginPath(); c.moveTo(x + 2, y - 7); c.lineTo(x - 5, y + 1); c.lineTo(x, y + 1);
+    c.lineTo(x - 2, y + 7); c.lineTo(x + 5, y - 2); c.lineTo(x, y - 2); c.closePath(); c.fill();
+  } else if (key === 'fire') {
+    c.beginPath(); c.moveTo(x, y - 7); c.quadraticCurveTo(x + 7, y, x, y + 7);
+    c.quadraticCurveTo(x - 7, y, x, y - 7); c.closePath(); c.fill();
+  } else {
+    c.strokeStyle = '#123048'; c.lineWidth = 2;
+    for (var i = 0; i < 3; i++) {
+      var a = i * Math.PI / 3;
+      c.beginPath(); c.moveTo(x - Math.cos(a) * 6, y - Math.sin(a) * 6);
+      c.lineTo(x + Math.cos(a) * 6, y + Math.sin(a) * 6); c.stroke();
+    }
+  }
+}
+
+function drawSeaBody(c, h, castP) {
+  var ref = h.ref;
+  /* 影子 */
+  c.fillStyle = 'rgba(0,0,0,.32)';
+  c.beginPath(); c.ellipse(0, 2, 32, 9, 0, 0, 6.2832); c.fill();
+
+  /* 背后氧气瓶 */
+  c.fillStyle = '#d9d2a8'; rr(c, -32, -92, 18, 54, 8); c.fill();
+  c.fillStyle = '#a89e70'; rr(c, -29, -97, 12, 8, 3); c.fill();
+
+  /* 脚蹼 */
+  c.fillStyle = ref.dark;
+  c.beginPath(); c.ellipse(-17, -2, 21, 7, -0.2, 0, 6.2832); c.fill();
+  c.beginPath(); c.ellipse(17, -2, 21, 7, 0.2, 0, 6.2832); c.fill();
+
+  /* 潜水服 */
+  var g = c.createLinearGradient(0, -96, 0, 0);
+  g.addColorStop(0, ref.robe); g.addColorStop(1, ref.dark);
+  c.fillStyle = g;
+  c.beginPath();
+  c.moveTo(-24, -8); c.lineTo(-20, -78);
+  c.quadraticCurveTo(0, -94, 20, -78); c.lineTo(24, -8);
+  c.quadraticCurveTo(0, -2, -24, -8); c.closePath(); c.fill();
+  c.fillStyle = '#203a52'; rr(c, -25, -46, 50, 11, 5); c.fill();
+  c.fillStyle = '#ffd970'; rr(c, -7, -47, 14, 13, 3); c.fill();
+
+  /* 胸口职业徽记 */
+  c.fillStyle = ref.orb;
+  c.beginPath(); c.arc(0, -66, 9, 0, 6.2832); c.fill();
+  drawSeaEmblem(c, h.key, 0, -66);
+
+  /* 手臂与手套 */
+  c.strokeStyle = ref.dark; c.lineWidth = 13; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-19, -74); c.lineTo(-34, -46); c.stroke();
+  c.beginPath(); c.moveTo(19, -74); c.lineTo(34, -48 - castP * 14); c.stroke();
+  c.fillStyle = '#f0d8b0';
+  c.beginPath(); c.arc(-34, -46, 9, 0, 6.2832); c.fill();
+  c.beginPath(); c.arc(34, -48 - castP * 14, 9, 0, 6.2832); c.fill();
+
+  /* 施法光球 */
+  if (castP > 0.05) {
+    var oy = -56 - castP * 14;
+    var og = c.createRadialGradient(38, oy, 2, 38, oy, 26 + castP * 18);
+    og.addColorStop(0, ref.orb); og.addColorStop(1, 'rgba(255,255,255,0)');
+    c.globalAlpha = castP; c.fillStyle = og;
+    c.beginPath(); c.arc(38, oy, 26 + castP * 18, 0, 6.2832); c.fill();
+    c.globalAlpha = 1;
+  }
+
+  /* 圆形玻璃头盔 */
+  c.fillStyle = '#1b3b58';
+  c.beginPath(); c.arc(0, -104, 31, 0, 6.2832); c.fill();
+  c.strokeStyle = '#cfd8a8'; c.lineWidth = 5;
+  c.beginPath(); c.arc(0, -104, 31, 0, 6.2832); c.stroke();
+  c.fillStyle = '#f6dfba';
+  c.beginPath(); c.arc(0, -102, 22, 0, 6.2832); c.fill();
+  c.fillStyle = '#20344a';
+  c.beginPath(); c.arc(-7, -105, 3, 0, 6.2832); c.fill();
+  c.beginPath(); c.arc(7, -105, 3, 0, 6.2832); c.fill();
+  c.strokeStyle = '#b06a52'; c.lineWidth = 2;
+  c.beginPath(); c.arc(0, -98, 6, 0.15, Math.PI - 0.15); c.stroke();
+  c.fillStyle = 'rgba(190,240,255,.28)';
+  c.beginPath(); c.ellipse(-12, -114, 9, 14, -0.5, 0, 6.2832); c.fill();
+  c.strokeStyle = 'rgba(200,245,255,.6)'; c.lineWidth = 3;
+  c.beginPath(); c.arc(0, -104, 26, Math.PI * 1.05, Math.PI * 1.55); c.stroke();
+
+  /* 氧气软管 + 上浮气泡 */
+  c.strokeStyle = '#a89e70'; c.lineWidth = 4;
+  c.beginPath(); c.moveTo(-22, -96); c.quadraticCurveTo(-34, -128, -18, -136); c.stroke();
+  for (var b = 0; b < 3; b++) {
+    var by = -140 - b * 16 - ((B.boss.bob * 12 + b * 9) % 14);
+    c.globalAlpha = 0.55 - b * 0.12; c.fillStyle = '#cdf4ff';
+    c.beginPath(); c.arc(6 + b * 5, by, 3 + b, 0, 6.2832); c.fill();
+  }
+  c.globalAlpha = 1;
+}
+
 /* ---------- 角色卡 ---------- */
 function drawMage(c, cx, footY, h, s, castP, dim) {
   var ref = h.ref;
   c.save();
   c.translate(cx, footY); c.scale(s, s);
   c.globalAlpha = dim ? 0.42 : 1;
+  if (isStage3()) { drawSeaBody(c, h, castP); c.restore(); return; }
   if (isStage2()) { drawPlantBody(c, h, castP); c.restore(); return; }
   var lean = castP * 0.16;
   c.rotate(lean);
@@ -1789,6 +2077,83 @@ function drawHeroCard(c, h) {
 }
 
 /* ---------- 第二关 Boss：僵尸博士机甲（Zombot） ---------- */
+/* ---------- 第三关 Boss：吞了碑文的巨型章鱼怪 ---------- */
+function drawOctopus(c, ph, R) {
+  var t = B.boss.bob;
+  function tentacle(i, front) {
+    var side = i < 4 ? -1 : 1;
+    var k = i % 4;
+    var baseX = side * (26 + k * 19);
+    var baseY = front ? 66 : 40 + k * 5;
+    var reach = (front ? 92 : 132) + k * 24;
+    var sway = Math.sin(t * 1.5 + i * 0.85) * (front ? 18 : 26);
+    var tipX = baseX + side * reach + sway;
+    var tipY = baseY + (front ? 74 : 104) + Math.cos(t * 1.3 + i) * 16;
+    var midX = baseX + side * reach * 0.52 + sway * 0.5;
+    var midY = baseY + 20 - k * 5;
+    c.strokeStyle = front ? ph.body : ph.dark;
+    c.lineWidth = (front ? 19 : 17) - k * 1.5;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(baseX, baseY);
+    c.quadraticCurveTo(midX, midY, tipX, tipY);
+    c.stroke();
+    /* 吸盘 */
+    c.fillStyle = front ? ph.horn : 'rgba(255,220,190,.45)';
+    for (var s = 1; s <= 4; s++) {
+      var u = s / 5, iu = 1 - u;
+      var qx = iu * iu * baseX + 2 * iu * u * midX + u * u * tipX;
+      var qy = iu * iu * baseY + 2 * iu * u * midY + u * u * tipY;
+      c.beginPath(); c.arc(qx, qy + 8, 4.6 - s * 0.45, 0, 6.2832); c.fill();
+    }
+  }
+
+  /* 身后触手 */
+  for (var i = 0; i < 8; i++) tentacle(i, false);
+
+  /* 外套膜（大头） */
+  var bg = c.createRadialGradient(-34, -70, 16, 0, -30, R + 34);
+  bg.addColorStop(0, ph.body); bg.addColorStop(1, ph.dark);
+  c.fillStyle = bg;
+  c.beginPath(); c.ellipse(0, -26, R * 0.82, R * 0.96, 0, 0, 6.2832); c.fill();
+  /* 斑纹 */
+  c.fillStyle = 'rgba(255,255,255,.11)';
+  for (var m = 0; m < 6; m++) {
+    var mx = -70 + (m % 3) * 62, my = -94 + Math.floor(m / 3) * 42;
+    c.beginPath(); c.ellipse(mx, my, 15, 9, 0.4, 0, 6.2832); c.fill();
+  }
+  /* 阶段墨囊：越后期越多 */
+  if (ph.spikes >= 1) {
+    c.fillStyle = ph.horn;
+    for (var sp = 0; sp <= ph.spikes; sp++) {
+      var ang = -Math.PI / 2 + (sp - ph.spikes / 2) * 0.5;
+      var hx = Math.cos(ang) * 68, hy = -112 + Math.sin(ang) * 16;
+      c.beginPath(); c.ellipse(hx, hy, 12, 20, ang + Math.PI / 2, 0, 6.2832); c.fill();
+    }
+  }
+  /* 大眼睛 */
+  c.fillStyle = '#fff8e0';
+  c.beginPath(); c.ellipse(-40, -46, 27, 31, 0, 0, 6.2832); c.fill();
+  c.beginPath(); c.ellipse(40, -46, 27, 31, 0, 0, 6.2832); c.fill();
+  c.fillStyle = ph.eye;
+  c.beginPath(); c.ellipse(-40, -46, 21, 24, 0, 0, 6.2832); c.fill();
+  c.beginPath(); c.ellipse(40, -46, 21, 24, 0, 0, 6.2832); c.fill();
+  c.fillStyle = '#20142e';
+  c.beginPath(); c.ellipse(-38, -44, 10, 17, 0, 0, 6.2832); c.fill();
+  c.beginPath(); c.ellipse(42, -44, 10, 17, 0, 0, 6.2832); c.fill();
+  c.fillStyle = '#fff';
+  c.beginPath(); c.arc(-43, -53, 5, 0, 6.2832); c.fill();
+  c.beginPath(); c.arc(37, -53, 5, 0, 6.2832); c.fill();
+  /* 喙 */
+  c.fillStyle = '#2a1a3a';
+  c.beginPath(); c.moveTo(-15, 16); c.lineTo(15, 16); c.lineTo(0, 38); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(255,220,180,.5)'; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(-15, 16); c.lineTo(15, 16); c.stroke();
+
+  /* 身前触手（不挡眼睛） */
+  for (var j = 0; j < 4; j++) tentacle(j * 2 + (j % 2), true);
+}
+
 function drawZombot(c, ph, R) {
   /* 履带底座 */
   c.fillStyle = '#2e2a3a';
@@ -1898,6 +2263,7 @@ function drawBoss(c) {
 
   var R = 130;
   if (isStage2()) { drawZombot(c, ph, R); }
+  else if (isStage3()) { drawOctopus(c, ph, R); }
   else {
   /* 身体 */
   var bg = c.createRadialGradient(-30, -40, 20, 0, 0, R + 40);
@@ -1994,6 +2360,8 @@ function drawBoss(c) {
   if (isStage2() && B.rageLvl > 0) st.push('💢怒气x' + B.rageLvl + ' 攻击+' + Math.round((B.dmgMul - 1) * 100) + '%');
   if (isStage2() && B.slowT > 0) st.push('❄减速中 ' + Math.ceil(B.slowT) + 's');
   if (isStage2() && B.boss.stun > 0) st.push('⚡麻痹 ' + Math.ceil(B.boss.stun) + 's');
+  if (isStage3() && B.tide > 0) st.push('🌊潮汐印记 x' + B.tide + ' 伤害+' + (B.tide * 12) + '%');
+  if (isStage3() && B.boss.stun > 0) st.push('🫧气泡禁锢 ' + Math.ceil(B.boss.stun) + 's');
   if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, (dc > 0 || (isStage2() && B.rageLvl > 0)) ? '#ffb27a' : '#ffe08a', 'center');
 }
 
@@ -2067,9 +2435,9 @@ function drawFx(c) {
     } else if (f.type === 'bossatk') {
       var bx2 = lerp(f.from.x, f.to.x, p), by2 = lerp(f.from.y, f.to.y, p);
       c.globalAlpha = 1;
-      c.fillStyle = isStage2() ? '#7fae2a' : '#8a2be2';   /* 第二关：僵尸毒球 */
+      c.fillStyle = isStage3() ? '#3b2a7a' : (isStage2() ? '#7fae2a' : '#8a2be2');   /* 第三关：墨汁弹 */
       c.beginPath(); c.arc(bx2, by2, 26, 0, 6.2832); c.fill();
-      c.fillStyle = isStage2() ? 'rgba(140,190,60,.5)' : 'rgba(180,90,255,.5)';
+      c.fillStyle = isStage3() ? 'rgba(70,50,140,.65)' : (isStage2() ? 'rgba(140,190,60,.5)' : 'rgba(180,90,255,.5)');
       for (var m2 = 1; m2 <= 4; m2++) {
         var q3 = Math.max(0, p - m2 * 0.06);
         c.beginPath(); c.arc(lerp(f.from.x, f.to.x, q3), lerp(f.from.y, f.to.y, q3), 26 - m2 * 4, 0, 6.2832); c.fill();
@@ -2171,7 +2539,7 @@ function drawFx(c) {
       c.strokeStyle = '#ff5a4a'; c.lineWidth = 8;
       rr(c, -330, -62, 660, 124, 18); c.stroke();
       c.fillStyle = 'rgba(40,8,8,.85)'; rr(c, -330, -62, 660, 124, 18); c.fill();
-      txt(c, isStage2() ? '巨 人 来 袭 ！' : '陨 石 来 袭 ！', 0, 0, 68, '#ffd45e', 'center');
+      txt(c, isStage3() ? '墨 汁 来 袭 ！' : (isStage2() ? '巨 人 来 袭 ！' : '陨 石 来 袭 ！'), 0, 0, 68, '#ffd45e', 'center');
       c.restore();
       for (var w2 = 0; w2 < 5; w2++) {   /* 下落提示 */
         var wx = 200 + w2 * 340, wy = 120 + ((p * 900 + w2 * 200) % 320);
@@ -2280,10 +2648,10 @@ var STAGES = [
     outro: '第一片星核碎片归位！星图亮起一块，指向一片长满杂草的草坪……那里有个开机甲的博士。' },
   { id: 2, name: '第二关 · 植物守卫战',     desc: '安全知识 · 僵尸博士开机甲来袭', subj: 'safe',    done: true,  hpMul: 1.25, atkMul: 1.2,
     intro: '星核把四个人变成了植物 —— 种好坚果墙，连喷豌豆，拆掉博士的机甲！',
-    outro: '又一片星核碎片归位！星图更亮了，下一块坐标还在解析：珊瑚碑林的字词声从远处传来……新世界正在制作中，敬请期待。' },
-  { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 敬请期待',           subj: 'chinese', done: false, hpMul: 1.5,  atkMul: 1.35,
-    intro: '海底碑文被搅乱了字词 —— 破译鲸歌密码，找回下一片星核碎片！',
-    outro: '碎片归位，星图指向星河之上：最后一道星门，要用英语单词才打得开。' },
+    outro: '又一片星核碎片归位！星图指向深海：珊瑚碑林的字词被一只章鱼怪搅乱了……穿上潜水服，下潜！' },
+  { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 章鱼怪守着珊瑚碑林', subj: 'chinese', done: true,  hpMul: 1.5,  atkMul: 1.35,
+    intro: '海底碑文被章鱼怪搅乱了字词 —— 答对语文题，破译鲸歌密码！',
+    outro: '章鱼怪吐出了第三片星核碎片！星图指向星河之上：最后一道星门，要用英语单词才打得开。' },
   { id: 4, name: '第四关 · 太空漫游',       desc: '英语单词 · 敬请期待',           subj: 'english', done: false, hpMul: 1.75, atkMul: 1.5,
     intro: '英语星河的星门就在这里 —— 读对单词，把碎片追回来！',
     outro: '又一片碎片归位，星图更亮了 —— 新的坐标正在浮现，旅程还长着呢。' }
@@ -2292,6 +2660,7 @@ function stageOf(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id 
 function stageHpMul() { return stageOf(CFG.stage).hpMul || 1; }
 function stageAtkMul() { return stageOf(CFG.stage).atkMul || 1; }
 function stageLocked(id) {
+  if (CFG.offStages && CFG.offStages.indexOf(id) >= 0) return true;  /* 老师关掉了这一关 */
   if (!stageOf(id).done) return true;   /* 未做好的关卡：始终锁定，「全部解锁」也进不去 */
   if (CFG.allUnlock) return false;      /* 测试开关：已做好的关卡全部解锁 */
   return id > loadProg().unlocked;
@@ -2324,7 +2693,7 @@ function growPct() { return Math.min(20, loadProg().wins * 2); }
 function growMul() { return 1 + growPct() / 100; }
 /* 我方数值统一走这三个换算（数值取整，飘字好看） */
 function heroMaxHp() { return Math.round(CFG.heroHp * growMul()); }
-function heroDmg(x) { return Math.round(x * growMul()); }
+function heroDmg(x) { return Math.round(x * growMul() * (1 + (B && B.tide ? B.tide * 0.12 : 0))); }
 function heroHeal(x) { return Math.round(x * growMul()); }
 
 
@@ -2375,8 +2744,10 @@ function mkFields(boxId, list) {
 function buildSetup() {
   /* 关卡选择：锁定状态按班级进度实时计算 */
   mkOpts('optStage', STAGES.map(function (s) {
-    return { id: s.id, name: s.name, desc: s.desc, locked: stageLocked(s.id) };
+    var closed = CFG.offStages.indexOf(s.id) >= 0;
+    return { id: s.id, name: s.name, desc: closed ? '敬请期待 · 老师已关闭' : s.desc, locked: stageLocked(s.id) };
   }), CFG.stage, function (id) { pickStage(id); });
+  buildStageOnOpts();
   /* 开始按钮状态：魔力不足 或 选中关卡锁定 → 置灰 */
   updateStartBtn();
   mkOpts('optSubj', SUBJECTS, CFG.subject, function (id) { CFG.subject = id; });
@@ -2403,6 +2774,28 @@ function buildUnlockOpts() {
                                       : '已恢复按班级通关进度解锁'));
   });
 }
+/* 老师后台：逐个开关关卡（关掉的关卡首页显示「敬请期待」） */
+function buildStageOnOpts() {
+  var box = document.getElementById('optStageOn');
+  if (!box) return;
+  box.innerHTML = '';
+  STAGES.filter(function (s) { return s.done; }).forEach(function (s) {
+    var off = CFG.offStages.indexOf(s.id) >= 0;
+    var b = document.createElement('button');
+    b.className = 'opt' + (off ? '' : ' on');
+    b.innerHTML = s.name.split(' · ')[0] + '<span class="small">' + (off ? '已关闭 · 敬请期待' : '开放中 · 可进入') + '</span>';
+    b.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      var i = CFG.offStages.indexOf(s.id);
+      if (i >= 0) CFG.offStages.splice(i, 1); else CFG.offStages.push(s.id);
+      saveCfg();
+      sfx('click');
+      buildSetup();
+      toast(s.name.split(' · ')[0] + (i >= 0 ? ' 已重新开放' : ' 已关闭，首页将显示「敬请期待」'));
+    });
+    box.appendChild(b);
+  });
+}
 function pickStage(id) {
   CFG.stage = id;
   CFG.subject = stageOf(id).subj;     /* 每关默认绑定学科，老师可在设置页改 */
@@ -2421,9 +2814,11 @@ function applyStageText() {
   if (sl) sl.textContent = '◆ ' + st.intro;
   if (h1) h1.textContent = '团队合作知识闯关 · ' + st.name.split(' · ')[0];
   if (sub) {
-    sub.innerHTML = isStage2()
+    sub.innerHTML = isStage3()
+      ? '四名潜水员穿上潜水服下潜珊瑚碑林，答对语文题就能<b>叠潮汐印记</b>：每层让我方伤害 <b>+12%</b>，满 3 层触发<b>鲸歌共鸣</b>额外一击并给全队回血。技能全换过了：珊瑚<b>全队回血</b>、电鳗<b>两连击</b>、灯笼<b>一次叠两层</b>、冰豚<b>气泡禁锢</b>让章鱼怪停手 3.5 秒。章鱼怪血量为第一关 <b>1.5 倍</b>、攻击 <b>1.35 倍</b>。'
+      : (isStage2()
       ? '四株植物各答各的题，答对就朝<b>僵尸博士机甲</b>连喷弹幕：雷芦苇<b>三道电弧</b>连击（末道麻痹机甲）、小火炬连喷<b>火焰豌豆</b>点燃机甲、冰豌豆连喷<b>寒冰豌豆</b>让机甲减速（免疫期也有效）、阳光花治疗队友，全员满血时改种<b>坚果墙</b>挡大招——但巨人的铁桩一击就能砸碎！机甲每 20 秒变怒一次，攻击越来越疼，别拖太久。本关机甲血量为第一关的 <b>1.25 倍</b>、攻击 <b>1.2 倍</b>，试班级成长来硬碰硬吧！'
-      : '四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。题目和难度由老师在设置页统一调整。';
+      : '四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。题目和难度由老师在设置页统一调整。');
   }
 }
 /* 班级成长条：通关次数 → 攻/血/疗加成，显示在设置页 */
@@ -2594,7 +2989,7 @@ function updateStartBtn() {
   bs.disabled = lack || lock;
   bs.classList.toggle('off', lack || lock);
   bs.textContent = lack ? '魔 力 不 足'
-    : (lock ? (stageOf(CFG.stage).done ? '关 卡 未 解 锁' : '关 卡 制 作 中 · 敬请期待')
+    : (lock ? ((CFG.offStages && CFG.offStages.indexOf(CFG.stage) >= 0) ? '敬 请 期 待' : (stageOf(CFG.stage).done ? '关 卡 未 解 锁' : '关 卡 制 作 中 · 敬请期待'))
             : '开 始 战 斗');
 }
 function syncEnergyUI() {
@@ -2824,7 +3219,8 @@ function startBattle() {
   readCfg();
   if (stageLocked(CFG.stage)) {              /* 保险：锁定关卡不允许开战 */
     toast(stageOf(CFG.stage).done
-      ? '这一关还没解锁 —— 先通前面的关，或让老师在设置里开启「全部解锁」'
+      ? (CFG.offStages && CFG.offStages.indexOf(CFG.stage) >= 0 ? '老师暂时关闭了这一关，敬请期待！'
+          : '这一关还没解锁 —— 先通前面的关，或让老师在设置里开启「全部解锁」')
       : '这一关还在制作中，敬请期待！');
     sfx('wrong');
     return;
