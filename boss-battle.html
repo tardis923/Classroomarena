@@ -3195,6 +3195,19 @@ function mkFields(boxId, list) {
   });
 }
 function buildSetup() {
+  /* 老师若把「当前选中的关卡」关掉了（或配置里带来了这种状态），
+     自动落到第一个仍可进入的关卡，免得学生进来卡在灰色的「敬请期待」按钮上。
+     若所有关卡都被关闭，则保持原样。 */
+  if (stageLocked(CFG.stage)) {
+    for (var ai = 0; ai < STAGES.length; ai++) {
+      if (STAGES[ai].done && !stageLocked(STAGES[ai].id)) {
+        CFG.stage = STAGES[ai].id;
+        CFG.subject = STAGES[ai].subj;
+        saveCfg();
+        break;
+      }
+    }
+  }
   /* 关卡选择：锁定状态按班级进度实时计算 */
   mkOpts('optStage', STAGES.map(function (s) {
     var closed = CFG.offStages.indexOf(s.id) >= 0;
