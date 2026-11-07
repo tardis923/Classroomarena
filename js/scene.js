@@ -1099,14 +1099,18 @@ var Scene = (function () {
     var wy = y0 + 104;                    // 657 前后轮轴
     var rx = -108, fx = 108;              // 后轮 / 前轮
     var bx = 0, by = y0 + 88;             // 中轴（脚踏轴）
+    var seatY = y0 - 46;                  // 507 座垫
+    var headY = y0 - 32;                  // 521 车头管
     var a = ch.pedal;
     var boost = ch.pedalBoost || 0;
     var bob = Math.sin(a * 2) * 2;
     var p1 = { x: bx + Math.cos(a) * 32, y: by + Math.sin(a) * 32 };
     var p2 = { x: bx - Math.cos(a) * 32, y: by - Math.sin(a) * 32 };
-    var hip = { x: -30, y: y0 - 20 };     // 533
-    var shoulder = { x: 30, y: y0 - 168 };// 385
-    var hand = { x: fx + 10, y: y0 - 46 };// 507
+    /* 卡通向比例：头 32、躯干约 85、腿约 140；圆润躯干，不做成斜棍 */
+    var hip = { x: -34, y: y0 - 53 };     // 500（坐在座垫上）
+    var shoulder = { x: 28, y: y0 - 138 };// 415
+    var hand = { x: fx + 4, y: y0 - 83 }; // 470
+    var HEAD_R = 32;
 
     c.save();
     c.translate(0, bob);
@@ -1136,11 +1140,11 @@ var Scene = (function () {
     }
 
     /* 车架 */
-    c.strokeStyle = '#8a6ad8'; c.lineWidth = 11; c.lineJoin = 'round'; c.lineCap = 'round';
+    c.strokeStyle = '#4a3a8a'; c.lineWidth = 11; c.lineJoin = 'round'; c.lineCap = 'round';
     c.beginPath();
-    c.moveTo(rx, wy); c.lineTo(hip.x, y0); c.lineTo(bx, by); c.lineTo(rx, wy);
-    c.moveTo(hip.x, y0); c.lineTo(fx - 20, y0 + 24); c.lineTo(bx, by);
-    c.moveTo(fx - 20, y0 + 24); c.lineTo(fx, wy);
+    c.moveTo(rx, wy); c.lineTo(hip.x, seatY); c.lineTo(bx, by); c.lineTo(rx, wy);
+    c.moveTo(hip.x, seatY); c.lineTo(fx - 20, headY); c.lineTo(bx, by);
+    c.moveTo(fx - 20, headY); c.lineTo(fx, wy);
     c.stroke();
     /* 后驱链条：中轴齿轮 → 后轮飞轮（所以只有后轮转） */
     c.strokeStyle = 'rgba(255,225,150,.6)'; c.lineWidth = 4;
@@ -1149,10 +1153,10 @@ var Scene = (function () {
     c.moveTo(bx + 12, by + 12); c.lineTo(rx + 10, wy + 10);
     c.stroke();
     c.fillStyle = '#ffd970'; circle(c, rx, wy, 12); c.fill();
-    /* 座垫 + 车把 */
-    c.fillStyle = '#3a2c78'; rr(c, hip.x - 26, y0 - 10, 54, 14, 7); c.fill();
+    /* 座垫 + 车把（车头管抬起一段到手的高度） */
+    c.fillStyle = '#3a2c78'; rr(c, hip.x - 26, seatY - 10, 54, 14, 7); c.fill();
     c.strokeStyle = '#c9b6ff'; c.lineWidth = 7;
-    c.beginPath(); c.moveTo(fx - 20, y0 + 24); c.lineTo(fx - 12, hand.y); c.lineTo(hand.x + 4, hand.y); c.stroke();
+    c.beginPath(); c.moveTo(fx - 20, headY); c.lineTo(fx - 12, hand.y); c.lineTo(hand.x + 4, hand.y); c.stroke();
 
     /* 发电机：答对时亮一下，星尘从这里导出 */
     c.fillStyle = '#2b205f'; rr(c, rx - 58, y0 + 62, 52, 36, 8); c.fill();
@@ -1167,35 +1171,64 @@ var Scene = (function () {
     c.beginPath(); c.moveTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.stroke();
     c.fillStyle = '#ffe6a6'; circle(c, bx, by, 9); c.fill();
 
-    /* 两条侧视的腿：远腿深色先画，近腿主色后画 */
-    function leg(p, col) {
-      var knee = { x: (hip.x + p.x) / 2 + 34, y: (hip.y + p.y) / 2 - 12 };
-      c.strokeStyle = col; c.lineWidth = 20; c.lineCap = 'round'; c.lineJoin = 'round';
-      c.beginPath(); c.moveTo(hip.x, hip.y); c.lineTo(knee.x, knee.y); c.lineTo(p.x, p.y); c.stroke();
-      c.fillStyle = '#2b205f'; rr(c, p.x - 15, p.y - 8, 32, 15, 6); c.fill();
+    /* 两条腿：膝盖抬高、明显弯曲，像真的在蹬圈 */
+    function leg(p, col, shoe) {
+      var knee = { x: (hip.x + p.x) / 2 + 46, y: (hip.y + p.y) / 2 - 26 };
+      c.strokeStyle = col; c.lineCap = 'round'; c.lineJoin = 'round';
+      c.lineWidth = 24;
+      c.beginPath(); c.moveTo(hip.x, hip.y); c.lineTo(knee.x, knee.y); c.stroke();
+      c.lineWidth = 17;
+      c.beginPath(); c.moveTo(knee.x, knee.y); c.lineTo(p.x, p.y); c.stroke();
+      c.fillStyle = shoe; rr(c, p.x - 16, p.y - 9, 34, 16, 7); c.fill();
     }
-    leg(p2, sk.dark);
-    leg(p1, sk.main);
+    leg(p2, sk.dark, '#241a52');
+    leg(p1, sk.main, '#3a2c78');
 
-    /* 前倾的上身 + 伸向车把的手臂 */
-    c.strokeStyle = sk.main; c.lineWidth = 46; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(hip.x, hip.y); c.lineTo(shoulder.x, shoulder.y); c.stroke();
-    c.strokeStyle = sk.dark; c.lineWidth = 18;
-    c.beginPath(); c.moveTo(shoulder.x, shoulder.y);
-    c.lineTo(shoulder.x + 34, shoulder.y + 62); c.lineTo(hand.x, hand.y); c.stroke();
-    c.fillStyle = '#ffd9a8'; circle(c, hand.x, hand.y, 12); c.fill();
+    /* 圆润的髋部（替代方块短裤） */
+    c.fillStyle = sk.dark;
+    c.beginPath(); c.ellipse(hip.x, hip.y, 27, 17, -0.35, 0, Math.PI * 2); c.fill();
 
-    /* 侧脸：朝右，戴同色帽子，闭嘴微笑 */
-    var hx = 48, hy = y0 - 224;           // 329
-    c.save(); c.translate(hx, hy); c.rotate(ch.headRot || 0);
-    c.fillStyle = '#f5d9b0'; circle(c, 0, 0, 34); c.fill();
-    c.beginPath(); c.moveTo(28, -3); c.lineTo(43, 5); c.lineTo(28, 11); c.closePath(); c.fill();
+    /* 远手臂（身后，深色细一些） */
+    c.strokeStyle = sk.dark; c.lineWidth = 14; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(shoulder.x - 6, shoulder.y + 6);
+    c.lineTo(72, 436); c.lineTo(hand.x - 6, hand.y + 4); c.stroke();
+
+    /* 短脖子（头与肩贴近） */
+    c.strokeStyle = '#f5d9b0'; c.lineWidth = 18;
+    c.beginPath(); c.moveTo(48, 406); c.lineTo(shoulder.x, shoulder.y); c.stroke();
+
+    /* 圆润躯干：沿前倾方向旋转的胶囊体，肩宽腰窄，不再是斜棍 */
+    var bodyAng = Math.atan2(hip.y - shoulder.y, hip.x - shoulder.x);
+    c.save();
+    c.translate((shoulder.x + hip.x) / 2, (shoulder.y + hip.y) / 2);
+    c.rotate(bodyAng);
     c.fillStyle = sk.main;
-    c.beginPath(); c.arc(0, 0, 34, Math.PI, Math.PI * 2); c.closePath(); c.fill();
-    c.fillRect(8, -8, 38, 8);             // 帽檐朝前
-    c.fillStyle = '#2a1030'; circle(c, 16, -2, 4); c.fill();
+    c.beginPath(); c.ellipse(0, 0, 56, 25, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = sk.dark; c.lineWidth = 3; c.stroke();
+    c.strokeStyle = sk.light; c.lineWidth = 6; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(-24, -10); c.lineTo(30, -10); c.stroke();
+    c.restore();
+
+    /* 近手臂 + 两只手搭在车把上 */
+    c.strokeStyle = sk.main; c.lineWidth = 16; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(shoulder.x + 6, shoulder.y + 2);
+    c.lineTo(78, 428); c.lineTo(hand.x + 4, hand.y); c.stroke();
+    c.fillStyle = '#ffd9a8';
+    circle(c, hand.x - 6, hand.y + 4, 9); c.fill();
+    circle(c, hand.x + 4, hand.y, 10); c.fill();
+
+    /* 侧脸：头略大一点更卡通，戴同色帽子，闭嘴微笑 */
+    var hx = 54, hy = y0 - 173;           // 380
+    c.save(); c.translate(hx, hy); c.rotate(ch.headRot || 0);
+    c.fillStyle = '#f5d9b0'; circle(c, 0, 0, HEAD_R); c.fill();
+    c.beginPath(); c.moveTo(26, -2); c.lineTo(41, 5); c.lineTo(26, 11); c.closePath(); c.fill();
+    c.fillStyle = '#e8c398'; circle(c, -16, 4, 6); c.fill();
+    c.fillStyle = sk.main;
+    c.beginPath(); c.arc(0, 0, HEAD_R, Math.PI, Math.PI * 2); c.closePath(); c.fill();
+    c.fillRect(4, -8, 40, 9);
+    c.fillStyle = '#2a1030'; circle(c, 16, 0, 4); c.fill();
     c.strokeStyle = '#8a4a2a'; c.lineWidth = 3; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(19, 14); c.quadraticCurveTo(25, 18, 31, 13); c.stroke();
+    c.beginPath(); c.moveTo(17, 14); c.quadraticCurveTo(24, 19, 31, 13); c.stroke();
     c.restore();
 
     c.restore();
