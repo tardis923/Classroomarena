@@ -729,7 +729,7 @@
 
   /* ============ 团队闯关胜利：黑屏庆祝 + 一键进进阶版 ============ */
   function teamWinScreen() {
-    if (state === 'over' || state === 'timeout') return;   // 已结算过（比如提前结算）就不再重复加星尘
+    if (state === 'over' || state === 'timeout') return;   // 已结算过就不再重复加星尘
     state = 'over';
     Sound.win();
 
@@ -947,7 +947,7 @@
     }
     /* ---- 星尘结算 ----
        ① 热身赛通关（60 秒内星门充能到 100%）固定奖励 30 点星尘
-       ② 失败（提前结算 / 超时）不产星尘
+       ② 失败（超时）不产星尘
        ③ 本局结束后仍不满 30 点 → 清零，换下一批学生从 0 开始攒               */
     var totalRight = 0;
     for (var k = 0; k < players.length; k++) totalRight += (players[k].eaten || 0);
@@ -1011,10 +1011,6 @@
       e.preventDefault();
       if (state === 'play') { state = 'pause'; $('btnPause').textContent = '▶'; }
       else if (state === 'pause') { state = 'play'; $('btnPause').textContent = '⏸'; }
-    });
-    bindTap($('btnFinish'), function (e) {
-      e.preventDefault();
-      if (state === 'play' || state === 'pause') endGame();
     });
     bindTap($('btnHome'), function (e) {
       e.preventDefault();
