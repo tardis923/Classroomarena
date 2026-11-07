@@ -54,7 +54,7 @@
   var teamDone = 0, teamLevel = 1, teamWon = false, teamBusy = false;
   function teamNeed() { return cfg.buns * 4; }
   function teamInfoText() {
-    return '星门充能 ' + Math.round(Math.min(1, teamDone / teamNeed()) * 100) + '% · 还差 ' + Math.max(0, teamNeed() - teamDone) + ' 题';
+    return '还差 ' + Math.max(0, teamNeed() - teamDone) + ' 题点亮星门';
   }
   /* 赛道竞速：是否已有人冲线 */
   var raceFirst = false;
@@ -96,7 +96,7 @@
   };
   /* 副标题按主题自动生成，同样不含学科词 */
   var SUBS = {
-    team: function (r) { return r + '齐心答题：答对凝聚星尘，光束汇入中央星门 —— 四人共 60 题点亮星门，攒够星尘出发追光！'; }
+    team: function (r) { return r + '原地骑发电单车：答对就猛蹬一脚，星尘汇入中央星门 —— 充能一直在进行，答错会漏能哦！四人共 60 题点亮星门。'; }
   };
 
   /* 刷新设置页标题与副标题 */
@@ -585,21 +585,21 @@
       return;
     }
 
-    /* ---- 答错：亮出正确选项，1 秒后换题 ---- */
+    /* ---- 答错：只标红选错的那个选项，不揭示正确答案，1 秒后换题 ---- */
     Sound.bad();
     p.wrong++;
     p.combo = 0;
-    p.busy = true;                       // 亮答案期间不收二次点击
+    p.busy = true;                       // 换题前不收二次点击
     var col = $('pcol' + i);
     if (col) {
       var btns = col.querySelectorAll('.popt');
       for (var k = 0; k < btns.length; k++) {
         var v = +btns[k].getAttribute('data-o');
-        if (v === p.q.ans) btns[k].classList.add('showAns');
-        else if (v === c) btns[k].classList.add('badSel');
+        if (v === c) btns[k].classList.add('badSel');
       }
     }
     Scene.char(i).wrong();
+    Scene.chargeLeak();
     updateProgress(i);
     setTimeout(function () { if (players[i]) newQuestion(i); }, 950);
   }
@@ -669,6 +669,7 @@
     el2.textContent = p.q.ans;          // 亮出正确答案，学生马上知道错在哪
 
     if (cfg.mode === 'race') Scene.stumble(i); else Scene.char(i).wrong();
+    Scene.chargeLeak();                  // 答错 → 星门缓慢漏能
 
     // 换一题（食物/进度不丢，只是浪费了时间）
     p.input = '';

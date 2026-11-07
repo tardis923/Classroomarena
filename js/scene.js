@@ -38,7 +38,10 @@ var Scene = (function () {
   /* 团队闯关：大魔王 */
   var team = {
     level: 1, hp: 1, info: '', boss: null,
-    flash: 0, shake: 0, dying: -1, enter: 1, projs: []
+    flash: 0, shake: 0, dying: -1, enter: 1, projs: [],
+    chargeDisp: 0,      /* 星门当前显示充能（连续平滑，答错会缓慢回落） */
+    chargeTarget: 0,    /* 目标充能：由答对题数决定 */
+    leakT: 0            /* 答错后的漏能剩余秒数 */
   };
   var BOSSES = [
     { name: '星门 · 待点亮', col: '#7a5ad8', dark: '#40308c', light: '#c5b0ff' }
@@ -47,6 +50,7 @@ var Scene = (function () {
     team.boss = BOSSES[(lv - 1) % BOSSES.length];
     team.hp = 1; team.flash = 0; team.shake = 0;
     team.dying = -1; team.enter = 0; team.projs = [];
+    team.chargeDisp = 0; team.chargeTarget = 0; team.leakT = 0;
   }
 
   /* ---------------- 小工具 ---------------- */
@@ -106,6 +110,8 @@ var Scene = (function () {
   };
 
   function theme() { return THEMES[themeId] || THEMES.forest; }
+  /* 星门充能不是吃东西：角色全程保持闭嘴（不播张嘴/咀嚼动画） */
+  function starMode() { return themeId === 'star' && mode === 'team'; }
 
   /* ============================================================
    * 背景一：中式酒楼
@@ -521,6 +527,7 @@ var Scene = (function () {
     this.cheering = false; this.gulp = 0;
     this.exp = 'normal';
     this.bubble = null;
+    this.pedal = 0; this.pedalBoost = 0;   /* 原地发电单车的曲柄角度 / 冲刺加速 */
 
     /* 赛道竞速 */
     this.prog = 0; this.progFrom = 0; this.progTo = 0;
@@ -599,16 +606,17 @@ var Scene = (function () {
 
   Character.prototype.teamScore = function (n) { this.plate = n; };
 
-  /* 把手里的食物当“炮弹”扔向大魔王 */
+  /* 答对：把一束星尘送进中央星门。星门主题下由发电单车导出，不是手里扔食物 */
   Character.prototype.throwFood = function () {
     var hp = this.holdPt();
-    var sx = this.cx + hp.x * this.scale;
-    var sy = TABLE_Y + (hp.y - TABLE_Y) * this.scale;
+    var sx = starMode() ? this.cx + 96 : this.cx + hp.x * this.scale;
+    var sy = starMode() ? TABLE_Y + 52 : TABLE_Y + (hp.y - TABLE_Y) * this.scale;
     team.projs.push({
       x0: sx, y0: sy - 14, tx: 960 + (Math.random() - 0.5) * 90, ty: 150,
       t: 0, dur: 0.52 + Math.random() * 0.06
     });
-    this.mouth = 0.5;
+    if (starMode()) this.pedalBoost = 1;         /* 答对 → 猛蹬一下 */
+    else this.mouth = 0.5;                       /* 旧主题才张嘴 */
     this.setPhase('throw', 0.5);
   };
 
@@ -701,7 +709,7 @@ var Scene = (function () {
       case 'wrong': {
         var hw = this.holdPt();
         this.headRot = Math.sin(u * Math.PI * 6) * 0.16;
-        this.mouth = 0.55;
+        this.mouth = starMode() ? 0 : 0.55;
         this.armR.x = hw.x; this.armR.y = hw.y;
         this.armL.x = -REST.dx; this.armL.y = REST.dy;
         if (u >= 1) { this.headRot = 0; this.mouth = 0; this.exp = 'normal'; this.setPhase('hold', 1); }
@@ -756,7 +764,7 @@ var Scene = (function () {
         this.armR.x = lerp(ht.x, ht.x + 74, et);
         this.armR.y = lerp(ht.y, ht.y - 118, et);
         this.armL.x = -REST.dx; this.armL.y = REST.dy;
-        this.mouth = 0.5 * (1 - u);
+        if (!starMode()) this.mouth = 0.5 * (1 - u);
         if (u >= 1) { this.mouth = 0; this.setPhase('hold', 1); }
         break;
       }
@@ -765,8 +773,8 @@ var Scene = (function () {
         this.bodyDy = Math.abs(Math.sin(T * 6)) * -26;
         this.armR.x = 120; this.armR.y = 350 + Math.sin(T * 6) * 14;
         this.armL.x = -120; this.armL.y = 350 + Math.cos(T * 6) * 14;
-        this.mouth = 0.8;
-        if (!this.bubble) this.say('吃不下了～', 3.2);
+        this.mouth = starMode() ? 0 : 0.8;
+        if (!this.bubble) this.say(starMode() ? '星门亮啦！' : '吃不下了～', 3.2);
         break;
       }
       default: {
@@ -775,6 +783,16 @@ var Scene = (function () {
         this.armL.x = -REST.dx; this.armL.y = REST.dy;
         this.mouth = 0;
       }
+    }
+
+    /* 星门主题：四人始终在原地踩发电单车，双手扶车把、全程闭嘴 */
+    if (starMode()) {
+      this.pedalBoost = Math.max(0, this.pedalBoost - dt * 0.75);
+      this.pedal += dt * (5.5 + this.pedalBoost * 13 + (team.leakT > 0 ? -1.5 : 0));
+      this.mouth = 0;
+      this.armR.x = 108; this.armR.y = TABLE_Y;    /* 双手扶住车把 */
+      this.armL.x = -108; this.armL.y = TABLE_Y;
+      this.bodyDy = Math.sin(this.pedal * 2) * 2;
     }
   };
 
@@ -836,8 +854,8 @@ var Scene = (function () {
     c.rotate(this.headRot);
     c.translate(-this.cx, -pivotY);
     c.drawImage(sk.img, b.x, b.y, b.w, b.h);
-    // 庆祝时不再叠加张嘴遮罩（贴图里本来就是笑脸）
-    if (this.mouth > 0.05 && !this.cheering) {
+    // 星门主题全程闭嘴，不叠加张嘴遮罩
+    if (!starMode() && this.mouth > 0.05 && !this.cheering) {
       var mx = b.x + b.w * (sk.mcx != null ? sk.mcx : 0.5);
       var my = b.y + b.h * (sk.mrow || 0.3), m = this.mouth;
       var f = (sk.ms || 1) * Math.max(0.6, Math.min(1.4, b.h / 320));
@@ -982,8 +1000,8 @@ var Scene = (function () {
     c.fillStyle = '#3a2410';
     c.beginPath(); c.ellipse(0, 10, 8, 6, 0, 0, Math.PI * 2); c.fill();
     this.drawMouth(c, 26);
-    // 大门牙
-    if (this.mouth > 0.12) {
+    // 大门牙（星门主题不张嘴，自然也不露牙）
+    if (!starMode() && this.mouth > 0.12) {
       c.fillStyle = '#fffdf4';
       c.fillRect(-11, 38, 9, 16);
       c.fillRect(2, 38, 9, 16);
@@ -1052,7 +1070,7 @@ var Scene = (function () {
   };
 
   Character.prototype.drawMouth = function (c, my) {
-    var m = this.mouth;
+    var m = starMode() ? 0 : this.mouth;
     if (m > 0.04) {
       c.fillStyle = '#8a2f1c';
       c.beginPath(); c.ellipse(2, my, 13 + m * 10, 4 + m * 20, 0, 0, Math.PI * 2); c.fill();
@@ -1062,11 +1080,69 @@ var Scene = (function () {
       c.strokeStyle = '#8a4a2a'; c.lineWidth = 4; c.lineCap = 'round';
       c.beginPath(); c.arc(2, my - 6, 12, Math.PI * 0.15, Math.PI * 0.85); c.stroke();
     }
-    if (this.gulp > 0 && this.gulp < 1) {
+    if (!starMode() && this.gulp > 0 && this.gulp < 1) {
       c.fillStyle = 'rgba(240,180,120,.9)';
       c.beginPath(); c.ellipse(6, 44 + this.gulp * 66, 11, 9, 0, 0, Math.PI * 2); c.fill();
     }
   };
+
+  /* ---------- 星门主题：原地发电单车 ---------- */
+  function drawBike(c, ch) {
+    var sk = ch.skin;
+    var y0 = TABLE_Y + 8;
+    var fx = -92, fy = y0 + 104, kx = 18, ky = y0 + 92;
+    c.save();
+
+    /* 飞轮 */
+    c.fillStyle = 'rgba(26,18,62,.8)'; circle(c, fx, fy, 50); c.fill();
+    c.strokeStyle = 'rgba(190,170,255,.6)'; c.lineWidth = 6;
+    circle(c, fx, fy, 50); c.stroke();
+    c.save(); c.translate(fx, fy); c.rotate(ch.pedal * 0.5);
+    c.strokeStyle = 'rgba(200,180,255,.45)'; c.lineWidth = 2;
+    for (var i = 0; i < 6; i++) {
+      c.rotate(Math.PI / 3);
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(42, 0); c.stroke();
+    }
+    c.restore();
+    c.fillStyle = '#ffd970'; circle(c, fx, fy, 8); c.fill();
+
+    /* 车架三角 + 座垫 + 车把 */
+    c.strokeStyle = '#8a6ad8'; c.lineWidth = 12; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath();
+    c.moveTo(fx, fy); c.lineTo(-12, y0 + 46); c.lineTo(kx, ky); c.lineTo(fx, fy);
+    c.moveTo(-12, y0 + 46); c.lineTo(86, y0 + 22);
+    c.moveTo(kx, ky); c.lineTo(86, y0 + 22);
+    c.stroke();
+    c.fillStyle = '#3a2c78'; rr(c, -38, y0 + 40, 54, 14, 7); c.fill();
+    c.strokeStyle = '#c9b6ff'; c.lineWidth = 8; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(0, y0 + 22); c.lineTo(0, y0 - 8); c.stroke();
+    c.beginPath(); c.moveTo(-116, y0 - 8); c.lineTo(116, y0 - 8); c.stroke();
+    c.fillStyle = '#c9b6ff';
+    circle(c, -108, y0 - 8, 9); c.fill(); circle(c, 108, y0 - 8, 9); c.fill();
+
+    /* 曲柄 + 两条一直蹬动的腿 */
+    var a = ch.pedal;
+    var p1x = kx + Math.cos(a) * 30, p1y = ky + Math.sin(a) * 30;
+    var p2x = kx - Math.cos(a) * 30, p2y = ky - Math.sin(a) * 30;
+    c.strokeStyle = sk.dark; c.lineWidth = 22; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(-28, y0 - 4); c.quadraticCurveTo(-4, y0 + 52, p1x, p1y); c.stroke();
+    c.beginPath(); c.moveTo(28, y0 - 4); c.quadraticCurveTo(4, y0 + 52, p2x, p2y); c.stroke();
+    c.fillStyle = sk.main;
+    circle(c, p1x, p1y, 13); c.fill(); circle(c, p2x, p2y, 13); c.fill();
+    c.strokeStyle = 'rgba(255,230,166,.85)'; c.lineWidth = 5;
+    c.beginPath(); c.moveTo(p1x, p1y); c.lineTo(p2x, p2y); c.stroke();
+    c.fillStyle = '#ffe6a6'; circle(c, kx, ky, 9); c.fill();
+
+    /* 发电机：答对时亮一下，星尘从这里导出 */
+    var boost = ch.pedalBoost || 0;
+    c.fillStyle = '#2b205f'; rr(c, 96, y0 + 62, 56, 40, 8); c.fill();
+    c.strokeStyle = 'rgba(190,170,255,.5)'; c.lineWidth = 2; c.stroke();
+    var g = c.createRadialGradient(124, y0 + 82, 2, 124, y0 + 82, 22 + boost * 18);
+    g.addColorStop(0, 'rgba(255,240,190,.95)'); g.addColorStop(1, 'rgba(255,200,100,0)');
+    c.fillStyle = g; circle(c, 124, y0 + 82, 22 + boost * 18); c.fill();
+    c.fillStyle = '#fff6cf'; circle(c, 124, y0 + 82, 5 + boost * 4); c.fill();
+    c.restore();
+  }
 
   /* ---------- 手臂 + 手上的食物（桌子之后绘制） ---------- */
   Character.prototype.drawFront = function (c) {
@@ -1074,6 +1150,14 @@ var Scene = (function () {
     c.save();
     c.translate(this.cx, 0);
     if (s !== 1) { c.translate(0, TABLE_Y); c.scale(s, s); c.translate(0, -TABLE_Y); }
+
+    if (starMode()) {
+      drawBike(c, this);
+      drawArm(c, -58, 396, this.armL.x, this.armL.y, 26, sk);
+      drawArm(c, 58, 396, this.armR.x, this.armR.y, -30, sk);
+      c.restore();
+      return;
+    }
 
     var flying = (this.phase === 'throw');   // 扔出去之后手里就没有食物了
 
@@ -1122,6 +1206,7 @@ var Scene = (function () {
    * 托盘上的食物堆
    * ============================================================ */
   function drawTrayAndStack(c, ch) {
+    if (starMode()) return;   /* 骑单车发电：不画托盘和食物堆，避免压在车架上 */
     var cx = ch.cx, py = 606, th = theme();
     th.drawTray(c, cx, py);
 
@@ -1306,7 +1391,7 @@ var Scene = (function () {
 
     var bx = 960, by = 186;
     var sc = backOut(clamp01(team.enter));
-    var charge = clamp01(1 - team.hp);            /* 答对越多，星门越亮 */
+    var charge = clamp01(team.chargeDisp);        /* 连续平滑的充能度 */
     if (dead) charge = 1;
     var pulse = 1 + Math.sin(T * 2.1) * 0.03;
     var flash = team.flash > 0.02;
@@ -1340,6 +1425,10 @@ var Scene = (function () {
     c.strokeStyle = flash ? '#ffffff' : '#ffd970';
     c.lineWidth = 11; c.lineCap = 'round';
     c.beginPath(); c.arc(0, 0, 100, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.001, charge)); c.stroke();
+    /* 持续踩踏的能量光点：一直沿环流动，表示充能从未停下 */
+    var sa = -Math.PI / 2 + T * 1.6;
+    c.fillStyle = 'rgba(255,245,205,.95)';
+    circle(c, Math.cos(sa) * 100, Math.sin(sa) * 100, 6); c.fill();
 
     /* 门内：随充能上升的星光液面 */
     c.save();
@@ -1381,7 +1470,10 @@ var Scene = (function () {
 
   function drawBossHp(c) {
     var x = 540, y = 8, w = 780, h = 28;
-    var charge = clamp01(1 - team.hp);
+    var charge = clamp01(team.chargeDisp);
+    var label = '星门充能 ' + Math.round(charge * 100) + '%' +
+      (team.info ? ' · ' + team.info : '') +
+      (team.leakT > 0 ? ' · 漏能中！' : '');
     c.fillStyle = 'rgba(12,8,32,.62)';
     rr(c, x - 7, y - 7, w + 14, h + 14, 15); c.fill();
     c.fillStyle = '#1d1542';
@@ -1395,9 +1487,9 @@ var Scene = (function () {
     c.font = 'bold 21px "Microsoft YaHei", sans-serif';
     c.textAlign = 'center'; c.textBaseline = 'middle';
     c.lineWidth = 4; c.strokeStyle = 'rgba(10,6,26,.9)';
-    c.strokeText(team.info, x + w / 2, y + h / 2 + 1);
-    c.fillStyle = '#fff0c8';
-    c.fillText(team.info, x + w / 2, y + h / 2 + 1);
+    c.strokeText(label, x + w / 2, y + h / 2 + 1);
+    c.fillStyle = team.leakT > 0 ? '#ffb0a2' : '#fff0c8';
+    c.fillText(label, x + w / 2, y + h / 2 + 1);
   }
 
   function updateTeam(dt) {
@@ -1405,6 +1497,19 @@ var Scene = (function () {
     if (team.shake > 0) team.shake = Math.max(0, team.shake - dt * 3.2);
     if (team.enter < 1) team.enter = Math.min(1, team.enter + dt * 2.4);
     if (team.dying >= 0) team.dying += dt;
+
+    /* 星门充能：连续平滑上涨（不是答对一题跳一格）；
+       有人答错 → 触发 3 秒缓慢漏能，之后靠持续踩踏慢慢补回目标值。 */
+    if (team.dying < 0) {
+      if (team.leakT > 0) {
+        team.leakT = Math.max(0, team.leakT - dt);
+        team.chargeDisp = Math.max(0, team.chargeDisp - dt * 0.024);
+      }
+      var k = Math.min(1, dt * (team.leakT > 0 ? 0.32 : 1.7));
+      team.chargeDisp += (team.chargeTarget - team.chargeDisp) * k;
+      if (team.chargeDisp > 1) team.chargeDisp = 1;
+      if (team.chargeDisp < 0) team.chargeDisp = 0;
+    }
 
     for (var i = team.projs.length - 1; i >= 0; i--) {
       var p = team.projs[i];
@@ -1723,8 +1828,21 @@ var Scene = (function () {
       ch.throwFood();
       var last = team.projs[team.projs.length - 1];
       if (last) { last.hp = newHp; last.info = info; }
+      team.chargeTarget = clamp01(1 - newHp);   /* 答对 → 充能目标上移，平滑涨上去 */
     },
-    bossDefeat: function () { team.dying = 0; team.hp = 0; team.flash = 1; team.shake = 1; },
+    /* 答错：星门缓慢漏能 3 秒（之后靠持续踩踏补回） */
+    chargeLeak: function () {
+      if (!starMode()) return;
+      team.leakT = 3;
+      team.flash = Math.max(team.flash, 0.35);
+    },
+    charge: function () {              /* 只读：供调试/测试看连续充能状态 */
+      return { disp: team.chargeDisp, target: team.chargeTarget, leak: team.leakT };
+    },
+    bossDefeat: function () {
+      team.dying = 0; team.hp = 0; team.flash = 1; team.shake = 1;
+      team.chargeDisp = 1; team.chargeTarget = 1; team.leakT = 0;
+    },
     banner: function (text, col) {
       floats.push({ x: 960, y: 300, text: text, col: col || '#ffe14b', t: 0, life: 1.6, big: true });
     },

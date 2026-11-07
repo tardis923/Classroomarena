@@ -2,18 +2,51 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>班级入口</title>
+<title>班级入口 · 知识星核</title>
 <!--
+  ============================================================
+  班级入口文件（每台一体机一份）
+  ------------------------------------------------------------
   用法：
-  1. 把本文件复制到每台一体机桌面（可以重命名，如「三年二班.html」）
-  2. 用记事本打开，把下面 URL 中「三年级二班」改成该机器的班级名，保存
-  3. 双击本文件即可进入游戏首页；班级名会自动写入这台机器，之后直接访问网址也有效
-  注意：本文件只是跳转用，游戏数据仍存在浏览器本机，不在这个文件里。
+  1. 把本文件复制到一体机桌面，可重命名，例如「三年二班.html」
+  2. 用记事本打开，只改下面 CLASS_NAME 引号里的班级名，保存
+  3. 双击本文件 → 自动跳到 GitHub Pages 上的游戏首页，
+     班级名写进这台机器的浏览器；之后直接访问网址也一直有效
+  注意：
+  - 只改 CLASS_NAME 一行，其他都不用动；中文不用手动转码
+  - 游戏进度 / 成长 / 星尘都存在浏览器本机，不在这个文件里
+  - 若浏览器拦截自动跳转，点页面上的按钮即可
+  ============================================================
 -->
-<meta http-equiv="refresh" content="0; url=https://tardis923.github.io/Classroomarena/?class=三年级二班">
+<style>
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #0d0a20; color: #f3eeff;
+         display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  .box { text-align: center; padding: 48px 64px; border: 1px solid rgba(190,170,255,.34);
+         border-radius: 24px; background: rgba(28,20,60,.96); }
+  h1 { font-size: 38px; font-weight: 500; letter-spacing: 6px; color: #ffe6a6; margin: 0 0 18px; }
+  p { font-size: 21px; color: #c9bfe8; line-height: 1.8; margin: 8px 0; }
+  b { color: #ffd98a; font-weight: 500; }
+  a { display: inline-block; margin-top: 18px; font-size: 21px; color: #0d0a20;
+      background: #ffd98a; padding: 12px 28px; border-radius: 12px; text-decoration: none; }
+</style>
 </head>
-<body style="font-family:'Microsoft YaHei',sans-serif;padding:40px;background:#0d0a20;color:#f3eeff">
-正在进入「知识星核 · 四界追光」…
-<p><a style="color:#ffd98a" href="https://tardis923.github.io/Classroomarena/?class=三年级二班">如果没有自动跳转，点这里</a></p>
+<body>
+<div class="box">
+  <h1>知识星核 · 四界追光</h1>
+  <p>正在带 <b id="cn">…</b> 进入游戏…</p>
+  <p>如果浏览器拦住了自动跳转，点下面的按钮</p>
+  <a id="go" href="#">手 动 进 入</a>
+</div>
+<script>
+  /* ↓↓↓ 只改这一行：把引号里换成这台一体机对应的班级名 ↓↓↓ */
+  var CLASS_NAME = '三年级二班';
+  /* ↑↑↑ 只改这一行 ↑↑↑ */
+
+  var HOME = 'https://tardis923.github.io/Classroomarena/';
+  var url = HOME + '?class=' + encodeURIComponent(CLASS_NAME);
+  document.getElementById('cn').textContent = CLASS_NAME;
+  document.getElementById('go').href = url;
+  location.replace(url);
+</script>
 </body>
 </html>
