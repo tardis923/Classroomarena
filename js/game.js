@@ -34,7 +34,7 @@
   var W = 1920, H = 1080;
 
   /* 题库洗牌（js/banks.js 约定各页面自己调）：源数据正确答案固定在 o[0]，
-     整体打散到随机位置；抽题时还会再洗一次选项顺序，双保险。 */
+     调用后打散到 A/B/C/D 随机位置。shuffleBank 自带随机数，不依赖本页面的 ri()。 */
   try { shuffleBank(CN_BANK); shuffleBank(EN_BANK); shuffleBank(SAFE_BANK); } catch (e) { }
 
   var state = 'setup';           // setup | count | play | pause | over
