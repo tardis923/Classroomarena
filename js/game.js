@@ -61,8 +61,8 @@
   var raceFirst = false;
 
   /* ---------------- 玩法已固定为「团队闯关」 ----------------
-   * 热身赛 = 关卡制的门票流水线：四人合力把星门充到 100%，通关奖 30 魔力，
-   * 失败不产魔力。吃食物 / 赛道竞速的代码保留但不进设置页。 */
+   * 热身赛 = 关卡制的门票流水线：四人合力把星门充到 100%，通关奖 30 星尘，
+   * 失败不产星尘。吃食物 / 赛道竞速的代码保留但不进设置页。 */
   var MODES = [
     { id: 'team', name: '团队闯关（推荐！）', desc: '四人合力点亮星门，攒星尘去追回散落各界的星核碎片！' }
   ];
@@ -108,9 +108,9 @@
     if (sub) sub.textContent = (SUBS[cfg.mode] || SUBS.team)(ROSTER[cfg.theme] || ROSTER.forest);
   }
 
-  /* ================= 魔力池（与 boss-battle.html 共享） =================
-     pool = 班级攒的星尘（魔力）；need = 点亮关卡星门要几张点；on = 门槛开关
-     本游戏只负责「产出魔力」，消耗由 boss-battle.html 开战时扣。      */
+  /* ================= 星尘池（与 boss-battle.html 共享） =================
+     pool = 班级攒的星尘；need = 点亮关卡星门要几张点；on = 门槛开关
+     本游戏只负责「产出星尘」，消耗由 boss-battle.html 开战时扣。      */
   var ENERGY_KEY = 'arena_energy_v1';
   function loadEnergy() {
     var d = { pool: 0, need: 30, on: 1 };
@@ -132,12 +132,12 @@
     try { window.localStorage.setItem(ENERGY_KEY, JSON.stringify(d)); return true; }
     catch (e) { return false; }
   }
-  /* 魔力点数可能是 0.5 的小数：3 显示成「3」，3.5 显示成「3.5」 */
+  /* 星尘点数可能是 0.5 的小数：3 显示成「3」，3.5 显示成「3.5」 */
   function eNum(x) {
     var v = Math.round(x * 10) / 10;
     return (v === Math.floor(v)) ? String(Math.floor(v)) : v.toFixed(1);
   }
-  /* 结算魔力：加进池子 → 团队模式且不满门槛则清零。返回最终状态 */
+  /* 结算星尘：加进池子 → 团队模式且不满门槛则清零。返回最终状态 */
   function addEnergy(gain, earned) {
     var ed = loadEnergy();
     if (gain > 0) ed.pool = Math.round((ed.pool + gain) * 10) / 10;
@@ -147,25 +147,25 @@
     return { ed: ed, poolAfter: poolAfter, cleared: cleared };
   }
 
-  /* earned: 本局是否产魔力（只有通关才产）  poolAfter: 清零前算出来的池子  cleared: 是否已清零 */
+  /* earned: 本局是否产星尘（只有通关才产）  poolAfter: 清零前算出来的池子  cleared: 是否已清零 */
   function renderEnergyResult(totalRight, gain, ed, earned, poolAfter, cleared) {
     var eb = $('energyBox');
     if (eb) {
       var html = '';
       if (!earned) {
-        html += '<div class="eGain">本局四人共答对 ' + totalRight + ' 题 · 未通关，<b>本局不产魔力</b></div>';
-        html += '<div class="ePool eTip2">热身赛<b>通关</b>（60 秒内星门充能到 100%）才能拿到 <b>30</b> 点魔力 —— 再来一局吧！</div>';
+        html += '<div class="eGain">本局四人共答对 ' + totalRight + ' 题 · 未通关，<b>本局不产星尘</b></div>';
+        html += '<div class="ePool eTip2">热身赛<b>通关</b>（60 秒内星门充能到 100%）才能拿到 <b>30</b> 点星尘 —— 再来一局吧！</div>';
       } else {
-        html += '<div class="eGain">热身赛通关！　→　获得 <b>+' + eNum(gain) + '</b> 点魔力</div>';
+        html += '<div class="eGain">热身赛通关！　→　获得 <b>+' + eNum(gain) + '</b> 点星尘</div>';
         if (!ed.on) {
-          html += '<div class="ePool">魔力门槛已由老师关闭，可随时挑战第一关</div>';
+          html += '<div class="ePool">星尘门槛已由老师关闭，可随时挑战第一关</div>';
         } else if (cleared) {
           html += '<div class="ePool">本局攒到 <b>' + eNum(poolAfter) + '</b> / ' + ed.need +
-            ' 点，<span class="eNo">没攒够 ' + ed.need + ' 点，魔力已清零</span></div>';
+            ' 点，<span class="eNo">没攒够 ' + ed.need + ' 点，星尘已清零</span></div>';
           html += '<div class="ePool" style="font-size:19px">换下一批学生上台，从 0 点重新开始攒。</div>';
         } else {
-          html += '<div class="ePool">班级魔力池：<b>' + eNum(ed.pool) + '</b> / ' + ed.need + ' 点' +
-            '<span class="eOk">魔力充足，可以去挑战第一关！</span></div>';
+          html += '<div class="ePool">班级星尘池：<b>' + eNum(ed.pool) + '</b> / ' + ed.need + ' 点' +
+            '<span class="eOk">星尘充足，可以去挑战第一关！</span></div>';
         }
       }
       eb.innerHTML = html;
@@ -174,7 +174,7 @@
     if (bb) {
       var can = !ed.on || ed.pool >= ed.need;
       if (can) { bb.classList.remove('locked'); bb.textContent = '挑 战 第 一 关 →'; }
-      else { bb.classList.add('locked'); bb.textContent = '魔 力 不 足 ' + eNum(ed.pool) + '/' + ed.need; }
+      else { bb.classList.add('locked'); bb.textContent = '星 尘 不 足 ' + eNum(ed.pool) + '/' + ed.need; }
     }
   }
 
@@ -729,7 +729,7 @@
 
   /* ============ 团队闯关胜利：黑屏庆祝 + 一键进进阶版 ============ */
   function teamWinScreen() {
-    if (state === 'over' || state === 'timeout') return;   // 已结算过（比如提前结算）就不再重复加魔力
+    if (state === 'over' || state === 'timeout') return;   // 已结算过（比如提前结算）就不再重复加星尘
     state = 'over';
     Sound.win();
 
@@ -740,7 +740,7 @@
       per.push(players[i].name + ' <b>' + (players[i].eaten || 0) + '</b>');
     }
 
-    /* 魔力结算：热身赛通关固定奖励 30 点，正好够换一张第一关门票 */
+    /* 星尘结算：热身赛通关固定奖励 30 点，正好够换一张第一关门票 */
     var gain = 30;
     var st = addEnergy(gain, true);
     var ed = st.ed;
@@ -759,12 +759,12 @@
     var ve = $('vicEnergy');
     if (ve) {
       if (!ed.on) {
-        ve.innerHTML = '通关奖励 <b>+' + eNum(gain) + '</b> 点魔力（老师已关闭魔力门槛，随时都能挑战第一关）';
+        ve.innerHTML = '通关奖励 <b>+' + eNum(gain) + '</b> 点星尘（老师已关闭星尘门槛，随时都能挑战第一关）';
       } else if (st.cleared) {
-        ve.innerHTML = '本局奖励 <b>+' + eNum(gain) + '</b> 点魔力，但还没到 <b>' + ed.need +
+        ve.innerHTML = '本局奖励 <b>+' + eNum(gain) + '</b> 点星尘，但还没到 <b>' + ed.need +
           '</b> 点门槛，<span class="vNo">已清零</span>　→　再通一次关就能解锁第一关';
       } else {
-        ve.innerHTML = '✨ 通关奖励 <b>+' + eNum(gain) + '</b> 点魔力　·　魔力池 <b>' +
+        ve.innerHTML = '✨ 通关奖励 <b>+' + eNum(gain) + '</b> 点星尘　·　星尘池 <b>' +
           eNum(ed.pool) + ' / ' + ed.need + '</b>　→　' +
           (enough ? '已攒够门票，去挑战第一关！' : '<span class="vNo">还差 ' + eNum(ed.need - ed.pool) + ' 点</span>');
       }
@@ -773,7 +773,7 @@
     var bg = $('btnVicGo');
     if (bg) {
       if (enough) { bg.classList.remove('locked'); bg.textContent = '挑 战 第 一 关 · 魔 法 师 大 战 魔 王 →'; }
-      else { bg.classList.add('locked'); bg.textContent = '魔 力 不 足 · 再 打 一 局 热 身 赛 →'; }
+      else { bg.classList.add('locked'); bg.textContent = '星 尘 不 足 · 再 打 一 局 热 身 赛 →'; }
     }
 
     var v = $('victory'); if (v) v.classList.add('show');
@@ -945,9 +945,9 @@
       else if (tied) $('resultTitle').textContent = topNames.join('、') + ' 并列第一！';
       else $('resultTitle').textContent = ranked[0].name + ' ' + verb + '！';
     }
-    /* ---- 魔力结算 ----
-       ① 热身赛通关（60 秒内星门充能到 100%）固定奖励 30 点魔力
-       ② 失败（提前结算 / 超时）不产魔力
+    /* ---- 星尘结算 ----
+       ① 热身赛通关（60 秒内星门充能到 100%）固定奖励 30 点星尘
+       ② 失败（提前结算 / 超时）不产星尘
        ③ 本局结束后仍不满 30 点 → 清零，换下一批学生从 0 开始攒               */
     var totalRight = 0;
     for (var k = 0; k < players.length; k++) totalRight += (players[k].eaten || 0);
@@ -1023,7 +1023,7 @@
     /* 星门熄灭的「重来一次」：直接刷新页面，方便下一批学生重新晨练 */
     var rt = $('btnRetry');
     if (rt) bindTap(rt, function (e) { e.preventDefault(); location.reload(); });
-    /* 胜利黑屏的按钮：魔力够 → 进进阶版；不够 → 刷新重来 */
+    /* 胜利黑屏的按钮：星尘够 → 进进阶版；不够 → 刷新重来 */
     var vg = $('btnVicGo');
     if (vg) bindTap(vg, function (e) {
       e.preventDefault();
@@ -1052,7 +1052,7 @@
       $('setup').classList.remove('hidden');
       state = 'setup';
     });
-    /* 去进阶版闯关：魔力在 boss-battle.html 开战时才扣除 */
+    /* 去进阶版闯关：星尘在 boss-battle.html 开战时才扣除 */
     bindTap($('btnBoss'), function (e) {
       e.preventDefault();
       var ed = loadEnergy();

@@ -174,7 +174,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .pwFoot { margin-top: 14px; }
 .pwFoot .pwKey { width: 100%; height: 60px; font-size: 24px; background: #4a3f74; }
 
-/* ================= 魔力条 ================= */
+/* ================= 星尘条 ================= */
 .gone { display: none !important; }
 .energyBar { background: #322650; border-radius: 14px; padding: 14px 18px; }
 .eLine { font-size: 23px; font-weight: 700; color: #fff; }
@@ -272,7 +272,7 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
       </div>
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
-        <button id="btnToArena" class="bigBtn ghost gone">先去「热身赛」通关攒魔力 →</button>
+        <button id="btnToArena" class="bigBtn ghost gone">先去「热身赛」通关攒星尘 →</button>
         <a href="index.html" style="display:block;text-align:center;margin-top:14px;color:#b9a9f0;font-size:19px;text-decoration:none">← 返回星图首页</a>
         <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。<br>
         ⏭ 每人每局最多「跳过 / 换一题」<b>6 次</b>（按钮上会显示剩余次数，用完就不能再跳了），遇到难题要努力想一想哦。<br>
@@ -314,12 +314,12 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
         </div>
 
         <div class="setRow">
-          <div class="setLabel">魔力门票（与「热身赛」联动）</div>
+          <div class="setLabel">星尘门票（与「热身赛」联动）</div>
           <div class="opts" id="optEnergy"></div>
         </div>
 
         <div class="setRow">
-          <div class="setLabel">开战消耗魔力点数（在「热身赛」通关攒：一次奖 30 点）</div>
+          <div class="setLabel">开战消耗星尘点数（在「热身赛」通关攒：一次奖 30 点）</div>
           <div class="grid4" id="fldEnergy"></div>
         </div>
 
@@ -350,7 +350,7 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
         <div class="resBtns">
           <button id="btnSaveCfg" class="bigBtn">保 存 配 置</button>
           <button id="btnResetCfg" class="bigBtn ghost">恢 复 默 认</button>
-          <button id="btnClearEnergy" class="bigBtn ghost">魔 力 清 零</button>
+          <button id="btnClearEnergy" class="bigBtn ghost">星 尘 清 零</button>
           <button id="btnCloseCfg" class="bigBtn ghost">关 闭</button>
         </div>
       </div>
@@ -471,8 +471,8 @@ var DEFAULTS = {
   bossHealPct: 8,     // 每次回复总血量的百分之几
   skipMax: 6,         // 每人每局「跳过 / 换一题」次数上限（防止遇到难题就跳）
 
-  energyOn: 1,        // 魔力门槛：1 需要门票才能开战 / 0 不需要
-  energyNeed: 30,     // 开战消耗多少点班级魔力
+  energyOn: 1,        // 星尘门槛：1 需要门票才能开战 / 0 不需要
+  energyNeed: 30,     // 开战消耗多少点班级星尘
 
   allUnlock: 0,       // 测试用：1 = 解锁全部关卡（设置页可切换）
   offStages: []       // 老师关闭的关卡 id；首页显示「敬请期待」，且不能进入
@@ -544,8 +544,8 @@ function setPwd(p) {
   catch (e) { return false; }
 }
 
-/* ---------- 班级魔力池（与热身赛共享） ----------
-   学生在「热身赛」里通关一次 = 奖 30 点魔力；
+/* ---------- 班级星尘池（与热身赛共享） ----------
+   学生在「热身赛」里通关一次 = 奖 30 点星尘；
    攒够 CFG.energyNeed 点才能挑战本进阶版，开战时扣除。        */
 var ENERGY_KEY = 'arena_energy_v1';
 function loadEnergy() {
@@ -555,7 +555,7 @@ function loadEnergy() {
     if (s) {
       var o = JSON.parse(s);
       if (o && typeof o === 'object') {
-        /* pool 允许小数：历史版本按题计魔力留下的兼容 */
+        /* pool 允许小数：历史版本按题计星尘留下的兼容 */
         if (typeof o.pool === 'number' && isFinite(o.pool) && o.pool >= 0) d.pool = Math.round(o.pool * 10) / 10;
         if (typeof o.need === 'number' && isFinite(o.need) && o.need >= 1) d.need = Math.floor(o.need);
         d.on = o.on ? 1 : 0;
@@ -568,7 +568,7 @@ function saveEnergy(d) {
   try { window.localStorage.setItem(ENERGY_KEY, JSON.stringify(d)); return true; }
   catch (e) { return false; }
 }
-/* 魔力点数可能是 0.5 的小数：3 显示成「3」，3.5 显示成「3.5」 */
+/* 星尘点数可能是 0.5 的小数：3 显示成「3」，3.5 显示成「3.5」 */
 function eNum(x) {
   var v = Math.round(x * 10) / 10;
   return (v === Math.floor(v)) ? String(Math.floor(v)) : v.toFixed(1);
@@ -2722,7 +2722,7 @@ var FIELDS = {
             ['shieldAmt', '全员满血时给的护盾'], ['shieldMax', '护盾叠加上限'],
             ['wrongToHeal', '答错几题 Boss 回血'], ['bossHealPct', 'Boss 每次回血%'],
             ['skipMax', '每人跳过/换题次数上限']],
-  fldEnergy: [['energyNeed', '开战消耗魔力点数']]
+  fldEnergy: [['energyNeed', '开战消耗星尘点数']]
 };
 
 function mkOpts(boxId, list, cur, onPick) {
@@ -2762,7 +2762,7 @@ function buildSetup() {
     return { id: s.id, name: s.name, desc: closed ? '坐标解析中 · 敬请期待' : s.desc, locked: stageLocked(s.id) };
   }), CFG.stage, function (id) { pickStage(id); });
   buildStageOnOpts();
-  /* 开始按钮状态：魔力不足 或 选中关卡锁定 → 置灰 */
+  /* 开始按钮状态：星尘不足 或 选中关卡锁定 → 置灰 */
   updateStartBtn();
   mkOpts('optSubj', SUBJECTS, CFG.subject, function (id) { CFG.subject = id; });
   mkOpts('optLevel', LEVELS, CFG.level, function (id) { CFG.level = id; });
@@ -2815,7 +2815,7 @@ function pickStage(id) {
   CFG.subject = stageOf(id).subj;     /* 每关默认绑定学科，老师可在设置页改 */
   saveCfg();
   applyStageText();
-  updateStartBtn();    /* 换关后刷新开始按钮（锁定态/魔力态） */
+  updateStartBtn();    /* 换关后刷新开始按钮（锁定态/星尘态） */
   sfx('click');
   toast(stageOf(id).name + '：题目已绑定「' + SUBJ_NAMES[CFG.subject] + '」（老师可在设置页更换）');
 }
@@ -2975,36 +2975,36 @@ function resetSettings() {
   closeSettings();
 }
 
-/* ============================ 魔力门票 ============================ */
+/* ============================ 星尘门票 ============================ */
 function renderEnergy() {
   var el = document.getElementById('energyBar');
   if (!el) return;
   if (!CFG.energyOn) {
-    el.innerHTML = '<div class="eLine">魔力门票：<b>已关闭</b></div>' +
-      '<div class="eTip ok">老师已关闭魔力门槛，可以随时直接开战。</div>';
+    el.innerHTML = '<div class="eLine">星尘门票：<b>已关闭</b></div>' +
+      '<div class="eTip ok">老师已关闭星尘门槛，可以随时直接开战。</div>';
     return;
   }
   var d = loadEnergy();
   var pct = Math.min(100, d.pool / CFG.energyNeed * 100);
   var ok = d.pool >= CFG.energyNeed;
   el.innerHTML =
-    '<div class="eLine">班级魔力 <b>' + eNum(d.pool) + '</b> / ' + CFG.energyNeed + ' 点</div>' +
+    '<div class="eLine">班级星尘 <b>' + eNum(d.pool) + '</b> / ' + CFG.energyNeed + ' 点</div>' +
     '<div class="eTrack"><div class="eFill' + (ok ? ' ok' : '') + '" style="width:' + pct + '%"></div></div>' +
     '<div class="eTip' + (ok ? ' ok' : '') + '">' +
-    (ok ? '魔力充足！开战会消耗 ' + CFG.energyNeed + ' 点班级魔力（每次挑战都要付门票）。'
-        : '还差 ' + eNum(CFG.energyNeed - d.pool) + ' 点魔力才能挑战 —— 去「热身赛」通关一次就奖 <b>30</b> 点魔力。') +
+    (ok ? '星尘充足！开战会消耗 ' + CFG.energyNeed + ' 点班级星尘（每次挑战都要付门票）。'
+        : '还差 ' + eNum(CFG.energyNeed - d.pool) + ' 点星尘才能挑战 —— 去「热身赛」通关一次就奖 <b>30</b> 点星尘。') +
     '</div>';
 }
 function energyLocked() { return !!CFG.energyOn && loadEnergy().pool < CFG.energyNeed; }
-/* 开始按钮统一状态：魔力不足 或 选中关卡未解锁/未做好 → 置灰不可点 */
+/* 开始按钮统一状态：星尘不足 或 选中关卡未解锁/未做好 → 置灰不可点 */
 function updateStartBtn() {
   var bs = document.getElementById('btnStart');
   if (!bs) return;
-  var lack = energyLocked();          /* 魔力不够门票 */
+  var lack = energyLocked();          /* 星尘不够门票 */
   var lock = stageLocked(CFG.stage);  /* 关卡还没解锁（或还没做好） */
   bs.disabled = lack || lock;
   bs.classList.toggle('off', lack || lock);
-  bs.textContent = lack ? '魔 力 不 足'
+  bs.textContent = lack ? '星 尘 不 足'
     : (lock ? ((CFG.offStages && CFG.offStages.indexOf(CFG.stage) >= 0) ? '敬 请 期 待' : (stageOf(CFG.stage).done ? '关 卡 未 解 锁' : '关 卡 制 作 中 · 敬请期待'))
             : '开 始 战 斗');
 }
@@ -3024,12 +3024,12 @@ function clearEnergy() {
   var d = loadEnergy();
   d.pool = 0; d.need = CFG.energyNeed; d.on = CFG.energyOn ? 1 : 0;
   saveEnergy(d);
-  toast('班级魔力已清零，需要重新攒');
+  toast('班级星尘已清零，需要重新攒');
   syncEnergyUI();
 }
 function buildEnergyOpts() {
   mkOpts('optEnergy', [
-    { id: 1, name: '需要门票', desc: '须先在热身赛攒够魔力' },
+    { id: 1, name: '需要门票', desc: '须先在热身赛攒够星尘' },
     { id: 0, name: '不需要', desc: '随时可以直接开战' }
   ], CFG.energyOn, function (id) { CFG.energyOn = id; });
 }
@@ -3206,7 +3206,7 @@ function showResult() {
 
 /* ============================ 关卡转场：坐飞船飞向下一界 ============================
    第二关及以后开战前播放；第一关从学院直接出发，不打断节奏。
-   点击任意处可跳过。转场结束才真正开战，所以魔力门票仍只扣一次。 */
+   点击任意处可跳过。转场结束才真正开战，所以星尘门票仍只扣一次。 */
 var warpPass = false, warpBusy = false;
 function playWarp(cb) {
   var st = stageOf(CFG.stage);
@@ -3250,10 +3250,10 @@ function startBattle() {
     }
   }
   warpPass = false;
-  if (CFG.energyOn) {                        /* 魔力门票：开战时扣除 */
+  if (CFG.energyOn) {                        /* 星尘门票：开战时扣除 */
     var d = loadEnergy();
     if (d.pool < CFG.energyNeed) {
-      toast('魔力不足：还差 ' + (CFG.energyNeed - d.pool) + ' 点，先去热身赛攒一攒');
+      toast('星尘不足：还差 ' + (CFG.energyNeed - d.pool) + ' 点，先去热身赛攒一攒');
       syncEnergyUI();
       return;
     }
@@ -3273,7 +3273,7 @@ function backToSetup() {
   document.getElementById('setup').classList.remove('hidden');
   newBattle();
   parkBattle();
-  buildSetup();                              /* 回到首页：刷新关卡/成长/魔力显示 */
+  buildSetup();                              /* 回到首页：刷新关卡/成长/星尘显示 */
   syncEnergyUI();
   syncOverlayDim();
 }
@@ -3339,7 +3339,7 @@ newBattle();
 parkBattle();                                 // 设置页期间只做画面预览
 fit();
 syncFsBtn();
-syncEnergyUI();                               // 魔力门票状态
+syncEnergyUI();                               // 星尘门票状态
 
 document.getElementById('btnStart').addEventListener('click', startBattle);
 document.getElementById('btnAgain').addEventListener('click', startBattle);

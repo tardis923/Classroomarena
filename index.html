@@ -120,7 +120,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     <h1>知 识 星 核</h1>
     <div class="tagline">四 界 追 光</div>
     <p class="prologue">学院里的星图忽然暗了。终焉知识魔君打碎星核，把碎片撒进一个个世界——<b>每片碎片都会点亮一道星门，也唤醒一名守核者</b>。<br>
-      于是四个人背上书包出发：先在学院晨练攒星尘，再沿着星门一界一界追回碎片。星核会按当地的法则给你们换身行头……别担心，还是你们四个。</p>
+      于是四个人循着星图残存的光出发：先在学院晨练攒星尘，再沿着星门一界一界追回碎片。星核会按当地的法则给你们换身行头……别担心，还是你们四个。</p>
     <div class="menu">
       <button class="mbtn primary" id="btnWarmup"><div><span class="mt">学院晨练 · 热身赛</span><span class="ms">四科混合闯关 · 攒星尘点亮星门</span></div><span class="arrow">→</span></button>
       <button class="mbtn" id="btnBoss"><div><span class="mt">关卡挑战 · 继续追光</span><span class="ms" id="bossSub">追回散落各界的星核碎片</span></div><span class="arrow">→</span></button>
@@ -258,7 +258,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     WORLDS.forEach(function (w) { if (w.done && off.indexOf(w.id) < 0 && w.id <= p.unlocked) lit++; });
     document.getElementById('status').innerHTML =
       '本机存档 · 已点亮 <b>' + lit + '</b> 个世界　|　通关 <b>' + p.wins + '</b> 次　|　' +
-      '小队成长 <b>+' + grow + '%</b>　|　星尘（魔力）<b>' + (en.pool || 0) + '</b> 点　|　进度只存在这台一体机';
+      '小队成长 <b>+' + grow + '%</b>　|　星尘 <b>' + (en.pool || 0) + '</b> 点　|　进度只存在这台一体机';
     document.getElementById('bossSub').textContent = '已解锁 ' + p.unlocked + ' 个世界 · 追回散落各界的星核碎片';
   }
 
