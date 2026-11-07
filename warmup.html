@@ -15,6 +15,7 @@ html, body { background: #0b0820; }
 .pprog { color: #d8caff; } .pbadge { color: #ffb0a2; }
 .pbar { background: rgba(190,170,255,.2); }
 .pq { background: linear-gradient(#302568, #211a52); border-color: rgba(190,170,255,.45); }
+.pq.idleWarn { border-color: #ff8a7a; box-shadow: 0 0 0 3px rgba(255,138,122,.25); }
 .qt { color: #fff4d6; } .qeq { color: #ffe6a6; }
 .qbox { background: #140e34; border-color: #8b78d8; color: #fff; }
 .qbox.hint::before { color: #c9b6ff; }
@@ -71,7 +72,7 @@ html, body { background: #0b0820; }
       <div class="setRow" id="rowBuns">
         <div class="setLabel" id="lbBun">题目数量</div>
         <div class="opts" id="optBuns"></div>
-        <div class="fixedVal gone" id="bunsFixed">答对一题 <b>+2.5%</b>　答错 <b>−2%</b>　限时 <b>60</b> 秒
+        <div class="fixedVal gone" id="bunsFixed">答对 <b>+2.5%</b>　答错 <b>−2%</b>　5 秒不答 <b>−1.5%</b>　限时 <b>60</b> 秒
           <span class="fxsub">数学 + 语文 + 英语 + 安全 混合题 · 全对约 40 题充满，60 秒内把星门充到 100% 才通关</span>
         </div>
       </div>

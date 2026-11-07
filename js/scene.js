@@ -1123,7 +1123,9 @@ var Scene = (function () {
       c.fillStyle = 'rgba(26,18,62,.85)'; circle(c, wx, wy, 46); c.fill();
       c.strokeStyle = 'rgba(190,170,255,.6)'; c.lineWidth = 6;
       circle(c, wx, wy, 46); c.stroke();
-      c.save(); c.translate(wx, wy); c.rotate(a * 0.8);
+      c.save(); c.translate(wx, wy);
+      /* 后轮驱动：只有后轮（w=0）随踩踏旋转，前轮辐条保持静止 */
+      if (w === 0) c.rotate(a * 0.8);
       c.strokeStyle = 'rgba(200,180,255,.4)'; c.lineWidth = 2;
       for (var i = 0; i < 6; i++) {
         c.rotate(Math.PI / 3);
@@ -1140,6 +1142,13 @@ var Scene = (function () {
     c.moveTo(hip.x, y0); c.lineTo(fx - 20, y0 + 24); c.lineTo(bx, by);
     c.moveTo(fx - 20, y0 + 24); c.lineTo(fx, wy);
     c.stroke();
+    /* 后驱链条：中轴齿轮 → 后轮飞轮（所以只有后轮转） */
+    c.strokeStyle = 'rgba(255,225,150,.6)'; c.lineWidth = 4;
+    c.beginPath();
+    c.moveTo(bx + 12, by - 12); c.lineTo(rx + 10, wy - 10);
+    c.moveTo(bx + 12, by + 12); c.lineTo(rx + 10, wy + 10);
+    c.stroke();
+    c.fillStyle = '#ffd970'; circle(c, rx, wy, 12); c.fill();
     /* 座垫 + 车把 */
     c.fillStyle = '#3a2c78'; rr(c, hip.x - 26, y0 - 10, 54, 14, 7); c.fill();
     c.strokeStyle = '#c9b6ff'; c.lineWidth = 7;
@@ -1554,12 +1563,14 @@ var Scene = (function () {
         team.chargeTarget = Math.max(0, team.chargeTarget - step);
         team.chargeDisp = Math.max(0, team.chargeDisp - step);
       }
-      var k = Math.min(1, dt * (team.leakT > 0 ? 0.32 : 1.7));
+      var k = Math.min(1, dt * (team.chargeTarget >= 1 ? 4.5 : (team.leakT > 0 ? 0.32 : 1.7)));
       team.chargeDisp += (team.chargeTarget - team.chargeDisp) * k;
       if (team.chargeDisp > 1) team.chargeDisp = 1;
       if (team.chargeDisp < 0) team.chargeDisp = 0;
-      /* 真实值已满时，显示值接近满格即吸附到 100%，作为通关判定点 */
-      if (team.chargeTarget >= 1 && team.chargeDisp > 0.995) team.chargeDisp = 1;
+      /* 充满即锁定：不再被漏能拉回；显示值接近满格时吸附到 100% 判定胜利 */
+      if (team.chargeTarget >= 1) {
+        if (team.chargeDisp > 0.99) team.chargeDisp = 1;
+      }
     }
 
     for (var i = team.projs.length - 1; i >= 0; i--) {
@@ -1632,8 +1643,9 @@ var Scene = (function () {
       });
     }
   }
-  function addFloat(idx, text, col) {
-    floats.push({ x: 240 + idx * 480, y: 210, text: text, col: col || '#ffe14b', t: 0, life: 1.1 });
+  function addFloat(idx, text, col, small) {
+    floats.push({ x: 240 + idx * 480, y: small ? 200 : 210, text: text,
+      col: col || '#ffe14b', t: 0, life: small ? 0.9 : 1.1, small: !!small });
   }
 
   function updateParticles(dt) {
@@ -1680,9 +1692,9 @@ var Scene = (function () {
     for (i = 0; i < floats.length; i++) {
       var f = floats[i];
       c.globalAlpha = 1 - f.t / f.life;
-      c.font = 'bold ' + (f.big ? 86 : 52) + 'px "Microsoft YaHei", sans-serif';
+      c.font = 'bold ' + (f.small ? 30 : (f.big ? 86 : 52)) + 'px "Microsoft YaHei", sans-serif';
       c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.lineWidth = f.big ? 12 : 8;
+      c.lineWidth = f.small ? 5 : (f.big ? 12 : 8);
       c.strokeStyle = 'rgba(90,40,10,.8)';
       c.strokeText(f.text, f.x, f.y);
       c.fillStyle = f.col;
@@ -1884,8 +1896,15 @@ var Scene = (function () {
     /* 答错：2 秒内缓慢漏掉指定额度（默认 2%），真实值与显示值同步下降 */
     chargeLoss: function (amt) {
       if (!starMode()) return;
+      if (team.chargeTarget >= 1) return;      /* 已充满：锁定，不再被挂机/答错拉回 */
       var a = (amt == null) ? 0.02 : amt;
-      team.leakAmt = a; team.leakLeft = a; team.leakT = 2;
+      /* 同一帧多人挂机/答错：额度累加，不能互相覆盖 */
+      if (team.leakT > 0) {
+        team.leakAmt += a; team.leakLeft += a;
+        team.leakT = Math.max(team.leakT, 2);
+      } else {
+        team.leakAmt = a; team.leakLeft = a; team.leakT = 2;
+      }
       team.flash = Math.max(team.flash, 0.35);
     },
     chargeLeak: function () { this.chargeLoss(0.02); },
