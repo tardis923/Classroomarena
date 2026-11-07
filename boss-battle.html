@@ -633,20 +633,6 @@ function meteorEveryOf(phase) {
 function bossImmuneNow() {
   return !!(B && B.boss && PH()[B.boss.phase] && PH()[B.boss.phase].bossImmune);
 }
-/* 我方攻击力倍率：每倒下一名队友，存活角色 +10%（愤怒） */
-function rageMul() {
-  if (!B || !B.heroes) return 1;
-  var dead = 0;
-  for (var i = 0; i < B.heroes.length; i++) if (!B.heroes[i].alive) dead++;
-  return 1 + 0.1 * dead;
-}
-function deadCount() {
-  if (!B || !B.heroes) return 0;
-  var d = 0;
-  for (var i = 0; i < B.heroes.length; i++) if (!B.heroes[i].alive) d++;
-  return d;
-}
-
 /* 四名角色 */
 var HEROES = [
   { cls: '治疗师',   name: '莉莉', skill: '治愈之光', key: 'heal',
@@ -1456,7 +1442,6 @@ function castSkill(h) {
 /* ---------- 伤害 / 治疗 ---------- */
 function damageBoss(d, kind) {
   if (!B || B.over) return;
-  d = Math.round(d * rageMul());             /* 队友倒下越多，攻击力越高（愤怒） */
   B.boss.hp -= d; if (B.boss.hp < 0) B.boss.hp = 0;
   B.boss.hitT = 0.45;
   B.boss.shake = 0.3;
@@ -1480,9 +1465,8 @@ function hurtHero(h, d) {
   if (h.hp <= 0) {
     h.alive = false; sfx('dead');
     h.q = null; h.locked = true; h.input = ''; h.shield = 0;
-    var dead = deadCount(), up = Math.round(dead * 10);
-    banner('💢 ' + h.name + ' 倒下了！队友愤怒，攻击力 +10%（累计 +' + up + '%）');
-    floatText(p.x, p.y - 90, '愤 怒！攻击 +' + up + '%', '#ff7a4a');
+    banner('💢 ' + h.name + ' 倒下了！');
+    floatText(p.x, p.y - 90, '倒 下 了 ！', '#ff7a4a');
     sfx('warn');
   }
   renderPanels();
@@ -1526,7 +1510,7 @@ function tickBoss(dt) {
     bs.burnT -= dt; bs.burnTick -= dt;
     if (bs.burnTick <= 0) {
       bs.burnTick = CFG.burnTickSec;
-      var bd = Math.round(bs.burn * rageMul());   /* 愤怒加成同样作用于灼烧 */
+      var bd = Math.round(bs.burn);
       bs.hp -= bd; if (bs.hp < 0) bs.hp = 0;
       bs.hitT = 0.35;
       floatText(BOSS_X, BOSS_Y + 150, '灼烧 -' + bd, '#ff9a4a');
@@ -2872,8 +2856,6 @@ function drawBoss(c) {
   if (B.boss.frozen > 0) st.push('冻结 ' + secs(B.boss.frozen) + ' 秒');
   if (B.boss.burnT > 0) st.push('灼烧 ' + secs(B.boss.burnT) + ' 秒');
   if (ph.bossImmune) st.push('免疫灼烧/冰冻');
-  var dc = deadCount();
-  if (dc > 0) st.push('我方愤怒 攻击力 +' + (dc * 10) + '%');
   if (isStage2() && B.rageLvl > 0) st.push('💢怒气x' + B.rageLvl + ' 攻击+' + Math.round((B.dmgMul - 1) * 100) + '%');
   if (isStage2() && B.slowT > 0) st.push('❄减速中 ' + Math.ceil(B.slowT) + 's');
   if (isStage2() && B.boss.stun > 0) st.push('⚡麻痹 ' + Math.ceil(B.boss.stun) + 's');
