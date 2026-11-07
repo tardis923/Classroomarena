@@ -792,7 +792,7 @@ var Scene = (function () {
       this.pedalBoost = Math.max(0, this.pedalBoost - dt * 0.75);
       this.pedal += dt * (5.5 + this.pedalBoost * 13 + (team.leakT > 0 ? -1.5 : 0));
       this.mouth = 0;
-      this.bodyDy = Math.sin(this.pedal * 2) * 2;
+      this.bodyDy = 0;                  /* 名牌与车身都不上下浮动 */
     }
   };
 
@@ -1103,17 +1103,16 @@ var Scene = (function () {
     var headY = y0 - 32;                  // 521 车头管
     var a = ch.pedal;
     var boost = ch.pedalBoost || 0;
-    var bob = Math.sin(a * 2) * 2;
     var p1 = { x: bx + Math.cos(a) * 32, y: by + Math.sin(a) * 32 };
     var p2 = { x: bx - Math.cos(a) * 32, y: by - Math.sin(a) * 32 };
     /* 卡通向比例：头 32、躯干约 85、腿约 140；圆润躯干，不做成斜棍 */
-    var hip = { x: -34, y: y0 - 53 };     // 500（坐在座垫上）
+    var hip = { x: -30, y: y0 - 63 };     // 490（臀部轻压在鞍座上，腿从这里向前下蹬）
     var shoulder = { x: 28, y: y0 - 138 };// 415
     var hand = { x: fx + 4, y: y0 - 83 }; // 470
     var HEAD_R = 32;
 
     c.save();
-    c.translate(0, bob);
+    /* 车身固定不浮动：只有后轮辐条在转、双腿在蹬 */
 
     /* 原地支架（表示这是发电台，不会骑走） */
     c.strokeStyle = 'rgba(190,170,255,.45)'; c.lineWidth = 8; c.lineCap = 'round';
@@ -1153,8 +1152,17 @@ var Scene = (function () {
     c.moveTo(bx + 12, by + 12); c.lineTo(rx + 10, wy + 10);
     c.stroke();
     c.fillStyle = '#ffd970'; circle(c, rx, wy, 12); c.fill();
-    /* 座垫 + 车把（车头管抬起一段到手的高度） */
-    c.fillStyle = '#3a2c78'; rr(c, hip.x - 26, seatY - 10, 54, 14, 7); c.fill();
+    /* 自行车鞍座：后端宽、前端收尖，画在臀部下方偏后，不与身体糊成一团 */
+    c.fillStyle = '#241a52';
+    c.beginPath();
+    c.moveTo(-76, 502);
+    c.quadraticCurveTo(-70, 494, -48, 497);
+    c.lineTo(-16, 503);
+    c.quadraticCurveTo(-8, 505, -14, 511);
+    c.quadraticCurveTo(-44, 516, -70, 512);
+    c.closePath(); c.fill();
+    c.strokeStyle = '#7a63c8'; c.lineWidth = 2.5; c.stroke();
+    /* 车架座管顶端刚好顶在鞍座下，不再另画多余连杆 */
     c.strokeStyle = '#c9b6ff'; c.lineWidth = 7;
     c.beginPath(); c.moveTo(fx - 20, headY); c.lineTo(fx - 12, hand.y); c.lineTo(hand.x + 4, hand.y); c.stroke();
 
@@ -1184,9 +1192,10 @@ var Scene = (function () {
     leg(p2, sk.dark, '#241a52');
     leg(p1, sk.main, '#3a2c78');
 
-    /* 圆润的髋部（替代方块短裤） */
-    c.fillStyle = sk.dark;
-    c.beginPath(); c.ellipse(hip.x, hip.y, 27, 17, -0.35, 0, Math.PI * 2); c.fill();
+    /* 臀部：用与躯干同色的小椭圆盖住腿根，下缘轻压鞍座，关系清楚 */
+    c.fillStyle = sk.main;
+    c.beginPath(); c.ellipse(hip.x, hip.y + 3, 24, 14, -0.3, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = sk.dark; c.lineWidth = 2.5; c.stroke();
 
     /* 远手臂（身后，深色细一些） */
     c.strokeStyle = sk.dark; c.lineWidth = 14; c.lineCap = 'round'; c.lineJoin = 'round';
