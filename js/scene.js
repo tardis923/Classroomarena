@@ -609,8 +609,8 @@ var Scene = (function () {
   /* 答对：把一束星尘送进中央星门。星门主题下由发电单车导出，不是手里扔食物 */
   Character.prototype.throwFood = function () {
     var hp = this.holdPt();
-    var sx = starMode() ? this.cx + 96 : this.cx + hp.x * this.scale;
-    var sy = starMode() ? TABLE_Y + 52 : TABLE_Y + (hp.y - TABLE_Y) * this.scale;
+    var sx = starMode() ? this.cx - 140 : this.cx + hp.x * this.scale;
+    var sy = starMode() ? TABLE_Y + 88 : TABLE_Y + (hp.y - TABLE_Y) * this.scale;
     team.projs.push({
       x0: sx, y0: sy - 14, tx: 960 + (Math.random() - 0.5) * 90, ty: 150,
       t: 0, dur: 0.52 + Math.random() * 0.06
@@ -790,8 +790,6 @@ var Scene = (function () {
       this.pedalBoost = Math.max(0, this.pedalBoost - dt * 0.75);
       this.pedal += dt * (5.5 + this.pedalBoost * 13 + (team.leakT > 0 ? -1.5 : 0));
       this.mouth = 0;
-      this.armR.x = 108; this.armR.y = TABLE_Y;    /* 双手扶住车把 */
-      this.armL.x = -108; this.armL.y = TABLE_Y;
       this.bodyDy = Math.sin(this.pedal * 2) * 2;
     }
   };
@@ -870,6 +868,12 @@ var Scene = (function () {
   /* ---------- 身体（桌子之前绘制） ---------- */
   Character.prototype.drawBody = function (c) {
     var sk = this.skin, s = this.scale;
+
+    /* 侧身骑手整体在 drawFront 里画（桌面之后），这里只放名牌 */
+    if (starMode()) {
+      drawNamePlate(c, this.cx, this.name, sk.main, 236 + this.bodyDy);
+      return;
+    }
 
     // 有贴图：直接画图片
     if (sk.imgReady && sk.img) {
@@ -1086,61 +1090,103 @@ var Scene = (function () {
     }
   };
 
-  /* ---------- 星门主题：原地发电单车 ---------- */
-  function drawBike(c, ch) {
+  /* ---------- 星门主题：侧身骑发电单车（侧脸 + 前倾身体 + 双腿蹬踏板） ---------- */
+  function drawCyclist(c, ch) {
     var sk = ch.skin;
-    var y0 = TABLE_Y + 8;
-    var fx = -92, fy = y0 + 104, kx = 18, ky = y0 + 92;
-    c.save();
-
-    /* 飞轮 */
-    c.fillStyle = 'rgba(26,18,62,.8)'; circle(c, fx, fy, 50); c.fill();
-    c.strokeStyle = 'rgba(190,170,255,.6)'; c.lineWidth = 6;
-    circle(c, fx, fy, 50); c.stroke();
-    c.save(); c.translate(fx, fy); c.rotate(ch.pedal * 0.5);
-    c.strokeStyle = 'rgba(200,180,255,.45)'; c.lineWidth = 2;
-    for (var i = 0; i < 6; i++) {
-      c.rotate(Math.PI / 3);
-      c.beginPath(); c.moveTo(0, 0); c.lineTo(42, 0); c.stroke();
-    }
-    c.restore();
-    c.fillStyle = '#ffd970'; circle(c, fx, fy, 8); c.fill();
-
-    /* 车架三角 + 座垫 + 车把 */
-    c.strokeStyle = '#8a6ad8'; c.lineWidth = 12; c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath();
-    c.moveTo(fx, fy); c.lineTo(-12, y0 + 46); c.lineTo(kx, ky); c.lineTo(fx, fy);
-    c.moveTo(-12, y0 + 46); c.lineTo(86, y0 + 22);
-    c.moveTo(kx, ky); c.lineTo(86, y0 + 22);
-    c.stroke();
-    c.fillStyle = '#3a2c78'; rr(c, -38, y0 + 40, 54, 14, 7); c.fill();
-    c.strokeStyle = '#c9b6ff'; c.lineWidth = 8; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(0, y0 + 22); c.lineTo(0, y0 - 8); c.stroke();
-    c.beginPath(); c.moveTo(-116, y0 - 8); c.lineTo(116, y0 - 8); c.stroke();
-    c.fillStyle = '#c9b6ff';
-    circle(c, -108, y0 - 8, 9); c.fill(); circle(c, 108, y0 - 8, 9); c.fill();
-
-    /* 曲柄 + 两条一直蹬动的腿 */
+    var y0 = TABLE_Y + 8;                 // 553 桌面线
+    var wy = y0 + 104;                    // 657 前后轮轴
+    var rx = -108, fx = 108;              // 后轮 / 前轮
+    var bx = 0, by = y0 + 88;             // 中轴（脚踏轴）
     var a = ch.pedal;
-    var p1x = kx + Math.cos(a) * 30, p1y = ky + Math.sin(a) * 30;
-    var p2x = kx - Math.cos(a) * 30, p2y = ky - Math.sin(a) * 30;
-    c.strokeStyle = sk.dark; c.lineWidth = 22; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(-28, y0 - 4); c.quadraticCurveTo(-4, y0 + 52, p1x, p1y); c.stroke();
-    c.beginPath(); c.moveTo(28, y0 - 4); c.quadraticCurveTo(4, y0 + 52, p2x, p2y); c.stroke();
-    c.fillStyle = sk.main;
-    circle(c, p1x, p1y, 13); c.fill(); circle(c, p2x, p2y, 13); c.fill();
-    c.strokeStyle = 'rgba(255,230,166,.85)'; c.lineWidth = 5;
-    c.beginPath(); c.moveTo(p1x, p1y); c.lineTo(p2x, p2y); c.stroke();
-    c.fillStyle = '#ffe6a6'; circle(c, kx, ky, 9); c.fill();
+    var boost = ch.pedalBoost || 0;
+    var bob = Math.sin(a * 2) * 2;
+    var p1 = { x: bx + Math.cos(a) * 32, y: by + Math.sin(a) * 32 };
+    var p2 = { x: bx - Math.cos(a) * 32, y: by - Math.sin(a) * 32 };
+    var hip = { x: -30, y: y0 - 20 };     // 533
+    var shoulder = { x: 30, y: y0 - 168 };// 385
+    var hand = { x: fx + 10, y: y0 - 46 };// 507
+
+    c.save();
+    c.translate(0, bob);
+
+    /* 原地支架（表示这是发电台，不会骑走） */
+    c.strokeStyle = 'rgba(190,170,255,.45)'; c.lineWidth = 8; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(rx, wy); c.lineTo(rx - 36, 706); c.lineTo(rx + 22, 706); c.stroke();
+    c.beginPath(); c.moveTo(fx, wy); c.lineTo(fx + 32, 706); c.lineTo(fx - 22, 706); c.stroke();
+
+    /* 前后轮 */
+    var wheels = [rx, fx];
+    for (var w = 0; w < wheels.length; w++) {
+      var wx = wheels[w];
+      c.fillStyle = 'rgba(26,18,62,.85)'; circle(c, wx, wy, 46); c.fill();
+      c.strokeStyle = 'rgba(190,170,255,.6)'; c.lineWidth = 6;
+      circle(c, wx, wy, 46); c.stroke();
+      c.save(); c.translate(wx, wy); c.rotate(a * 0.8);
+      c.strokeStyle = 'rgba(200,180,255,.4)'; c.lineWidth = 2;
+      for (var i = 0; i < 6; i++) {
+        c.rotate(Math.PI / 3);
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(38, 0); c.stroke();
+      }
+      c.restore();
+      c.fillStyle = '#ffd970'; circle(c, wx, wy, 7); c.fill();
+    }
+
+    /* 车架 */
+    c.strokeStyle = '#8a6ad8'; c.lineWidth = 11; c.lineJoin = 'round'; c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(rx, wy); c.lineTo(hip.x, y0); c.lineTo(bx, by); c.lineTo(rx, wy);
+    c.moveTo(hip.x, y0); c.lineTo(fx - 20, y0 + 24); c.lineTo(bx, by);
+    c.moveTo(fx - 20, y0 + 24); c.lineTo(fx, wy);
+    c.stroke();
+    /* 座垫 + 车把 */
+    c.fillStyle = '#3a2c78'; rr(c, hip.x - 26, y0 - 10, 54, 14, 7); c.fill();
+    c.strokeStyle = '#c9b6ff'; c.lineWidth = 7;
+    c.beginPath(); c.moveTo(fx - 20, y0 + 24); c.lineTo(fx - 12, hand.y); c.lineTo(hand.x + 4, hand.y); c.stroke();
 
     /* 发电机：答对时亮一下，星尘从这里导出 */
-    var boost = ch.pedalBoost || 0;
-    c.fillStyle = '#2b205f'; rr(c, 96, y0 + 62, 56, 40, 8); c.fill();
+    c.fillStyle = '#2b205f'; rr(c, rx - 58, y0 + 62, 52, 36, 8); c.fill();
     c.strokeStyle = 'rgba(190,170,255,.5)'; c.lineWidth = 2; c.stroke();
-    var g = c.createRadialGradient(124, y0 + 82, 2, 124, y0 + 82, 22 + boost * 18);
-    g.addColorStop(0, 'rgba(255,240,190,.95)'); g.addColorStop(1, 'rgba(255,200,100,0)');
-    c.fillStyle = g; circle(c, 124, y0 + 82, 22 + boost * 18); c.fill();
-    c.fillStyle = '#fff6cf'; circle(c, 124, y0 + 82, 5 + boost * 4); c.fill();
+    var gg = c.createRadialGradient(rx - 32, y0 + 80, 2, rx - 32, y0 + 80, 20 + boost * 18);
+    gg.addColorStop(0, 'rgba(255,240,190,.95)'); gg.addColorStop(1, 'rgba(255,200,100,0)');
+    c.fillStyle = gg; circle(c, rx - 32, y0 + 80, 20 + boost * 18); c.fill();
+    c.fillStyle = '#fff6cf'; circle(c, rx - 32, y0 + 80, 5 + boost * 4); c.fill();
+
+    /* 曲柄 */
+    c.strokeStyle = 'rgba(255,230,166,.85)'; c.lineWidth = 5;
+    c.beginPath(); c.moveTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.stroke();
+    c.fillStyle = '#ffe6a6'; circle(c, bx, by, 9); c.fill();
+
+    /* 两条侧视的腿：远腿深色先画，近腿主色后画 */
+    function leg(p, col) {
+      var knee = { x: (hip.x + p.x) / 2 + 34, y: (hip.y + p.y) / 2 - 12 };
+      c.strokeStyle = col; c.lineWidth = 20; c.lineCap = 'round'; c.lineJoin = 'round';
+      c.beginPath(); c.moveTo(hip.x, hip.y); c.lineTo(knee.x, knee.y); c.lineTo(p.x, p.y); c.stroke();
+      c.fillStyle = '#2b205f'; rr(c, p.x - 15, p.y - 8, 32, 15, 6); c.fill();
+    }
+    leg(p2, sk.dark);
+    leg(p1, sk.main);
+
+    /* 前倾的上身 + 伸向车把的手臂 */
+    c.strokeStyle = sk.main; c.lineWidth = 46; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(hip.x, hip.y); c.lineTo(shoulder.x, shoulder.y); c.stroke();
+    c.strokeStyle = sk.dark; c.lineWidth = 18;
+    c.beginPath(); c.moveTo(shoulder.x, shoulder.y);
+    c.lineTo(shoulder.x + 34, shoulder.y + 62); c.lineTo(hand.x, hand.y); c.stroke();
+    c.fillStyle = '#ffd9a8'; circle(c, hand.x, hand.y, 12); c.fill();
+
+    /* 侧脸：朝右，戴同色帽子，闭嘴微笑 */
+    var hx = 48, hy = y0 - 224;           // 329
+    c.save(); c.translate(hx, hy); c.rotate(ch.headRot || 0);
+    c.fillStyle = '#f5d9b0'; circle(c, 0, 0, 34); c.fill();
+    c.beginPath(); c.moveTo(28, -3); c.lineTo(43, 5); c.lineTo(28, 11); c.closePath(); c.fill();
+    c.fillStyle = sk.main;
+    c.beginPath(); c.arc(0, 0, 34, Math.PI, Math.PI * 2); c.closePath(); c.fill();
+    c.fillRect(8, -8, 38, 8);             // 帽檐朝前
+    c.fillStyle = '#2a1030'; circle(c, 16, -2, 4); c.fill();
+    c.strokeStyle = '#8a4a2a'; c.lineWidth = 3; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(19, 14); c.quadraticCurveTo(25, 18, 31, 13); c.stroke();
+    c.restore();
+
     c.restore();
   }
 
@@ -1152,9 +1198,7 @@ var Scene = (function () {
     if (s !== 1) { c.translate(0, TABLE_Y); c.scale(s, s); c.translate(0, -TABLE_Y); }
 
     if (starMode()) {
-      drawBike(c, this);
-      drawArm(c, -58, 396, this.armL.x, this.armL.y, 26, sk);
-      drawArm(c, 58, 396, this.armR.x, this.armR.y, -30, sk);
+      drawCyclist(c, this);
       c.restore();
       return;
     }
