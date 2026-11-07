@@ -667,13 +667,13 @@ var SEA_PHASES = [
 ];
 var SEA_HEROES = [
   { cls: '珊瑚医师', name: '珊瑚', skill: '珊瑚之光', key: 'heal',
-    desc: '回血最虚弱 · 满血套气泡盾', robe: '#3fb894', dark: '#1d6e5c', orb: '#8ff0d0', tone: 392 },
+    desc: '潮汐回血 · 全队一起回', robe: '#3fb894', dark: '#1d6e5c', orb: '#8ff0d0', tone: 392 },
   { cls: '电鳗术士', name: '电鳗', skill: '电鳗雷击', key: 'thunder',
-    desc: '单体高伤害',       robe: '#5b7ce0', dark: '#2d4a9c', orb: '#cfe3ff', tone: 300 },
+    desc: '两道电光连击',       robe: '#5b7ce0', dark: '#2d4a9c', orb: '#cfe3ff', tone: 300 },
   { cls: '灯笼鱼法师', name: '灯灯', skill: '深海焰弹', key: 'fire',
-    desc: '伤害＋灼烧持续掉血', robe: '#e8902c', dark: '#9c5310', orb: '#ffd47a', tone: 240 },
+    desc: '照亮碑文 · 印记 +2', robe: '#e8902c', dark: '#9c5310', orb: '#ffd47a', tone: 240 },
   { cls: '冰海豚',   name: '冰豚', skill: '寒冰气泡', key: 'ice',
-    desc: '伤害＋冻结 Boss',   robe: '#49b6d8', dark: '#206a86', orb: '#c8f4ff', tone: 500 }
+    desc: '禁锢 2/1 秒 · 三阶段免疫', robe: '#49b6d8', dark: '#206a86', orb: '#c8f4ff', tone: 500 }
 ];
 function isStage3() { return CFG.stage === 3; }
 
@@ -1046,7 +1046,7 @@ function skipQuestion(i) {
    四个技能都会给章鱼怪叠「潮汐印记」：每层让我方伤害 +12%，
    叠满 3 层触发「鲸歌共鸣」额外一击 + 全队小回血，然后清空重来。
    技能动作也与前两关完全不同：全队潮汐回血 / 电鳗两连击 /
-   灯笼照亮一次叠两层 / 寒冰气泡把 Boss 封住 3.5 秒（不走冻结免疫）。 */
+   灯笼照亮一次叠两层 / 寒冰气泡前两阶段禁锢 2 秒、1 秒，第三阶段免疫。 */
 function addTide(n) {
   if (!B || B.over) return;
   B.tide = (B.tide || 0) + n;
@@ -1111,16 +1111,23 @@ function castSeaSkill(h, from, to) {
     tideN = 2;
 
   } else {
-    /* 寒冰气泡：把 Boss 封进气泡完全停手（复用 stun，但不触发冻结免疫） */
+    /* 寒冰气泡：只在第 1 / 2 阶段有效（2 秒 / 1 秒），第 3 阶段深渊形态免疫 */
     sfx('ice');
     B.fx.push({ type: 'ice', t: 0, dur: 0.8, from: from, to: to });
     after(0.32, function () { damageBoss(heroDmg(CFG.dmgIce), 'ice'); });
     after(0.42, function () {
       if (B.over) return;
-      B.boss.stun = 3.5;
-      floatText(to.x, to.y - 150, '气泡禁锢 3.5 秒！', '#bff0ff');
+      var ph = B.boss.phase;
+      var sec = ph === 0 ? 2 : (ph === 1 ? 1 : 0);
+      if (sec > 0) {
+        B.boss.stun = sec;
+        floatText(to.x, to.y - 150, '气泡禁锢 ' + sec + ' 秒！', '#bff0ff');
+        banner(h.name + ' 吹出寒冰气泡，章鱼怪被封住 ' + sec + ' 秒！');
+      } else {
+        floatText(to.x, to.y - 150, '免疫禁锢', '#ffb0a2');
+        banner('深渊碑文章鱼挣碎了寒冰气泡 —— 第三阶段免疫禁锢！');
+      }
     });
-    banner(h.name + ' 吹出寒冰气泡，章鱼怪被封住了！');
   }
 
   addTide(tideN);
@@ -2815,7 +2822,7 @@ function applyStageText() {
   if (h1) h1.textContent = '团队合作知识闯关 · ' + st.name.split(' · ')[0];
   if (sub) {
     sub.innerHTML = isStage3()
-      ? '四名潜水员穿上潜水服下潜珊瑚碑林，答对语文题就能<b>叠潮汐印记</b>：每层让我方伤害 <b>+12%</b>，满 3 层触发<b>鲸歌共鸣</b>额外一击并给全队回血。技能全换过了：珊瑚<b>全队回血</b>、电鳗<b>两连击</b>、灯笼<b>一次叠两层</b>、冰豚<b>气泡禁锢</b>让章鱼怪停手 3.5 秒。章鱼怪血量为第一关 <b>1.5 倍</b>、攻击 <b>1.35 倍</b>。'
+      ? '四名潜水员穿上潜水服下潜珊瑚碑林，答对语文题就能<b>叠潮汐印记</b>：每层让我方伤害 <b>+12%</b>，满 3 层触发<b>鲸歌共鸣</b>额外一击并给全队回血。技能全换过了：珊瑚<b>全队回血</b>、电鳗<b>两连击</b>、灯笼<b>一次叠两层</b>、冰豚<b>气泡禁锢</b>只在<b>前两阶段</b>有效（第一阶段 2 秒 / 第二阶段 1 秒，第三阶段免疫）。章鱼怪血量为第一关 <b>1.5 倍</b>、攻击 <b>1.35 倍</b>。'
       : (isStage2()
       ? '四株植物各答各的题，答对就朝<b>僵尸博士机甲</b>连喷弹幕：雷芦苇<b>三道电弧</b>连击（末道麻痹机甲）、小火炬连喷<b>火焰豌豆</b>点燃机甲、冰豌豆连喷<b>寒冰豌豆</b>让机甲减速（免疫期也有效）、阳光花治疗队友，全员满血时改种<b>坚果墙</b>挡大招——但巨人的铁桩一击就能砸碎！机甲每 20 秒变怒一次，攻击越来越疼，别拖太久。本关机甲血量为第一关的 <b>1.25 倍</b>、攻击 <b>1.2 倍</b>，试班级成长来硬碰硬吧！'
       : '四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。题目和难度由老师在设置页统一调整。');
