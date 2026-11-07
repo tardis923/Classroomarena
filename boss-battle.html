@@ -1558,7 +1558,7 @@ function tickBoss(dt) {
   B.atkCd -= bdt;
   if (B.atkCd <= 0) { B.atkCd = CFG.bossAtkEvery * B.atkEveryMul; normalAttack(); }
 
-  /* 三/四关：Boss 定时封住一名随机角色的答题键 1.5 秒 */
+  /* 三/四关：Boss 定时干扰 1.5 秒（三关只黑屏、四关封一名角色的按键） */
   if (isStage3() || isStage4()) {
     B.disableCd -= bdt;
     if (B.disableCd <= 0) { B.disableCd = 13; disableOneHero(); }
@@ -1568,27 +1568,29 @@ function tickBoss(dt) {
   if (B.meteorCd <= 0) { B.meteorCd = meteorEveryOf(bs.phase); meteorAttack(); }
 }
 
-/* ---------- 第三/四关专属：禁止随机角色答题 1.5 秒 ----------
-   第三关章鱼「喷墨遮蔽」→ 全屏墨云黑屏；第四关蝎子「蝎尾麻痹」→ 该角色答题面板变灰、按键无效 */
+/* ---------- 第三/四关专属：Boss 干扰技能（每 13 秒，1.5 秒） ----------
+   第三关章鱼「喷墨遮蔽」→ 全屏墨云黑屏，纯视觉遮挡，不禁止任何按键；
+   第四关蝎子「蝎尾麻痹」→ 随机一名角色答题面板变灰、按键无效 */
 function disableOneHero() {
   if (!B || B.over) return;
-  var pool = aliveHeroes().filter(function (h) { return h.noInputT <= 0; });
-  if (!pool.length) return;
-  var h = pool[ri(0, pool.length - 1)];
-  h.noInputT = 1.5;
   sfx('warn');
-  var hp = heroPt(h.i);
   if (isStage4()) {
+    var pool = aliveHeroes().filter(function (h) { return h.noInputT <= 0; });
+    if (!pool.length) return;
+    var h = pool[ri(0, pool.length - 1)];
+    h.noInputT = 1.5;
+    var hp = heroPt(h.i);
     banner('🦂 蝎尾麻痹！' + h.name + ' 1.5 秒内无法按键答题！');
     floatText(hp.x, hp.y - 60, '⚡ 麻痹！', '#ffd45e');
     B.fx.push({ type: 'sting', t: 0, dur: 0.5, from: { x: BOSS_X - 90, y: BOSS_Y - 110 }, to: hp });
+    renderPanels();
   } else {
-    banner('🐙 章鱼喷墨！墨汁遮蔽 1.5 秒，' + h.name + ' 暂时无法答题！');
+    /* 只黑屏，不设 noInputT：看不清题目但四人都能继续按键作答 */
+    banner('🐙 章鱼喷墨！墨汁遮蔽 1.5 秒 —— 看不清也要接着答！');
     B.fx.push({ type: 'inkSpray', t: 0, dur: 1.5, x: BOSS_X - 120, y: BOSS_Y - 40 });
     var scr = document.getElementById('inkScreen');
     if (scr) { scr.classList.remove('show'); void scr.offsetWidth; scr.classList.add('show'); }
   }
-  renderPanels();
   after(1.5, function () {
     var sc = document.getElementById('inkScreen');
     if (sc) sc.classList.remove('show');
@@ -3710,8 +3712,7 @@ function panelHTML(i) {
     '<span class="pCls" style="background:' + h.ref.robe + '">' + h.cls + '</span>' +
     '<span class="pStat">' + st + '</span></div>';
   if (!h.alive) return s + '<div class="pQ small">已被击倒，无法行动</div>';
-  if (h.noInputT > 0) return s + '<div class="pQ small">' +
-    (isStage4() ? '⚡ 被蝎尾麻痹，暂时无法按键…' : '🖤 墨汁遮蔽，暂时看不清题目…') + '</div>';
+  if (h.noInputT > 0) return s + '<div class="pQ small">⚡ 被蝎尾麻痹，暂时无法按键…</div>';
   if (B.paused) return s + '<div class="pQ small">准备中…</div>';
   if (B.over) return s + '<div class="pQ small">战斗结束</div>';
   if (!h.q || h.locked) return s + '<div class="pQ small">' +
