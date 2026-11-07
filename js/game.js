@@ -1035,6 +1035,17 @@
     bindTap($('btnAgain'), function (e) {
       e.preventDefault(); Sound.ok(); startGame();
     });
+    /* 胜利黑屏：再玩一次 / 回星图首页 */
+    if ($('btnVicAgain')) bindTap($('btnVicAgain'), function (e) {
+      e.preventDefault(); Sound.ok(); startGame();
+    });
+    if ($('btnVicHome')) bindTap($('btnVicHome'), function (e) {
+      e.preventDefault(); Sound.ok(); location.href = 'index.html';
+    });
+    /* 超时黑屏：回星图首页 */
+    if ($('btnToHome')) bindTap($('btnToHome'), function (e) {
+      e.preventDefault(); Sound.ok(); location.href = 'index.html';
+    });
     bindTap($('btnBack'), function (e) {
       e.preventDefault();
       $('result').classList.add('hidden');

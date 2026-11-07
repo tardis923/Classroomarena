@@ -191,6 +191,45 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
          font-size: 24px; font-weight: 700; padding: 14px 32px; border-radius: 14px;
          pointer-events: none; opacity: 0; transition: opacity .25s; white-space: nowrap; }
 #toast.show { opacity: 1; }
+
+/* ================= 关卡转场：坐飞船飞向下一界 ================= */
+#warp { position: absolute; inset: 0; z-index: 400; display: none; overflow: hidden;
+        background: radial-gradient(700px 520px at 68% 42%, rgba(110,80,210,.35), transparent 70%),
+                    linear-gradient(160deg, #0b0820, #1a1240 55%, #080a1c); }
+#warp.show { display: block; }
+#warp .wStars { position: absolute; inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 8% 18%, #fff, transparent), radial-gradient(2px 2px at 22% 62%, #ffe6a6, transparent),
+    radial-gradient(2px 2px at 36% 28%, #fff, transparent), radial-gradient(3px 3px at 48% 76%, #c9b6ff, transparent),
+    radial-gradient(2px 2px at 62% 12%, #fff, transparent), radial-gradient(2px 2px at 78% 58%, #ffe6a6, transparent),
+    radial-gradient(3px 3px at 88% 30%, #fff, transparent), radial-gradient(2px 2px at 94% 82%, #c9b6ff, transparent);
+  animation: warpStars 2.6s linear both; }
+@keyframes warpStars { from { transform: translateX(0); opacity: .7; } to { transform: translateX(-420px); opacity: 1; } }
+#warp .wGate { position: absolute; left: 1180px; top: 200px; width: 460px; height: 460px; border-radius: 50%;
+  border: 6px solid rgba(255,220,140,.55); box-shadow: 0 0 0 34px rgba(150,110,240,.08), 0 0 90px rgba(180,130,255,.45), inset 0 0 90px rgba(180,130,255,.35);
+  animation: warpGate 2.6s ease-in-out both; }
+#warp .wGate::after { content: ''; position: absolute; inset: 40px; border-radius: 50%;
+  border: 2px dashed rgba(210,190,255,.55); animation: spinGate 5s linear infinite; }
+@keyframes spinGate { to { transform: rotate(360deg); } }
+@keyframes warpGate { 0% { transform: scale(.72); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1.12); opacity: 1; } }
+#warp .wShip { position: absolute; left: 220px; top: 620px; width: 300px; height: 150px;
+  animation: warpFly 2.6s cubic-bezier(.35,.05,.55,.95) both; }
+@keyframes warpFly {
+  0%   { transform: translate(0,0) scale(1.05) rotate(-6deg); opacity: 0; }
+  12%  { opacity: 1; }
+  72%  { transform: translate(760px,-300px) scale(.55) rotate(-16deg); opacity: 1; }
+  100% { transform: translate(1080px,-430px) scale(.1) rotate(-22deg); opacity: 0; }
+}
+#warp .wFlame { animation: warpFlame .18s ease-in-out infinite alternate; transform-origin: left center; }
+@keyframes warpFlame { from { transform: scaleX(.75); opacity: .75; } to { transform: scaleX(1.25); opacity: 1; } }
+#warp .wText { position: absolute; left: 0; right: 0; top: 300px; text-align: center;
+  animation: warpText 2.6s ease-out both; }
+@keyframes warpText { 0% { opacity: 0; transform: translateY(24px); } 18% { opacity: 1; transform: none; } 82% { opacity: 1; } 100% { opacity: 0; } }
+#warp .wKicker { font-size: 26px; letter-spacing: 14px; color: #b9a5f0; }
+#warp .wTitle { font-size: 76px; letter-spacing: 8px; color: #ffe6a6; margin: 18px 0 12px;
+  text-shadow: 0 0 50px rgba(255,200,110,.5); }
+#warp .wSub { font-size: 26px; color: #cfc2f5; letter-spacing: 3px; }
+#warp .wSkip { position: absolute; right: 60px; bottom: 46px; font-size: 20px; color: #8d82b8; letter-spacing: 2px; }
 </style>
 </head>
 <body>
@@ -339,6 +378,34 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
   </div>
 
   <div id="toast"></div>
+
+  <!-- ============ 关卡转场：坐飞船飞向下一界 ============ -->
+  <div id="warp">
+    <div class="wStars"></div>
+    <div class="wGate"></div>
+    <div class="wShip">
+      <svg width="300" height="150" viewBox="0 0 300 150" aria-hidden="true">
+        <g class="wFlame">
+          <path d="M52 75 L4 60 L20 75 L4 90 Z" fill="#ffb347"/>
+          <path d="M52 75 L18 68 L30 75 L18 82 Z" fill="#fff0b8"/>
+        </g>
+        <path d="M60 75 L104 108 L156 90 Z" fill="#7a5ad8" stroke="#3b2a7a" stroke-width="4"/>
+        <path d="M60 75 L104 42 L156 60 Z" fill="#9a7be8" stroke="#3b2a7a" stroke-width="4"/>
+        <path d="M46 75 Q92 32 190 44 Q258 50 292 75 Q258 100 190 106 Q92 118 46 75 Z"
+              fill="#e6ecff" stroke="#6a55b8" stroke-width="5"/>
+        <path d="M46 75 Q92 32 190 44 Q230 47 258 60 Q150 66 46 75 Z" fill="#ffffff" opacity=".55"/>
+        <circle cx="196" cy="72" r="21" fill="#63c9ff" stroke="#2b2060" stroke-width="6"/>
+        <circle cx="190" cy="66" r="7" fill="#e8f8ff" opacity=".9"/>
+        <path d="M250 56 L288 28 L282 70 Z" fill="#ffd970" stroke="#8a6a20" stroke-width="3"/>
+      </svg>
+    </div>
+    <div class="wText">
+      <div class="wKicker">星 门 定 位 中</div>
+      <div class="wTitle" id="warpTitle">前 往 下 一 界</div>
+      <div class="wSub">坐稳了，四人小队坐飞船出发！</div>
+    </div>
+    <div class="wSkip">点击任意处跳过</div>
+  </div>
 
 </div>
 
@@ -2726,6 +2793,31 @@ function showResult() {
   syncOverlayDim();
 }
 
+/* ============================ 关卡转场：坐飞船飞向下一界 ============================
+   第二关及以后开战前播放；第一关从学院直接出发，不打断节奏。
+   点击任意处可跳过。转场结束才真正开战，所以魔力门票仍只扣一次。 */
+var warpPass = false, warpBusy = false;
+function playWarp(cb) {
+  var st = stageOf(CFG.stage);
+  var dest = (st.name.split(' · ')[1] || st.name);
+  document.getElementById('warpTitle').textContent = '前 往 ' + dest;
+  var w = document.getElementById('warp');
+  w.classList.remove('show'); void w.offsetWidth;      /* 重启动画 */
+  w.classList.add('show');
+  warpBusy = true;
+  var done = false, tm;
+  function finish() {
+    if (done) return;
+    done = true; clearTimeout(tm);
+    w.classList.remove('show');
+    w.removeEventListener('click', finish);
+    warpBusy = false;
+    cb();
+  }
+  w.addEventListener('click', finish);
+  tm = setTimeout(finish, 2600);
+}
+
 /* ============================ 开局 / 主循环 ============================ */
 function startBattle() {
   ac();                       // 用户手势中解锁音频
@@ -2737,6 +2829,15 @@ function startBattle() {
     sfx('wrong');
     return;
   }
+  /* 第二关及以后：先坐飞船飞过去（校验通过才播，门票在转场后才扣一次） */
+  if (CFG.stage >= 2 && !warpPass && !warpBusy) {
+    var ed0 = loadEnergy();
+    if (!CFG.energyOn || ed0.pool >= CFG.energyNeed) {
+      playWarp(function () { warpPass = true; startBattle(); });
+      return;
+    }
+  }
+  warpPass = false;
   if (CFG.energyOn) {                        /* 魔力门票：开战时扣除 */
     var d = loadEnergy();
     if (d.pool < CFG.energyNeed) {

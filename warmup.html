@@ -34,6 +34,14 @@ html, body { background: #0b0820; }
 .opt .small, .optCard .roles, .tip { color: #b6a6e0; }
 .opt.on { background: linear-gradient(#8a63d8, #6a48c8); border-color: #ffd970; color: #fff; }
 .nameIn { background: rgba(255,255,255,.08); }
+/* 胜利 / 失败黑屏上的次要按钮 */
+#victory .subBtn, #timeout .subBtn {
+  margin: 18px 10px 0; padding: 14px 42px; font-size: 26px;
+  background: rgba(255,255,255,.06); color: #d7cbff;
+  border: 2px solid rgba(190,170,255,.45); box-shadow: none;
+}
+#victory .subBtn:active, #timeout .subBtn:active { background: rgba(120,90,200,.38); }
+.vicSubBtns { margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -113,6 +121,7 @@ html, body { background: #0b0820; }
       <div class="toTitle">闯 关 失 败</div>
       <div class="toSub">星门还没充满就到时间了……换一组同学上台，重新晨练吧！</div>
       <button id="btnRetry" class="bigBtn toBtn">重 来 一 次</button>
+      <div><button id="btnToHome" class="bigBtn subBtn">返 回 星 图 首 页</button></div>
     </div>
   </div>
 
@@ -128,6 +137,10 @@ html, body { background: #0b0820; }
       <div class="vicStats" id="vicStats"></div>
       <div class="vicEnergy" id="vicEnergy"></div>
       <button id="btnVicGo" class="bigBtn vicBtn">挑 战 第 一 关 · 魔法师大战魔王 →</button>
+      <div class="vicSubBtns">
+        <button id="btnVicAgain" class="bigBtn subBtn">再 玩 一 次 热 身 赛</button>
+        <button id="btnVicHome" class="bigBtn subBtn">返 回 星 图 首 页</button>
+      </div>
       <div class="vicTip">星尘够了！第一道星门亮起 —— 数学森林里，魔君的影子正守着第一片星核碎片。</div>
     </div>
   </div>
