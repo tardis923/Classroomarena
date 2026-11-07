@@ -39,9 +39,10 @@ var Scene = (function () {
   var team = {
     level: 1, hp: 1, info: '', boss: null,
     flash: 0, shake: 0, dying: -1, enter: 1, projs: [],
-    chargeDisp: 0,      /* 星门当前显示充能（连续平滑，答错会缓慢回落） */
-    chargeTarget: 0,    /* 目标充能：由答对题数决定 */
-    leakT: 0            /* 答错后的漏能剩余秒数 */
+    chargeDisp: 0,      /* 星门当前显示充能（连续平滑） */
+    chargeTarget: 0,    /* 真实充能值：答对 +2.5%，答错 -2% */
+    leakT: 0,           /* 漏能剩余秒数 */
+    leakAmt: 0, leakLeft: 0  /* 本次漏能总量 / 还剩多少没漏完 */
   };
   var BOSSES = [
     { name: '星门 · 待点亮', col: '#7a5ad8', dark: '#40308c', light: '#c5b0ff' }
@@ -50,7 +51,8 @@ var Scene = (function () {
     team.boss = BOSSES[(lv - 1) % BOSSES.length];
     team.hp = 1; team.flash = 0; team.shake = 0;
     team.dying = -1; team.enter = 0; team.projs = [];
-    team.chargeDisp = 0; team.chargeTarget = 0; team.leakT = 0;
+    team.chargeDisp = 0; team.chargeTarget = 0;
+    team.leakT = 0; team.leakAmt = 0; team.leakLeft = 0;
   }
 
   /* ---------------- 小工具 ---------------- */
@@ -1425,7 +1427,7 @@ var Scene = (function () {
 
   /* ============================================================
    * 模式三：团队闯关 —— 中央星门（答对 → 星尘汇入 → 充能点亮）
-   * team.hp 从 1 降到 0，这里把它反过来当作「充能度」用。
+   * 充能值由答对/答错决定（+2.5% / −2%），显示值平滑追随真实值。
    * ============================================================ */
   function drawBoss(c) {
     if (!team.boss) return;
@@ -1542,17 +1544,22 @@ var Scene = (function () {
     if (team.enter < 1) team.enter = Math.min(1, team.enter + dt * 2.4);
     if (team.dying >= 0) team.dying += dt;
 
-    /* 星门充能：连续平滑上涨（不是答对一题跳一格）；
-       有人答错 → 触发 3 秒缓慢漏能，之后靠持续踩踏慢慢补回目标值。 */
+    /* 星门充能：显示值连续平滑追赶真实值；
+       答错触发 2 秒缓慢漏能，真实值与显示值一起按比例扣掉指定额度。 */
     if (team.dying < 0) {
       if (team.leakT > 0) {
         team.leakT = Math.max(0, team.leakT - dt);
-        team.chargeDisp = Math.max(0, team.chargeDisp - dt * 0.024);
+        var step = Math.min(team.leakLeft, dt * (team.leakAmt / 2));
+        team.leakLeft -= step;
+        team.chargeTarget = Math.max(0, team.chargeTarget - step);
+        team.chargeDisp = Math.max(0, team.chargeDisp - step);
       }
       var k = Math.min(1, dt * (team.leakT > 0 ? 0.32 : 1.7));
       team.chargeDisp += (team.chargeTarget - team.chargeDisp) * k;
       if (team.chargeDisp > 1) team.chargeDisp = 1;
       if (team.chargeDisp < 0) team.chargeDisp = 0;
+      /* 真实值已满时，显示值接近满格即吸附到 100%，作为通关判定点 */
+      if (team.chargeTarget >= 1 && team.chargeDisp > 0.995) team.chargeDisp = 1;
     }
 
     for (var i = team.projs.length - 1; i >= 0; i--) {
@@ -1866,20 +1873,22 @@ var Scene = (function () {
     teamLv: function () { return team.level; },
     teamProg: function (i) { return chars[i] ? chars[i].prog : 0; },
     bossName: function () { return team.boss ? team.boss.name : ''; },
-    bossHit: function (i, newHp, info) {
+    bossHit: function (i, add, info) {
       var ch = chars[i];
       if (!ch) return;
       ch.throwFood();
       var last = team.projs[team.projs.length - 1];
-      if (last) { last.hp = newHp; last.info = info; }
-      team.chargeTarget = clamp01(1 - newHp);   /* 答对 → 充能目标上移，平滑涨上去 */
+      if (last) { last.hp = null; last.info = info; }
+      team.chargeTarget = clamp01(team.chargeTarget + (add || 0));   /* 答对 +2.5% */
     },
-    /* 答错：星门缓慢漏能 3 秒（之后靠持续踩踏补回） */
-    chargeLeak: function () {
+    /* 答错：2 秒内缓慢漏掉指定额度（默认 2%），真实值与显示值同步下降 */
+    chargeLoss: function (amt) {
       if (!starMode()) return;
-      team.leakT = 3;
+      var a = (amt == null) ? 0.02 : amt;
+      team.leakAmt = a; team.leakLeft = a; team.leakT = 2;
       team.flash = Math.max(team.flash, 0.35);
     },
+    chargeLeak: function () { this.chargeLoss(0.02); },
     charge: function () {              /* 只读：供调试/测试看连续充能状态 */
       return { disp: team.chargeDisp, target: team.chargeTarget, leak: team.leakT };
     },

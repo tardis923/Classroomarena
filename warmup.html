@@ -71,8 +71,8 @@ html, body { background: #0b0820; }
       <div class="setRow" id="rowBuns">
         <div class="setLabel" id="lbBun">题目数量</div>
         <div class="opts" id="optBuns"></div>
-        <div class="fixedVal gone" id="bunsFixed">平均<b>15</b> 题 / 人　四人共 <b>60</b> 题　限时 <b>100</b> 秒
-          <span class="fxsub">数学 + 语文 + 英语 + 安全 混合题 · 100 秒内答完才通关</span>
+        <div class="fixedVal gone" id="bunsFixed">答对一题 <b>+2.5%</b>　答错 <b>−2%</b>　限时 <b>60</b> 秒
+          <span class="fxsub">数学 + 语文 + 英语 + 安全 混合题 · 全对约 40 题充满，60 秒内把星门充到 100% 才通关</span>
         </div>
       </div>
 
@@ -105,7 +105,7 @@ html, body { background: #0b0820; }
 
   </div>
 
-  <!-- ============ 团队闯关：100 秒没点亮星门（黑屏） ============ -->
+  <!-- ============ 团队闯关：60 秒没充满星门（黑屏） ============ -->
   <div id="timeout">
     <div class="toInner">
       <div class="toKicker">时 间 到</div>
@@ -115,14 +115,14 @@ html, body { background: #0b0820; }
     </div>
   </div>
 
-  <!-- ============ 团队闯关：100 秒内完成（黑屏 · 赢魔力进第一关） ============ -->
+  <!-- ============ 团队闯关：星门充满 100%（黑屏 · 赢魔力进第一关） ============ -->
   <div id="victory">
     <div class="vicInner">
       <div class="vicKicker">胜 利</div>
       <div class="vicTitle">热 身 赛 通 关</div>
       <div class="vicFlavor">
         最后一道星尘落入星门，全场欢呼！<br>
-        60 道题、四个人、一条心 —— 第一道星门亮了！
+        100% 充能、四个人、一条心 —— 第一道星门亮了！
       </div>
       <div class="vicStats" id="vicStats"></div>
       <div class="vicEnergy" id="vicEnergy"></div>

@@ -38,29 +38,28 @@
   try { shuffleBank(CN_BANK); shuffleBank(EN_BANK); shuffleBank(SAFE_BANK); } catch (e) { }
 
   var state = 'setup';           // setup | count | play | pause | over
-  var cfg = { buns: 15, level: 0, theme: 'star', mode: 'team', names: [] };
+  var cfg = { buns: 10, level: 0, theme: 'star', mode: 'team', names: [] };
   var players = [];
   var startMs = 0, pausedMs = 0, elapsed = 0;
 
-  /* 团队闯关：一关定胜负，需要全队答对 buns × 4 题（固定 15×4 = 60 题）
-   * 用「本关已答对题数」计数，血量只是它的显示形式，
-   * 这样过场动画期间打出的伤害也不会丢。 */
-  /* 团队闯关：一关定胜负，每人固定 15 题（四人 60 题），限时 100 秒
-     通关奖励 30 点魔力（正好够换一张第一关门票）；失败不产魔力。 */
+  /* 团队闯关：星门充能到 100% 即胜利
+   * 答对 +2.5%（约 40 题充满）、答错 −2%（缓慢漏掉），限时 60 秒。
+   * 每人基准 10 题（四人共 40 题）；答错后要多答几题补回来。 */
   var TEAM_MAX_LEVEL = 1;
-  var TEAM_BUNS = 15;
-  /* 团队闯关限时：100 秒内没点亮星门 → 星门熄灭（黑屏，换下一批学生） */
-  var TEAM_TIME = 100;
+  var TEAM_BUNS = 10;
+  var TEAM_TIME = 60;
+  var CHARGE_ADD = 0.025;
+  var CHARGE_SUB = 0.02;
   var teamDone = 0, teamLevel = 1, teamWon = false, teamBusy = false;
   function teamNeed() { return cfg.buns * 4; }
   function teamInfoText() {
-    return '还差 ' + Math.max(0, teamNeed() - teamDone) + ' 题点亮星门';
+    return '已答对 ' + teamDone + ' 题';
   }
   /* 赛道竞速：是否已有人冲线 */
   var raceFirst = false;
 
   /* ---------------- 玩法已固定为「团队闯关」 ----------------
-   * 热身赛 = 关卡制的门票流水线：四人合力答完 60 题，通关奖 30 魔力，
+   * 热身赛 = 关卡制的门票流水线：四人合力把星门充到 100%，通关奖 30 魔力，
    * 失败不产魔力。吃食物 / 赛道竞速的代码保留但不进设置页。 */
   var MODES = [
     { id: 'team', name: '团队闯关（推荐！）', desc: '四人合力点亮星门，攒星尘去追回散落各界的星核碎片！' }
@@ -96,7 +95,7 @@
   };
   /* 副标题按主题自动生成，同样不含学科词 */
   var SUBS = {
-    team: function (r) { return r + '原地骑发电单车：答对就猛蹬一脚，星尘汇入中央星门 —— 充能一直在进行，答错会漏能哦！四人共 60 题点亮星门。'; }
+    team: function (r) { return r + '侧身骑发电单车：答对一题充能 +2.5%，答错漏掉 2% —— 60 秒内把星门充到 100% 就赢！'; }
   };
 
   /* 刷新设置页标题与副标题 */
@@ -153,7 +152,7 @@
       var html = '';
       if (!earned) {
         html += '<div class="eGain">本局四人共答对 ' + totalRight + ' 题 · 未通关，<b>本局不产魔力</b></div>';
-        html += '<div class="ePool eTip2">热身赛<b>通关</b>（100 秒内答完 60 题）才能拿到 <b>30</b> 点魔力 —— 再来一局吧！</div>';
+        html += '<div class="ePool eTip2">热身赛<b>通关</b>（60 秒内星门充能到 100%）才能拿到 <b>30</b> 点魔力 —— 再来一局吧！</div>';
       } else {
         html += '<div class="eGain">热身赛通关！　→　获得 <b>+' + eNum(gain) + '</b> 点魔力</div>';
         if (!ed.on) {
@@ -308,7 +307,7 @@
       list.push({ idx: i, name: sk[i].name, buns: cfg.buns, skin: sk[i], onSwallow: null, onEatDone: null });
     }
     Scene.setPlayers(list);
-    if (cfg.mode === 'team') Scene.teamLevel(1, Scene.bossName() + ' · 共 ' + teamNeed() + ' 题');
+    if (cfg.mode === 'team') Scene.teamLevel(1, '星门充能 · 答对 +2.5% · 答错 −2%');
     for (i = 0; i < 4; i++) Scene.char(i).plate = cfg.buns;
   }
 
@@ -564,9 +563,9 @@
     p.eaten++;
     if (Scene.char(i)) Scene.char(i).teamScore(p.eaten);
     teamDone++;
-    Scene.bossHit(i, Math.max(0, 1 - teamDone / teamNeed()), teamInfoText());
+    Scene.bossHit(i, CHARGE_ADD, teamInfoText());   /* 答对：充能 +2.5% */
     updateProgress(i);
-    checkTeamHp();                         // 本关打空：过关 / 通关
+    checkTeamHp();                                  /* 充满 100% 即胜利 */
     if (state === 'play') newQuestion(i); // 节奏不断，马上出新题
   }
 
@@ -599,7 +598,7 @@
       }
     }
     Scene.char(i).wrong();
-    Scene.chargeLeak();
+    Scene.chargeLoss(CHARGE_SUB);        // 答错 → 星门缓慢漏掉 2%
     updateProgress(i);
     setTimeout(function () { if (players[i]) newQuestion(i); }, 950);
   }
@@ -669,7 +668,7 @@
     el2.textContent = p.q.ans;          // 亮出正确答案，学生马上知道错在哪
 
     if (cfg.mode === 'race') Scene.stumble(i); else Scene.char(i).wrong();
-    Scene.chargeLeak();                  // 答错 → 星门缓慢漏能
+    Scene.chargeLoss(CHARGE_SUB);        // 答错 → 星门缓慢漏掉 2%
 
     // 换一题（食物/进度不丢，只是浪费了时间）
     p.input = '';
@@ -684,10 +683,10 @@
     updateProgress(i);
   }
 
-  /* 血量已被打空 —— 保证一定触发过关（过场动画结束后会再查一次） */
+  /* 星门充能到 100%（并显示已满）才通关 */
   function checkTeamHp() {
-    if (teamDone < teamNeed() || teamBusy) return;
-    teamLevelClear();
+    if (teamBusy) return;
+    if (Scene.charge().disp >= 1) teamLevelClear();
   }
 
   /* 过关：撒彩带 + 横幅 + 星门点亮 */
@@ -776,7 +775,7 @@
     var v = $('victory'); if (v) v.classList.add('show');
   }
 
-  /* ================= 团队闯关：100 秒到点，星门熄灭 ================= */
+  /* ================= 团队闯关：60 秒到点，星门熄灭 ================= */
   function teamTimeout() {
     if (state !== 'play') return;
     state = 'timeout';
@@ -921,7 +920,7 @@
       else $('resultTitle').textContent = ranked[0].name + ' ' + verb + '！';
     }
     /* ---- 魔力结算 ----
-       ① 热身赛通关（100 秒内答完 60 题）固定奖励 30 点魔力
+       ① 热身赛通关（60 秒内星门充能到 100%）固定奖励 30 点魔力
        ② 失败（提前结算 / 超时）不产魔力
        ③ 本局结束后仍不满 30 点 → 清零，换下一批学生从 0 开始攒               */
     var totalRight = 0;
@@ -951,13 +950,16 @@
       }
       if (state === 'play') {
         elapsed += dt * 1000;
+        if (cfg.mode === 'team' && !teamBusy && !teamWon && Scene.charge().disp >= 1) {
+          checkTeamHp();                   /* 充能条真的满 100% 才判定胜利 */
+        }
         if (cfg.mode === 'team') {
           /* 团队闯关：显示剩余秒数，到点星门熄灭 */
           var left = TEAM_TIME - elapsed / 1000;
           if (left < 0) left = 0;
           var ht = $('hudTime');
           ht.textContent = '剩 ' + Math.ceil(left) + 's';
-          if (left <= 20) ht.classList.add('warn'); else ht.classList.remove('warn');
+          if (left <= 15) ht.classList.add('warn'); else ht.classList.remove('warn');
           if (left <= 0 && !teamBusy && !teamWon) teamTimeout();
         } else {
           $('hudTime').classList.remove('warn');
