@@ -685,7 +685,7 @@ var DESERT_HEROES = [
   { cls: '沙雷术士', name: '沙雷', skill: '地脉蓄雷', key: 'thunder',
     desc: '蓄力 1.2 秒后重击',  robe: '#7a6ce0', dark: '#4034a0', orb: '#d8d0ff', tone: 300 },
   { cls: '烈日祭司', name: '炎阳', skill: '烈日祝福', key: 'fire',
-    desc: '全队增伤 25% · 8 秒', robe: '#f0a02c', dark: '#a85e10', orb: '#ffd98a', tone: 240 },
+    desc: '半伤 + 增伤叠 3 层', robe: '#f0a02c', dark: '#a85e10', orb: '#ffd98a', tone: 240 },
   { cls: '流沙守望', name: '沙漏', skill: '流沙陷坑', key: 'ice',
     desc: '推迟沙暴 8 秒',      robe: '#c9a060', dark: '#7a5a28', orb: '#ffe9b0', tone: 500 }
 ];
@@ -956,7 +956,7 @@ function newBattle() {
   B = {
     over: false, win: false, paused: false, elapsed: 0,
     tide: 0,                 /* 第三关：潮汐印记层数（每层我方伤害 +12%，满 3 层触发鲸歌共鸣） */
-    dmgBuffUntil: 0,         /* 第四关：烈日祝福的到期时间（B.elapsed 秒） */
+    sunStacks: [],           /* 第四关：烈日祝福层数（每层独立 8 秒到期时间，最多 3 层） */
     boss: {
       hp: Math.round(CFG.bossHp * stageHpMul()),
       max: Math.round(CFG.bossHp * stageHpMul()),
@@ -1176,9 +1176,17 @@ function castSeaSkill(h, from, to) {
    四种机制类型与前三关完全不同（一关单发 / 二关连射 / 三关印记连携）：
      绿洲甘泉  = 持续再生（HOT，后台分次回血）
      地脉蓄雷  = 延迟 1.2 秒的蓄力重击
-     烈日祝福  = 全队增伤 25% 持续 8 秒（纯增益，不造成伤害）
+     烈日祝福  = 当场半伤 + 可叠 3 层的全队增伤（每层 +25%，各自独立 8 秒）
      流沙陷坑  = 把 Boss 大招（沙暴）倒计时推迟 8 秒
    全部围绕「时间」做文章，呼应沙漏与流沙。 */
+/* 清掉过期层，返回当前有效层数 */
+function sunLevel() {
+  if (!B || !B.sunStacks) return 0;
+  for (var i = B.sunStacks.length - 1; i >= 0; i--) {
+    if (B.elapsed >= B.sunStacks[i]) B.sunStacks.splice(i, 1);
+  }
+  return B.sunStacks.length;
+}
 function castDesertSkill(h, from, to) {
   var back = 1.15;
 
@@ -1219,12 +1227,25 @@ function castDesertSkill(h, from, to) {
     back = 2.0;
 
   } else if (h.key === 'fire') {
-    /* 纯增益：全队 8 秒内伤害 +25%，自己不打伤害 */
+    /* 烈日祝福：先叠一层增伤，再当场补一发半伤火焰弹（答对立刻有反馈）。
+       最多 3 层，每层独立 8 秒；满层时把最早过期的那层续掉，保证不断档。 */
     sfx('fire');
-    B.dmgBuffUntil = B.elapsed + 8;
-    B.fx.push({ type: 'fire', t: 0, dur: 0.9, from: from, to: to });
-    banner('☀ ' + h.name + ' 唤起烈日祝福：全队 8 秒内伤害 +25%！');
-    floatText(to.x, to.y - 190, '烈 日 祝 福', '#ffd98a');
+    var now = B.elapsed;
+    if (!B.sunStacks) B.sunStacks = [];
+    sunLevel();                                  /* 先清过期层 */
+    if (B.sunStacks.length < 3) B.sunStacks.push(now + 8);
+    else {
+      B.sunStacks.sort(function (a, b) { return a - b; });
+      B.sunStacks.shift(); B.sunStacks.push(now + 8);
+    }
+    var lv = B.sunStacks.length;
+    B.fx.push({ type: 'fire', t: 0, dur: 0.7, from: from, to: to });
+    banner('☀ ' + h.name + ' 升起第 ' + lv + ' 轮烈日：全队伤害 +' + (lv * 25) + '%（每层独立 8 秒）！');
+    floatText(to.x, to.y - 190, '烈 日 x' + lv + ' · 伤害 +' + (lv * 25) + '%', '#ffd98a');
+    after(0.32, function () {
+      if (B.over) return;
+      damageBoss(heroDmg(Math.round(CFG.dmgFire * 0.5)), 'fire');
+    });
 
   } else {
     /* 推迟大招：把沙暴倒计时往后推 8 秒（不冻结 Boss 普攻） */
@@ -2428,95 +2449,142 @@ function drawOctopus(c, ph, R) {
   for (var j = 0; j < 4; j++) tentacle(j * 2 + (j % 2), true);
 }
 
-/* ---------- 第四关 Boss：沙海巨蝎王 ---------- */
+/* ---------- 第四关 Boss：沙海巨蝎王（侧身朝左，面向四人小队） ---------- */
 function drawScorpion(c, ph, R) {
-  var t = B.boss.bob;
-  var shell = c.createLinearGradient(0, -R, 0, R);
-  shell.addColorStop(0, ph.body); shell.addColorStop(1, ph.dark);
+  var t = B.boss.bob, sw = Math.sin(t * 1.3) * 4;
 
-  /* 八条节肢：左右各四，随呼吸摆动 */
-  for (var side = -1; side <= 1; side += 2) {
-    for (var i = 0; i < 4; i++) {
-      var bx = side * (34 + i * 8), by = -30 + i * 30;
-      var sway = Math.sin(t * 1.5 + i * 0.9 + side) * 10;
-      var kx = side * (108 + i * 14), ky = by + 12 + sway;
-      var fx2 = side * (150 + i * 16), fy = by + 76 + sway;
-      c.strokeStyle = ph.dark; c.lineWidth = 12; c.lineCap = 'round'; c.lineJoin = 'round';
-      c.beginPath(); c.moveTo(bx, by); c.lineTo(kx, ky); c.lineTo(fx2, fy); c.stroke();
-      c.strokeStyle = ph.body; c.lineWidth = 7;
-      c.beginPath(); c.moveTo(bx, by); c.lineTo(kx, ky); c.stroke();
-    }
+  /* 地面投影，把蝎子从沙色背景里托起来 */
+  c.fillStyle = 'rgba(70,35,10,.32)';
+  c.beginPath(); c.ellipse(0, 122, 196, 18, 0, 0, 6.2832); c.fill();
+
+  /* ===== 远侧四条腿：暗色，退在身体后面 ===== */
+  for (var fk = 0; fk < 4; fk++) {
+    var fx = -66 + fk * 46;
+    c.strokeStyle = ph.dark; c.lineWidth = 10; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(fx, 6); c.lineTo(fx + 26, 44); c.lineTo(fx + 42, 96); c.stroke();
   }
 
-  /* 上翘的尾钩（带毒针） */
-  c.strokeStyle = ph.dark; c.lineWidth = 30; c.lineCap = 'round'; c.lineJoin = 'round';
-  c.beginPath();
-  c.moveTo(0, 30); c.quadraticCurveTo(96, 92, 118, -30);
-  c.quadraticCurveTo(132, -112, 58, -146); c.stroke();
-  c.strokeStyle = ph.body; c.lineWidth = 18;
-  c.beginPath();
-  c.moveTo(0, 30); c.quadraticCurveTo(96, 92, 118, -30);
-  c.quadraticCurveTo(132, -112, 58, -146); c.stroke();
-  /* 尾节环纹 */
-  c.strokeStyle = 'rgba(60,30,10,.35)'; c.lineWidth = 3;
-  for (var q = 0; q < 5; q++) {
-    var qx = 20 + q * 22, qy = 58 - q * 20;
-    c.beginPath(); c.arc(qx, qy, 5, 0, 6.2832); c.stroke();
-  }
-  /* 毒针 */
-  c.fillStyle = ph.horn;
-  c.beginPath(); c.moveTo(58, -146); c.lineTo(20, -168); c.lineTo(48, -128); c.closePath(); c.fill();
-  c.fillStyle = 'rgba(120,255,140,.55)';
-  c.beginPath(); c.arc(28, -160, 5, 0, 6.2832); c.fill();
-
-  /* 躯干甲壳 */
-  c.fillStyle = shell;
-  c.beginPath(); c.ellipse(0, 0, R * 0.78, R * 0.92, 0, 0, 6.2832); c.fill();
-  c.strokeStyle = ph.dark; c.lineWidth = 5; c.stroke();
-  /* 甲壳分节 */
-  c.strokeStyle = 'rgba(80,40,10,.32)'; c.lineWidth = 4;
-  for (var s = 0; s < 4; s++) {
-    var sy = -52 + s * 32;
-    c.beginPath(); c.moveTo(-R * 0.7, sy);
-    c.quadraticCurveTo(0, sy + 12, R * 0.7, sy); c.stroke();
-  }
-  c.fillStyle = 'rgba(255,240,190,.14)';
-  c.beginPath(); c.ellipse(-22, -46, 30, 42, -0.3, 0, 6.2832); c.fill();
-
-  /* 两只大钳 */
-  for (var sd = -1; sd <= 1; sd += 2) {
-    c.save(); c.translate(sd * 108, -34); c.scale(sd, 1);
-    c.strokeStyle = ph.dark; c.lineWidth = 20; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(-14, 20); c.lineTo(34, -12); c.stroke();
+  /* ===== 尾巴：从腹部右端上卷、越过头顶，六节甲片 + 毒针 ===== */
+  var tp = [
+    { x: 92,  y: 18,   r: 26 }, { x: 140, y: 0,    r: 25 },
+    { x: 166, y: -44,  r: 23 }, { x: 152, y: -94,  r: 21 },
+    { x: 108, y: -130, r: 19 }, { x: 54,  y: -146, r: 17 }
+  ];
+  c.strokeStyle = ph.dark; c.lineWidth = 42; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.beginPath(); c.moveTo(tp[0].x, tp[0].y);
+  for (var ti = 1; ti < tp.length; ti++) c.lineTo(tp[ti].x, tp[ti].y);
+  c.stroke();
+  for (var i2 = 0; i2 < tp.length; i2++) {
+    var q = tp[i2], qy = q.y + sw * (i2 / 5) * 0.5;
     c.fillStyle = ph.body;
-    c.beginPath(); c.ellipse(52, -24, 40, 27, -0.35, 0, 6.2832); c.fill();
+    c.beginPath(); c.ellipse(q.x, qy, q.r, q.r * 0.88, i2 * 0.42, 0, 6.2832); c.fill();
     c.strokeStyle = ph.dark; c.lineWidth = 4; c.stroke();
-    /* 钳口 */
-    c.fillStyle = ph.body;
-    c.beginPath(); c.moveTo(78, -34); c.lineTo(120, -46); c.lineTo(96, -20); c.closePath(); c.fill();
-    c.beginPath(); c.moveTo(78, -16); c.lineTo(118, -2); c.lineTo(90, -28); c.closePath(); c.fill();
-    c.restore();
+    c.fillStyle = 'rgba(255,240,190,.24)';
+    c.beginPath(); c.ellipse(q.x - q.r * 0.28, qy - q.r * 0.34, q.r * 0.46, q.r * 0.2, -0.4, 0, 6.2832); c.fill();
+  }
+  /* 毒针朝前（左）扎 */
+  c.fillStyle = ph.horn;
+  c.beginPath(); c.moveTo(54 + sw * 0.5, -146); c.lineTo(2, -158);
+  c.lineTo(40, -126); c.closePath(); c.fill();
+  c.strokeStyle = ph.dark; c.lineWidth = 3; c.stroke();
+  c.fillStyle = 'rgba(150,255,160,.6)';
+  c.beginPath(); c.arc(12, -150, 5, 0, 6.2832); c.fill();
+
+  /* ===== 分节腹部：从头胸甲往尾部逐节收窄 ===== */
+  for (var ab = 0; ab < 5; ab++) {
+    var ax = -20 + ab * 26, ah = 32 - ab * 2;
+    c.fillStyle = ab % 2 ? ph.body : ph.dark;
+    c.beginPath(); c.ellipse(ax, 14, 17, ah, 0, 0, 6.2832); c.fill();
+    c.strokeStyle = ph.dark; c.lineWidth = 3; c.stroke();
+    c.fillStyle = 'rgba(255,240,190,.16)';
+    c.beginPath(); c.ellipse(ax - 5, 2, 8, ah * 0.5, -0.2, 0, 6.2832); c.fill();
   }
 
-  /* 复眼 + 阶段头冠 */
-  c.fillStyle = ph.eye;
-  for (var e = -1; e <= 1; e += 2) {
-    c.beginPath(); c.ellipse(e * 26, -74, 15, 18, 0, 0, 6.2832); c.fill();
-    c.fillStyle = '#2a1408';
-    c.beginPath(); c.ellipse(e * 26, -72, 6, 11, 0, 0, 6.2832); c.fill();
-    c.fillStyle = ph.eye;
+  /* ===== 头胸甲（朝左，前窄后宽） ===== */
+  var bg = c.createLinearGradient(-120, -54, -20, 32);
+  bg.addColorStop(0, ph.body); bg.addColorStop(1, ph.dark);
+  c.fillStyle = bg;
+  c.beginPath();
+  c.moveTo(-122, -28);
+  c.quadraticCurveTo(-124, -54, -72, -56);
+  c.lineTo(-28, -40);
+  c.quadraticCurveTo(-16, 2, -28, 28);
+  c.lineTo(-106, 30);
+  c.quadraticCurveTo(-128, 12, -122, -28);
+  c.closePath(); c.fill();
+  c.strokeStyle = ph.dark; c.lineWidth = 6; c.stroke();
+  c.fillStyle = 'rgba(255,240,190,.22)';
+  c.beginPath(); c.ellipse(-76, -34, 36, 12, -0.18, 0, 6.2832); c.fill();
+  c.strokeStyle = 'rgba(60,28,10,.3)'; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(-112, -14); c.lineTo(-40, -8); c.stroke();
+
+  /* ===== 近侧四条腿：三段折线 + 尖爪 ===== */
+  for (var k = 0; k < 4; k++) {
+    var sx = -88 + k * 48;
+    var kx = sx - 24 + k * 12 + sw, ky = 58;
+    var ex = sx - 34 + k * 26, ey = 108;
+    c.strokeStyle = ph.dark; c.lineWidth = 14; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(sx, 18); c.lineTo(kx, ky); c.lineTo(ex, ey); c.stroke();
+    c.strokeStyle = ph.body; c.lineWidth = 8;
+    c.beginPath(); c.moveTo(sx, 18); c.lineTo(kx, ky); c.stroke();
+    c.fillStyle = ph.horn;
+    c.beginPath(); c.moveTo(ex, ey); c.lineTo(ex - 15, ey + 5);
+    c.lineTo(ex, ey + 10); c.closePath(); c.fill();
   }
+
+  /* ===== 远侧大钳（暗，靠后上） ===== */
+  c.strokeStyle = ph.dark; c.lineWidth = 16; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-100, -34); c.lineTo(-146, -60); c.lineTo(-172, -58); c.stroke();
+  c.fillStyle = ph.dark;
+  c.beginPath(); c.ellipse(-186, -58, 24, 17, -0.2, 0, 6.2832); c.fill();
+  c.beginPath(); c.moveTo(-202, -66); c.lineTo(-232, -74); c.lineTo(-204, -54); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(-202, -50); c.lineTo(-230, -40); c.lineTo(-200, -56); c.closePath(); c.fill();
+
+  /* ===== 近侧大钳（主，张开的双指带齿） ===== */
+  c.strokeStyle = ph.dark; c.lineWidth = 26; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.beginPath(); c.moveTo(-110, 2); c.lineTo(-158, -14); c.lineTo(-190, -6); c.stroke();
+  c.fillStyle = ph.body;
+  c.beginPath(); c.ellipse(-212, -4, 38, 29, -0.12, 0, 6.2832); c.fill();
+  c.strokeStyle = ph.dark; c.lineWidth = 5; c.stroke();
+  c.fillStyle = 'rgba(255,240,190,.22)';
+  c.beginPath(); c.ellipse(-222, -16, 20, 9, -0.3, 0, 6.2832); c.fill();
+  /* 上指 */
+  c.fillStyle = ph.body;
+  c.beginPath(); c.moveTo(-238, -24); c.quadraticCurveTo(-278, -36, -292, -18);
+  c.lineTo(-274, -2); c.quadraticCurveTo(-258, -12, -238, -6); c.closePath(); c.fill();
+  c.strokeStyle = ph.dark; c.lineWidth = 4; c.stroke();
+  /* 下指（张开） */
+  c.beginPath(); c.moveTo(-238, 12); c.quadraticCurveTo(-276, 28, -290, 42);
+  c.lineTo(-270, 46); c.quadraticCurveTo(-256, 28, -236, 24); c.closePath(); c.fill();
+  c.stroke();
+  /* 钳齿 */
+  c.fillStyle = ph.horn;
+  for (var z = 0; z < 3; z++) {
+    c.beginPath(); c.moveTo(-252 - z * 11, -12); c.lineTo(-258 - z * 11, -6);
+    c.lineTo(-250 - z * 11, -4); c.closePath(); c.fill();
+  }
+
+  /* ===== 复眼、中眼、口器 ===== */
+  c.fillStyle = '#2a1408';
+  c.beginPath(); c.ellipse(-100, -34, 11, 13, 0, 0, 6.2832); c.fill();
+  c.fillStyle = ph.eye;
+  c.beginPath(); c.ellipse(-100, -35, 7, 9, 0, 0, 6.2832); c.fill();
+  c.fillStyle = '#fff';
+  c.beginPath(); c.arc(-103, -38, 3, 0, 6.2832); c.fill();
+  c.fillStyle = '#2a1408';
+  c.beginPath(); c.arc(-76, -42, 3.5, 0, 6.2832); c.fill();
+  c.beginPath(); c.moveTo(-120, 12); c.lineTo(-134, 24); c.lineTo(-116, 26); c.closePath(); c.fill();
+
+  /* 阶段头冠 */
   if (ph.spikes >= 1) {
     c.fillStyle = ph.horn;
     for (var sp = 0; sp <= ph.spikes; sp++) {
-      var hx = -34 + sp * 34;
-      c.beginPath(); c.moveTo(hx - 10, -100); c.lineTo(hx, -132 - sp * 8);
-      c.lineTo(hx + 10, -100); c.closePath(); c.fill();
+      var hx = -104 + sp * 22;
+      c.beginPath(); c.moveTo(hx - 8, -50); c.lineTo(hx, -82 - sp * 8);
+      c.lineTo(hx + 8, -50); c.closePath(); c.fill();
+      c.strokeStyle = ph.dark; c.lineWidth = 3; c.stroke();
     }
   }
-  /* 颚 */
-  c.fillStyle = '#3a1c0c';
-  c.beginPath(); c.moveTo(-16, 52); c.lineTo(0, 66); c.lineTo(16, 52); c.closePath(); c.fill();
 }
 
 function drawZombot(c, ph, R) {
@@ -2728,7 +2796,13 @@ function drawBoss(c) {
   if (isStage2() && B.boss.stun > 0) st.push('⚡麻痹 ' + Math.ceil(B.boss.stun) + 's');
   if (isStage3() && B.tide > 0) st.push('🌊潮汐印记 x' + B.tide + ' 伤害+' + (B.tide * 12) + '%');
   if (isStage3() && B.boss.stun > 0) st.push('🫧气泡禁锢 ' + Math.ceil(B.boss.stun) + 's');
-  if (isStage4() && B.elapsed < B.dmgBuffUntil) st.push('☀烈日祝福 ' + Math.ceil(B.dmgBuffUntil - B.elapsed) + 's 伤害+25%');
+  if (isStage4()) {
+    var sun = sunLevel();
+    if (sun > 0) {
+      var soon = Math.min.apply(null, B.sunStacks);
+      st.push('☀烈日 x' + sun + ' 伤害+' + (sun * 25) + '% · ' + Math.ceil(soon - B.elapsed) + 's');
+    }
+  }
   if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, (dc > 0 || (isStage2() && B.rageLvl > 0)) ? '#ffb27a' : '#ffe08a', 'center');
 }
 
@@ -3067,7 +3141,8 @@ function growMul() { return 1 + growPct() / 100; }
 function heroMaxHp() { return Math.round(CFG.heroHp * growMul()); }
 function heroDmg(x) {
   var m = growMul() * (1 + (B && B.tide ? B.tide * 0.12 : 0));
-  if (B && B.elapsed < B.dmgBuffUntil) m *= 1.25;   /* 第四关：烈日祝福 */
+  var lv = sunLevel();
+  if (lv > 0) m *= (1 + 0.25 * lv);            /* 第四关：烈日祝福可叠 3 层 */
   return Math.round(x * m);
 }
 function heroHeal(x) { return Math.round(x * growMul()); }
@@ -3191,7 +3266,7 @@ function applyStageText() {
   if (h1) h1.textContent = '团队合作知识闯关 · ' + st.name.split(' · ')[0];
   if (sub) {
     sub.innerHTML = isStage4()
-      ? '四人换上沙漠装束闯进流沙遗迹，答对英语单词驱动「<b>沙漏时序</b>」：泉泉<b>持续再生</b>、沙雷<b>蓄力 1.2 秒重击</b>、炎阳给<b>全队增伤 25%（8 秒）</b>、沙漏把<b>沙暴推迟 8 秒</b>。四种机制全是关于时间，和前三关完全不同。巨蝎王血量为第一关 <b>1.75 倍</b>、攻击 <b>1.5 倍</b>，别让沙暴叠起来。'
+      ? '四人换上沙漠装束闯进流沙遗迹，答对英语单词驱动「<b>沙漏时序</b>」：泉泉<b>持续再生</b>、沙雷<b>蓄力 1.2 秒重击</b>、炎阳<b>当场打一发</b>并给全队<b>可叠 3 层的增伤</b>（每层 +25%、各自 8 秒）、沙漏把<b>沙暴推迟 8 秒</b>。四种机制全是关于时间，和前三关完全不同。巨蝎王血量为第一关 <b>1.75 倍</b>、攻击 <b>1.5 倍</b>，别让沙暴叠起来。'
       : (isStage3()
       ? '四名潜水员穿上潜水服下潜珊瑚碑林，答对语文题就能<b>叠潮汐印记</b>：每层让我方伤害 <b>+12%</b>，满 3 层触发<b>鲸歌共鸣</b>额外一击并给全队回血。技能全换过了：珊瑚<b>全队回血</b>、电鳗<b>两连击</b>、灯笼<b>一次叠两层</b>、冰豚<b>气泡禁锢</b>只在<b>前两阶段</b>有效（第一阶段 2 秒 / 第二阶段 1 秒，第三阶段免疫）。章鱼怪血量为第一关 <b>1.5 倍</b>、攻击 <b>1.35 倍</b>。'
       : (isStage2()
