@@ -20,6 +20,12 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 .logo { font-size: 30px; letter-spacing: 4px; color: #cfc2ff; font-weight: 500; }
 .logo b { color: #ffe6a6; font-weight: 500; }
 .classTag { font-size: 22px; color: #bdb2e6; border: 1px solid rgba(190,170,255,.28); padding: 10px 22px; border-radius: 30px; background: rgba(40,30,80,.4); }
+.topRight { display: flex; align-items: center; gap: 14px; }
+.adminBtn { font-family: inherit; font-size: 19px; color: #9b8ec9; cursor: pointer;
+  background: rgba(40,30,80,.4); border: 1px solid rgba(190,170,255,.22);
+  border-radius: 30px; padding: 10px 20px; letter-spacing: 1px; }
+.adminBtn:hover { color: #ffe6a6; border-color: rgba(255,230,166,.5); }
+.adminBtn:active { transform: translateY(2px); }
 
 .hero { position: absolute; left: 100px; top: 168px; width: 760px; }
 .eyebrow { font-size: 21px; letter-spacing: 8px; color: #9b8bd8; margin-bottom: 22px; }
@@ -100,7 +106,10 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
 
   <div class="topbar">
     <div class="logo">知识星核 <b>· 四界追光</b></div>
-    <div class="classTag" id="classTag">尚未签到</div>
+    <div class="topRight">
+      <div class="classTag" id="classTag">尚未签到</div>
+      <button id="btnAdmin" class="adminBtn" title="老师专用 · 需管理密码">⚙ 管 理 设 置</button>
+    </div>
   </div>
 
   <div class="hero">
@@ -228,13 +237,13 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     WORLDS.forEach(function (w) {
       var el = document.getElementById('nd' + w.id);
       var isOff = w.done && off.indexOf(w.id) >= 0;
+      var hidden = !w.done || isOff;      /* 没做好 / 老师关掉：一律当作「尚未开放」 */
       var lit = w.done && !isOff && w.id <= p.unlocked;
-      el.className = 'node n' + w.id + (lit ? ' lit' : ((isOff || !w.done) ? ' wip' : ''));
-      var state = isOff ? '敬请期待 · 老师已关闭'
-        : (!w.done ? '坐标解析中 · 敬请期待' : (lit ? '已点亮 · 可进入' : '尚未解锁'));
-      el.innerHTML = '<div class="nno">WORLD ' + w.id + ' · ' + (w.done ? '主线' : '待开放') + '</div>' +
+      el.className = 'node n' + w.id + (lit ? ' lit' : (hidden ? ' wip' : ''));
+      var state = hidden ? '坐标解析中 · 敬请期待' : (lit ? '已点亮 · 可进入' : '尚未解锁');
+      el.innerHTML = '<div class="nno">WORLD ' + w.id + ' · ' + (hidden ? '待开放' : '主线') + '</div>' +
         '<div class="nname">' + w.name + '</div>' +
-        '<div class="nsub">' + (isOff ? '敬请期待' : w.subj) + '</div>' +
+        '<div class="nsub">' + (hidden ? '坐标解析中' : w.subj) + '</div>' +
         '<div class="nstate">' + state + '</div>';
     });
   }
@@ -246,9 +255,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     WORLDS.forEach(function (w) { if (w.done && off.indexOf(w.id) < 0 && w.id <= p.unlocked) lit++; });
     document.getElementById('status').innerHTML =
       '本机存档 · 已点亮 <b>' + lit + '</b> 个世界　|　通关 <b>' + p.wins + '</b> 次　|　' +
-      '小队成长 <b>+' + grow + '%</b>　|　星尘（魔力）<b>' + (en.pool || 0) + '</b> 点' +
-      (off.length ? '　|　<b>' + off.length + '</b> 关已由老师关闭（敬请期待）' : '') +
-      '　|　进度只存在这台一体机';
+      '小队成长 <b>+' + grow + '%</b>　|　星尘（魔力）<b>' + (en.pool || 0) + '</b> 点　|　进度只存在这台一体机';
     document.getElementById('bossSub').textContent = '已解锁 ' + p.unlocked + ' 个世界 · 追回散落各界的星核碎片';
   }
 
@@ -256,10 +263,11 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     var p = loadProg(), off = closedStages(), h = '';
     WORLDS.forEach(function (w) {
       var isOff = w.done && off.indexOf(w.id) >= 0;
+      var hidden = !w.done || isOff;
       var lit = w.done && !isOff && w.id <= p.unlocked;
       h += '<div class="act"><div class="no">0' + w.id + '</div><div>' +
-        '<div class="tt">' + w.name + ' · ' + (isOff ? '敬请期待' : (lit ? '已夺回星核碎片' : (w.done ? '尚未抵达' : '坐标解析中'))) + '</div>' +
-        '<div class="dd">' + (isOff ? '老师暂时关闭了这一界，星图坐标被收了起来。' : w.intro) + '</div></div></div>';
+        '<div class="tt">' + w.name + ' · ' + (hidden ? '坐标解析中' : (lit ? '已夺回星核碎片' : '尚未抵达')) + '</div>' +
+        '<div class="dd">' + (hidden ? '星图坐标还在解析中，敬请期待。' : w.intro) + '</div></div></div>';
     });
     h += '<div class="act"><div class="no">∞</div><div><div class="tt">星图之外</div>' +
       '<div class="dd">星图每亮一块，就会指出下一界的坐标。等整张星图亮起，魔君真身才会现身——旅程还长着呢。</div></div></div>';
@@ -289,6 +297,8 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
   document.getElementById('className').addEventListener('keydown', function (e) { if (e.key === 'Enter') doEnter(); });
   document.getElementById('btnWarmup').addEventListener('click', function () { location.href = 'warmup.html'; });
   document.getElementById('btnBoss').addEventListener('click', function () { location.href = 'boss-battle.html'; });
+  /* 老师专用：跳到关卡挑战并自动弹出管理密码，设置完回到首页 */
+  document.getElementById('btnAdmin').addEventListener('click', function () { location.href = 'boss-battle.html?admin=1'; });
   document.getElementById('btnStory').addEventListener('click', function () { document.getElementById('story').style.display = 'flex'; });
   document.getElementById('btnStoryClose').addEventListener('click', function () { document.getElementById('story').style.display = 'none'; });
 

@@ -2752,7 +2752,7 @@ function buildSetup() {
   /* 关卡选择：锁定状态按班级进度实时计算 */
   mkOpts('optStage', STAGES.map(function (s) {
     var closed = CFG.offStages.indexOf(s.id) >= 0;
-    return { id: s.id, name: s.name, desc: closed ? '敬请期待 · 老师已关闭' : s.desc, locked: stageLocked(s.id) };
+    return { id: s.id, name: s.name, desc: closed ? '坐标解析中 · 敬请期待' : s.desc, locked: stageLocked(s.id) };
   }), CFG.stage, function (id) { pickStage(id); });
   buildStageOnOpts();
   /* 开始按钮状态：魔力不足 或 选中关卡锁定 → 置灰 */
@@ -2923,6 +2923,8 @@ function openSettings() {
 }
 function closeSettings() {
   document.getElementById('settings').classList.add('hidden');
+  /* 从首页「管理设置」进来的：设置完直接回星图首页，不停在选关页 */
+  if (typeof ADMIN_FROM_HOME !== 'undefined' && ADMIN_FROM_HOME) { location.href = 'index.html'; return; }
   if (setWasRunning) resumeBattle();
   else backToSetup();
   syncOverlayDim();
@@ -3226,7 +3228,7 @@ function startBattle() {
   readCfg();
   if (stageLocked(CFG.stage)) {              /* 保险：锁定关卡不允许开战 */
     toast(stageOf(CFG.stage).done
-      ? (CFG.offStages && CFG.offStages.indexOf(CFG.stage) >= 0 ? '老师暂时关闭了这一关，敬请期待！'
+      ? (CFG.offStages && CFG.offStages.indexOf(CFG.stage) >= 0 ? '这一关还在制作中，敬请期待！'
           : '这一关还没解锁 —— 先通前面的关，或让老师在设置里开启「全部解锁」')
       : '这一关还在制作中，敬请期待！');
     sfx('wrong');
@@ -3344,6 +3346,17 @@ document.getElementById('btnCloseCfg').addEventListener('click', function () { s
 document.getElementById('btnToArena').addEventListener('click', function () { sfx('click'); location.href = 'warmup.html'; });
 document.getElementById('btnClearEnergy').addEventListener('click', clearEnergy);
 requestAnimationFrame(loop);
+
+/* 首页「管理设置」入口：?admin=1 → 自动弹管理密码；关闭/保存设置后回星图首页 */
+var ADMIN_FROM_HOME = /(?:^|[?&])admin=1(?:&|$)/.test(location.search);
+if (ADMIN_FROM_HOME) {
+  var adminCloseBtn = document.getElementById('btnCloseCfg');
+  if (adminCloseBtn) adminCloseBtn.textContent = '返 回 星 图 首 页';
+  document.getElementById('pwCancel').addEventListener('click', function () {
+    location.href = 'index.html';
+  });
+  setTimeout(function () { openPw(); }, 260);
+}
 
 </script>
 </body>
