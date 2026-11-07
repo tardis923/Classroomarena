@@ -143,14 +143,13 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .sumline { text-align: center; font-size: 21px; color: #ffd45e; margin-top: 14px; font-weight: 700; }
 
 /* ================= 左上角「设置」/ 右上角「全屏」 ================= */
-#hud { position: absolute; left: 0; top: 0; width: 1920px; height: 0; z-index: 80; pointer-events: none; }
-.hudBtn { position: absolute; top: 12px; height: 52px; min-width: 120px; padding: 0 18px;
+#hud { position: absolute; left: 16px; top: 12px; display: flex; gap: 12px; z-index: 80; pointer-events: none; }
+.hudBtn { height: 52px; min-width: 120px; padding: 0 18px;
           border: 3px solid rgba(255,255,255,.22); border-radius: 14px; pointer-events: auto;
           background: rgba(36,26,61,.94); color: #ffd45e; font-size: 24px; font-weight: 700;
           font-family: inherit; cursor: pointer; }
 .hudBtn:active { background: #4a3f74; color: #fff; }
-#btnSet { left: 16px; }
-#btnFs  { right: 16px; }
+/* 「设置」与「全屏」并排放在左上角 */
 
 /* ================= 密码键盘（管理入口） ================= */
 .mask { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 200;
