@@ -26,6 +26,9 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   border-radius: 30px; padding: 10px 20px; letter-spacing: 1px; }
 .adminBtn:hover { color: #ffe6a6; border-color: rgba(255,230,166,.5); }
 .adminBtn:active { transform: translateY(2px); }
+/* 管理设置：全屏内嵌层，地址栏仍是首页，背后不露出关卡挑战页内容 */
+#adminFrame { position: fixed; inset: 0; width: 100%; height: 100%;
+  border: 0; z-index: 9999; background: #0d0a20; }
 
 .hero { position: absolute; left: 100px; top: 168px; width: 760px; }
 .eyebrow { font-size: 21px; letter-spacing: 8px; color: #9b8bd8; margin-bottom: 22px; }
@@ -297,8 +300,21 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
   document.getElementById('className').addEventListener('keydown', function (e) { if (e.key === 'Enter') doEnter(); });
   document.getElementById('btnWarmup').addEventListener('click', function () { location.href = 'warmup.html'; });
   document.getElementById('btnBoss').addEventListener('click', function () { location.href = 'boss-battle.html'; });
-  /* 老师专用：跳到关卡挑战并自动弹出管理密码，设置完回到首页 */
-  document.getElementById('btnAdmin').addEventListener('click', function () { location.href = 'boss-battle.html?admin=1'; });
+  /* 老师专用：在首页内打开全屏管理帧（密码 + 设置），不切换页面 */
+  document.getElementById('btnAdmin').addEventListener('click', function () {
+    if (document.getElementById('adminFrame')) return;
+    var f = document.createElement('iframe');
+    f.id = 'adminFrame'; f.src = 'boss-battle.html?admin=1';
+    f.setAttribute('frameborder', '0'); f.setAttribute('allowtransparency', 'false');
+    document.body.appendChild(f);
+  });
+  /* 管理帧关掉后移除，并立刻刷新星图 / 状态栏 / 旅途记事 */
+  window.addEventListener('message', function (e) {
+    if (!e.data || e.data.type !== 'adminClose') return;
+    var f = document.getElementById('adminFrame');
+    if (f) f.remove();
+    var p = loadProg(); renderWorlds(p); renderStatus(p); renderStory();
+  });
   document.getElementById('btnStory').addEventListener('click', function () { document.getElementById('story').style.display = 'flex'; });
   document.getElementById('btnStoryClose').addEventListener('click', function () { document.getElementById('story').style.display = 'none'; });
 

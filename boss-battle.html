@@ -192,6 +192,13 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
          pointer-events: none; opacity: 0; transition: opacity .25s; white-space: nowrap; }
 #toast.show { opacity: 1; }
 
+/* 首页内嵌的管理帧：只留密码层与设置层，关卡挑战页的画面/面板全部隐藏 */
+body.adminOnly #arena, body.adminOnly #panels, body.adminOnly #hud,
+body.adminOnly #toast, body.adminOnly #warp,
+body.adminOnly #setup, body.adminOnly #result { display: none !important; }
+body.adminOnly #stage { background: #0d0a20 !important; }
+body.adminOnly #overlay { background: transparent !important; backdrop-filter: none !important; }
+
 /* ================= 关卡转场：坐飞船飞向下一界 ================= */
 #warp { position: absolute; inset: 0; z-index: 400; display: none; overflow: hidden;
         background: radial-gradient(700px 520px at 68% 42%, rgba(110,80,210,.35), transparent 70%),
@@ -2923,8 +2930,8 @@ function openSettings() {
 }
 function closeSettings() {
   document.getElementById('settings').classList.add('hidden');
-  /* 从首页「管理设置」进来的：设置完直接回星图首页，不停在选关页 */
-  if (typeof ADMIN_FROM_HOME !== 'undefined' && ADMIN_FROM_HOME) { location.href = 'index.html'; return; }
+  /* 嵌在首页的管理帧：关掉设置就通知首页移除帧；直接打开时自己回首页 */
+  if (typeof ADMIN_FROM_HOME !== 'undefined' && ADMIN_FROM_HOME) { adminExit(); return; }
   if (setWasRunning) resumeBattle();
   else backToSetup();
   syncOverlayDim();
@@ -3345,17 +3352,28 @@ document.getElementById('btnResetCfg').addEventListener('click', resetSettings);
 document.getElementById('btnCloseCfg').addEventListener('click', function () { sfx('click'); closeSettings(); });
 document.getElementById('btnToArena').addEventListener('click', function () { sfx('click'); location.href = 'warmup.html'; });
 document.getElementById('btnClearEnergy').addEventListener('click', clearEnergy);
-requestAnimationFrame(loop);
 
-/* 首页「管理设置」入口：?admin=1 → 自动弹管理密码；关闭/保存设置后回星图首页 */
+/* 首页「管理设置」内嵌帧：?admin=1
+   - 隐藏关卡挑战页全部画面，只留管理密码 / 参数设置
+   - 密码逻辑仍只有这一份，不复制、不跳转
+   - 取消、保存、恢复默认、关闭都通过 postMessage 让首页移除帧 */
 var ADMIN_FROM_HOME = /(?:^|[?&])admin=1(?:&|$)/.test(location.search);
-if (ADMIN_FROM_HOME) {
-  var adminCloseBtn = document.getElementById('btnCloseCfg');
-  if (adminCloseBtn) adminCloseBtn.textContent = '返 回 星 图 首 页';
-  document.getElementById('pwCancel').addEventListener('click', function () {
+function adminExit() {
+  if (window.parent !== window) {
+    try { window.parent.postMessage({ type: 'adminClose' }, '*'); } catch (e) { }
+  } else {
     location.href = 'index.html';
-  });
-  setTimeout(function () { openPw(); }, 260);
+  }
+}
+if (!ADMIN_FROM_HOME) requestAnimationFrame(loop);
+if (ADMIN_FROM_HOME) {
+  document.body.classList.add('adminOnly');
+  var adminCloseBtn = document.getElementById('btnCloseCfg');
+  if (adminCloseBtn) adminCloseBtn.textContent = '关 闭 · 返 回 星 图';
+  var setHead = document.querySelector('#settings .cardHead h1');
+  if (setHead) setHead.textContent = '管 理 设 置';
+  document.getElementById('pwCancel').addEventListener('click', adminExit);
+  setTimeout(function () { openPw(); }, 240);
 }
 
 </script>
