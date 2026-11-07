@@ -704,7 +704,7 @@ var DESERT_HEROES = [
   { cls: '烈日祭司', name: '炎阳', skill: '烈日祝福', key: 'fire',
     desc: '半伤 + 增伤叠 3 层', robe: '#f0a02c', dark: '#a85e10', orb: '#ffd98a', tone: 240 },
   { cls: '流沙守望', name: '沙漏', skill: '流沙陷坑', key: 'ice',
-    desc: '推迟沙暴 8 秒',      robe: '#c9a060', dark: '#7a5a28', orb: '#ffe9b0', tone: 500 }
+    desc: '陷坑吞大招 · 最多 2 层', robe: '#c9a060', dark: '#7a5a28', orb: '#ffe9b0', tone: 500 }
 ];
 
 /* ============================ 第三关 · 海底探险（主题层） ============================
@@ -976,6 +976,8 @@ function newBattle() {
     over: false, win: false, paused: false, elapsed: 0,
     tide: 0,                 /* 第三关：潮汐印记层数（每层我方伤害 +12%，满 3 层触发鲸歌共鸣） */
     sunStacks: [],           /* 第四关：烈日祝福层数（每层独立 8 秒到期时间，最多 3 层） */
+    pitStacks: 0,            /* 第四关：流沙陷坑层数（最多 2 层，每层吃掉一次大招） */
+    pitGuard: 0,             /* 刚吞过一次大招 → 下一次必定命中，防止被无限吞掉 */
     boss: {
       hp: Math.round(CFG.bossHp * stageHpMul()),
       max: Math.round(CFG.bossHp * stageHpMul()),
@@ -1196,7 +1198,7 @@ function castSeaSkill(h, from, to) {
      绿洲甘泉  = 持续再生（HOT，后台分次回血）
      地脉蓄雷  = 延迟 1.2 秒的蓄力重击
      烈日祝福  = 当场半伤 + 可叠 3 层的全队增伤（每层 +25%，各自独立 8 秒）
-     流沙陷坑  = 把 Boss 大招（沙暴）倒计时推迟 8 秒
+     流沙陷坑  = 叠「陷坑」层（最多 2），每层吞掉一次大招（倒计时照常重置）
    全部围绕「时间」做文章，呼应沙漏与流沙。 */
 /* 清掉过期层，返回当前有效层数 */
 function sunLevel() {
@@ -1267,13 +1269,13 @@ function castDesertSkill(h, from, to) {
     });
 
   } else {
-    /* 推迟大招：把沙暴倒计时往后推 8 秒（不冻结 Boss 普攻） */
+    /* 流沙陷坑：叠层（上限 2），每层吞掉一次大招；不再改动倒计时 */
     sfx('ice');
     B.fx.push({ type: 'ice', t: 0, dur: 0.8, from: from, to: to });
     after(0.32, function () { damageBoss(heroDmg(Math.round(CFG.dmgIce * 0.6)), 'ice'); });
-    B.meteorCd += 8;
-    banner(h.name + ' 挖开流沙陷坑 —— 沙暴推迟 8 秒！');
-    floatText(to.x, to.y - 190, '沙暴 +8 秒', '#ffe9b0');
+    B.pitStacks = Math.min(2, (B.pitStacks || 0) + 1);
+    banner('🕳 ' + h.name + ' 挖开流沙陷坑（' + B.pitStacks + '/2）：可吞掉下次万针齐发！');
+    floatText(to.x, to.y - 190, '陷 坑 x' + B.pitStacks, '#ffe9b0');
   }
 
   after(back, function () { giveQuestion(h); });
@@ -1614,6 +1616,17 @@ function normalAttack() {
 
 function meteorAttack() {
   if (!B || B.over) return;
+  /* 第四关：陷坑吞掉这一次大招（倒计时在 tickBoss 里已照常重置） */
+  if (isStage4() && B.pitStacks > 0 && !B.pitGuard) {
+    B.pitStacks--;
+    B.pitGuard = 1;           /* 下一次大招必定命中：最多吃掉一半 */
+    banner('🕳 流沙陷坑吞掉了这次万针齐发！剩余 ' + B.pitStacks + ' 层');
+    floatText(BOSS_X - 60, BOSS_Y - 170, '陷 坑 吞 没 ！', '#ffd98a');
+    B.fx.push({ type: 'pitSwallow', t: 0, dur: 0.9, x: BOSS_X - 60, y: BOSS_Y + 110 });
+    sfx('ice');
+    return;
+  }
+  B.pitGuard = 0;             /* 本次大招正常释放 */
   var ph = PH()[B.boss.phase];
   var s2 = isStage2();
   B.meteorWarn = true;
@@ -2862,6 +2875,7 @@ function drawBoss(c) {
       var soon = Math.min.apply(null, B.sunStacks);
       st.push('☀烈日 x' + sun + ' 伤害+' + (sun * 25) + '% · ' + Math.ceil(soon - B.elapsed) + 's');
     }
+    if (B.pitStacks > 0) st.push('🕳陷坑 x' + B.pitStacks + ' · 可吞 ' + B.pitStacks + ' 次大招');
   }
   if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, (dc > 0 || (isStage2() && B.rageLvl > 0)) ? '#ffb27a' : '#ffe08a', 'center');
 }
@@ -2933,6 +2947,18 @@ function drawFx(c) {
         c.strokeStyle = f.tint || '#7ff0a8'; c.lineWidth = 10;
         c.beginPath(); c.arc(f.to.x, f.to.y, 30 + (p - 0.5) * 260, 0, 6.2832); c.stroke();
       }
+    } else if (f.type === 'pitSwallow') {
+      /* 陷坑吞掉大招：Boss 脚下沙尘旋涡 */
+      c.globalAlpha = 1 - p * 0.45;
+      for (var pq = 0; pq < 4; pq++) {
+        c.strokeStyle = pq % 2 ? 'rgba(240,190,110,.72)' : 'rgba(150,100,48,.7)';
+        c.lineWidth = 9 - pq;
+        c.beginPath();
+        c.ellipse(f.x, f.y, 40 + p * 170 + pq * 22, 15 + p * 58 + pq * 9, 0, 0, 6.2832);
+        c.stroke();
+      }
+      c.fillStyle = 'rgba(90,55,20,.5)';
+      c.beginPath(); c.ellipse(f.x, f.y, 30 + p * 90, 10 + p * 30, 0, 0, 6.2832); c.fill();
     } else if (f.type === 'sting') {
       /* 第四关普攻「蝎尾针」：一根毒针带拖尾扎向目标 */
       var sp = Math.min(1, p * 1.3);
@@ -3437,7 +3463,7 @@ function applyStageText() {
   if (h1) h1.textContent = '团队合作知识闯关 · ' + st.name.split(' · ')[0];
   if (sub) {
     sub.innerHTML = isStage4()
-      ? '四人换上沙漠装束闯进流沙遗迹，答对英语单词驱动「<b>沙漏时序</b>」：泉泉<b>持续再生</b>、沙雷<b>蓄力 1.2 秒重击</b>、炎阳<b>当场打一发</b>并给全队<b>可叠 3 层的增伤</b>（每层 +25%、各自 8 秒）、沙漏把<b>沙暴推迟 8 秒</b>。四种机制全是关于时间，和前三关完全不同。巨蝎王血量为第一关 <b>1.75 倍</b>、攻击 <b>1.5 倍</b>，别让沙暴叠起来。'
+      ? '四人换上沙漠装束闯进流沙遗迹，答对英语单词驱动「<b>沙漏时序</b>」：泉泉<b>持续再生</b>、沙雷<b>蓄力 1.2 秒重击</b>、炎阳<b>当场打一发</b>并给全队<b>可叠 3 层的增伤</b>（每层 +25%、各自 8 秒）、沙漏叠<b>流沙陷坑</b>（最多 2 层，每层吞掉一次万针齐发）。四种机制全是关于时间，和前三关完全不同。巨蝎王血量为第一关 <b>1.75 倍</b>、攻击 <b>1.5 倍</b>，大招一定会来，别堆太多层。'
       : (isStage3()
       ? '四名潜水员穿上潜水服下潜珊瑚碑林，答对语文题就能<b>叠潮汐印记</b>：每层让我方伤害 <b>+12%</b>，满 3 层触发<b>鲸歌共鸣</b>额外一击并给全队回血。技能全换过了：珊瑚<b>全队回血</b>、电鳗<b>两连击</b>、灯笼<b>一次叠两层</b>、冰豚<b>气泡禁锢</b>只在<b>前两阶段</b>有效（第一阶段 2 秒 / 第二阶段 1 秒，第三阶段免疫）。章鱼怪血量为第一关 <b>1.5 倍</b>、攻击 <b>1.35 倍</b>。'
       : (isStage2()
