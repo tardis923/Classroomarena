@@ -1283,7 +1283,7 @@ function castDesertSkill(h, from, to) {
     B.fx.push({ type: 'ice', t: 0, dur: 0.8, from: from, to: to });
     after(0.32, function () { damageBoss(heroDmg(Math.round(CFG.dmgIce * 0.6)), 'ice'); });
     B.pitStacks = Math.min(2, (B.pitStacks || 0) + 1);
-    banner('🕳 ' + h.name + ' 挖开流沙陷坑（' + B.pitStacks + '/2）：可吞掉下次万针齐发！');
+    banner('🕳 ' + h.name + ' 挖开流沙陷坑（' + B.pitStacks + '/2）：可吞掉下次万针蝎雨！');
     floatText(to.x, to.y - 190, '陷 坑 x' + B.pitStacks, '#ffe9b0');
   }
 
@@ -1630,7 +1630,7 @@ function meteorAttack() {
   if (isStage4() && B.pitStacks > 0 && !B.pitGuard) {
     B.pitStacks--;
     B.pitGuard = 1;           /* 下一次大招必定命中：最多吃掉一半 */
-    banner('🕳 流沙陷坑吞掉了这次万针齐发！剩余 ' + B.pitStacks + ' 层');
+    banner('🕳 流沙陷坑吞掉了这次万针蝎雨！剩余 ' + B.pitStacks + ' 层');
     floatText(BOSS_X - 60, BOSS_Y - 170, '陷 坑 吞 没 ！', '#ffd98a');
     B.fx.push({ type: 'pitSwallow', t: 0, dur: 0.9, x: BOSS_X - 60, y: BOSS_Y + 110 });
     sfx('ice');
@@ -1640,7 +1640,7 @@ function meteorAttack() {
   var ph = PH()[B.boss.phase];
   var s2 = isStage2();
   B.meteorWarn = true;
-  banner(isStage4() ? '万针齐发！大家小心！' : (isStage3() ? '墨潮席卷！大家小心！' : (s2 ? '巨人僵尸来袭！大家小心！' : '陨石来袭！大家小心！')));
+  banner(isStage4() ? '万针蝎雨！大家小心！' : (isStage3() ? '墨潮席卷！大家小心！' : (s2 ? '巨人僵尸来袭！大家小心！' : '陨石来袭！大家小心！')));
   sfx('warn');
   B.fx.push({ type: 'warn', t: 0, dur: 1.5 });
   /* 全屏演出从警告阶段就开始涌，命中时达到高潮（不再是「只有陨石」） */
@@ -1977,8 +1977,8 @@ function drawTopBar(c) {
 
   /* 陨石/巨人倒计时 */
   var ml = Math.max(0, B.meteorCd);
-  txt(c, ml < 5 ? (isStage4() ? '万针即将齐发！' : (isStage3() ? '墨潮即将席卷！' : (isStage2() ? '巨人即将来袭！' : '陨石即将来临！')))
-              : (isStage4() ? '万针倒计时 ' : (isStage3() ? '墨潮倒计时 ' : (isStage2() ? '巨人倒计时 ' : '陨石倒计时 '))) + secs(ml) + ' 秒',
+  txt(c, ml < 5 ? (isStage4() ? '蝎雨即将来袭！' : (isStage3() ? '墨潮即将席卷！' : (isStage2() ? '巨人即将来袭！' : '陨石即将来临！')))
+              : (isStage4() ? '蝎雨倒计时 ' : (isStage3() ? '墨潮倒计时 ' : (isStage2() ? '巨人倒计时 ' : '陨石倒计时 '))) + secs(ml) + ' 秒',
       1620, 58, 18, ml < 8 ? '#ff7a6a' : '#b9aed6');
 }
 
@@ -3016,7 +3016,7 @@ function drawFx(c) {
           24 + (iq % 4) * 13, 0, 6.2832); c.fill();
       }
     } else if (f.type === 'needleRain') {
-      /* 第四关大招「万针齐发」：满屏针雨 */
+      /* 第四关大招「万针蝎雨」：满屏针雨 */
       c.globalAlpha = 1;
       for (var nq = 0; nq < 52; nq++) {
         var nx = (nq * 197 + 40) % W;
@@ -3040,7 +3040,7 @@ function drawFx(c) {
           60 + ((ib * 137 + p * 300) % (AH - 100)), 8 + (ib % 4) * 7, 0, 6.2832); c.fill();
       }
     } else if (f.type === 'stingHit') {
-      /* 万针齐发的单体命中：一簇毒针扎落 + 沙尘 */
+      /* 万针蝎雨的单体命中：一簇毒针扎落 + 沙尘 */
       c.globalAlpha = 1;
       for (var sq = 0; sq < 7; sq++) {
         var a2 = sq * 0.9 + 0.4, r2 = 20 + p * 62;
@@ -3172,7 +3172,7 @@ function drawFx(c) {
       c.strokeStyle = '#ff5a4a'; c.lineWidth = 8;
       rr(c, -330, -62, 660, 124, 18); c.stroke();
       c.fillStyle = 'rgba(40,8,8,.85)'; rr(c, -330, -62, 660, 124, 18); c.fill();
-      txt(c, isStage4() ? '万 针 齐 发 ！' : (isStage3() ? '墨 潮 席 卷 ！' : (isStage2() ? '巨 人 来 袭 ！' : '陨 石 来 袭 ！')), 0, 0, 68, '#ffd45e', 'center');
+      txt(c, isStage4() ? '万 针 蝎 雨 ！' : (isStage3() ? '墨 潮 席 卷 ！' : (isStage2() ? '巨 人 来 袭 ！' : '陨 石 来 袭 ！')), 0, 0, 68, '#ffd45e', 'center');
       c.restore();
       for (var w2 = 0; w2 < 5; w2++) {   /* 下落提示 */
         var wx = 200 + w2 * 340, wy = 120 + ((p * 900 + w2 * 200) % 320);
@@ -3473,7 +3473,7 @@ function applyStageText() {
   if (h1) h1.textContent = '团队合作知识闯关 · ' + st.name.split(' · ')[0];
   if (sub) {
     sub.innerHTML = isStage4()
-      ? '四人换上沙漠装束闯进流沙遗迹，答对英语单词驱动「<b>沙漏时序</b>」：泉泉<b>持续再生</b>、沙雷<b>蓄力 1.2 秒重击</b>、炎阳<b>当场打一发</b>并给全队<b>可叠 3 层的增伤</b>（每层 +25%、各自 8 秒）、沙漏叠<b>流沙陷坑</b>（最多 2 层，每层吞掉一次万针齐发）。四种机制全是关于时间，和前三关完全不同。巨蝎王血量为第一关 <b>1.75 倍</b>、攻击 <b>1.5 倍</b>，大招一定会来，别堆太多层。'
+      ? '四人换上沙漠装束闯进流沙遗迹，答对英语单词驱动「<b>沙漏时序</b>」：泉泉<b>持续再生</b>、沙雷<b>蓄力 1.2 秒重击</b>、炎阳<b>当场打一发</b>并给全队<b>可叠 3 层的增伤</b>（每层 +25%、各自 8 秒）、沙漏叠<b>流沙陷坑</b>（最多 2 层，每层吞掉一次万针蝎雨）。四种机制全是关于时间，和前三关完全不同。巨蝎王血量为第一关 <b>1.75 倍</b>、攻击 <b>1.5 倍</b>，大招一定会来，别堆太多层。'
       : (isStage3()
       ? '四名潜水员穿上潜水服下潜珊瑚碑林，答对语文题就能<b>叠潮汐印记</b>：每层让我方伤害 <b>+12%</b>，满 3 层触发<b>鲸歌共鸣</b>额外一击并给全队回血。技能全换过了：珊瑚<b>全队回血</b>、电鳗<b>两连击</b>、灯笼<b>一次叠两层</b>、冰豚<b>气泡禁锢</b>只在<b>前两阶段</b>有效（第一阶段 2 秒 / 第二阶段 1 秒，第三阶段免疫）。章鱼怪血量为第一关 <b>1.5 倍</b>、攻击 <b>1.35 倍</b>。'
       : (isStage2()
