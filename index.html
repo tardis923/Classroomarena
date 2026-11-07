@@ -208,7 +208,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     { id: 3, name: '海底碑林', subj: '语文知识 · 深海潜水小队', done: true,
       intro: '珊瑚碑林的字词被章鱼怪搅乱了 —— 穿上潜水服，破译鲸歌密码！' },
     { id: 4, name: '流沙遗迹', subj: '英语单词 · 沙漠远征', done: true,
-      intro: '沙海深处的遗迹里，巨蝎王守着最后一片星核碎片。' }
+      intro: '沙海深处的遗迹里，巨蝎王守着又一片星核碎片。' }
   ];
 
   function readJSON(k, d) {
@@ -275,7 +275,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
         '<div class="dd">' + (hidden ? '星图坐标还在解析中，敬请期待。' : w.intro) + '</div></div></div>';
     });
     h += '<div class="act"><div class="no">∞</div><div><div class="tt">星图之外</div>' +
-      '<div class="dd">星图每亮一块，就会指出下一界的坐标。等整张星图亮起，魔君真身才会现身——旅程还长着呢。</div></div></div>';
+      '<div class="dd">星图每亮一块，就会指出下一界的坐标。新的坐标还在不断浮现——旅程还长着呢，星图之外也还有星图。</div></div></div>';
     document.getElementById('storyActs').innerHTML = h;
   }
 
