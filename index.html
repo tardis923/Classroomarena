@@ -120,12 +120,12 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     <div class="eyebrow">知识学院 · 星图计划</div>
     <h1>知 识 星 核</h1>
     <div class="tagline">四 界 追 光</div>
-    <p class="prologue">学院里的星图忽然暗了。终焉知识魔君打碎星核，把碎片撒进一个个世界——<b>每片碎片都会点亮一道星门，也唤醒一名守核者</b>。<br>
+    <p class="prologue">学院里的星图忽然暗了。终焉知识魔君打碎星核，把碎片撒向各界——<b>每片碎片都会点亮一道星门，也唤醒一名守核者</b>。<br>
       于是四个人循着星图残存的光出发：先在学院晨练攒星尘，再沿着星门一界一界追回碎片。星核会按当地的法则给你们换身行头……别担心，还是你们四个。</p>
     <div class="menu">
       <button class="mbtn primary" id="btnWarmup"><div><span class="mt">学院晨练 · 热身赛</span><span class="ms">四科混合闯关 · 攒星尘点亮星门</span></div><span class="arrow">→</span></button>
       <button class="mbtn" id="btnBoss"><div><span class="mt">关卡挑战 · 继续追光</span><span class="ms" id="bossSub">追回散落各界的星核碎片</span></div><span class="arrow">→</span></button>
-      <button class="mbtn" id="btnStory"><div><span class="mt">旅 途 记 事</span><span class="ms">看看已经走过的世界</span></div><span class="arrow">→</span></button>
+      <button class="mbtn" id="btnStory"><div><span class="mt">旅 途 记 事</span><span class="ms">看看走过的每一界</span></div><span class="arrow">→</span></button>
     </div>
   </div>
 
@@ -142,7 +142,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     <div class="node n2" id="nd2"></div>
     <div class="node n3" id="nd3"></div>
     <div class="node n4" id="nd4"></div>
-    <div class="more">· 星图之外，还有更多世界 ·</div>
+    <div class="more">· 星图之外，还有更多坐标 ·</div>
   </div>
 
   <div id="login">
@@ -199,7 +199,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
   var CFG_KEY = 'bossbattle_cfg_v1';
   var ENERGY_KEY = 'arena_energy_v1';
 
-  /* 与关卡表对应的世界（开放式：星图之外还能继续加） */
+  /* 与关卡表对应的各界（开放式：星图之外还能继续加） */
   var WORLDS = [
     { id: 1, name: '数学森林', subj: '数学口算 · 魔法师小队', done: true,
       intro: '森林的咒语全失灵了 —— 答对口算，把魔君的影子打回去！' },
@@ -246,7 +246,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
       var lit = w.done && !isOff && w.id <= p.unlocked;
       el.className = 'node n' + w.id + (lit ? ' lit' : (hidden ? ' wip' : ''));
       var state = hidden ? '坐标解析中 · 敬请期待' : (lit ? '已点亮 · 可进入' : '尚未解锁');
-      el.innerHTML = '<div class="nno">WORLD ' + w.id + ' · ' + (hidden ? '待开放' : '主线') + '</div>' +
+      el.innerHTML = '<div class="nno">第 ' + w.id + ' 界 · ' + (hidden ? '待开放' : '主线') + '</div>' +
         '<div class="nname">' + w.name + '</div>' +
         '<div class="nsub">' + (hidden ? '坐标解析中' : w.subj) + '</div>' +
         '<div class="nstate">' + state + '</div>';
@@ -259,9 +259,9 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     var lit = 0, off = closedStages();
     WORLDS.forEach(function (w) { if (w.done && off.indexOf(w.id) < 0 && w.id <= p.unlocked) lit++; });
     document.getElementById('status').innerHTML =
-      '本机存档 · 已点亮 <b>' + lit + '</b> 个世界　|　通关 <b>' + p.wins + '</b> 次　|　' +
+      '本机存档 · 已点亮 <b>' + lit + '</b> 界　|　通关 <b>' + p.wins + '</b> 次　|　' +
       '小队成长 <b>+' + grow + '%</b>　|　星尘 <b>' + (en.pool || 0) + '</b> 点　|　进度只存在这台一体机';
-    document.getElementById('bossSub').textContent = '已解锁 ' + p.unlocked + ' 个世界 · 追回散落各界的星核碎片';
+    document.getElementById('bossSub').textContent = '已解锁 ' + p.unlocked + ' 界 · 追回散落各界的星核碎片';
   }
 
   function renderStory() {
