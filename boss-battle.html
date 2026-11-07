@@ -1002,7 +1002,7 @@ function newBattle() {
         q: null, input: '', locked: false, wrongT: 0, healCount: 0, wrongRun: 0
       };
     }),
-    atkCd: CFG.bossAtkEvery, meteorCd: meteorEveryOf(0), meteorWarn: false, disableCd: 13,
+    atkCd: CFG.bossAtkEvery, meteorCd: meteorEveryOf(0), meteorWarn: false, disableCd: disableEvery(),
     /* 第二关专属：怒气机制 + 小怪波次（第一关字段闲置） */
     rageT: 20, rageLvl: 0, dmgMul: 1, atkEveryMul: 1, waveT: 6,
     slowT: 0,          /* 寒冰豌豆：机甲减速剩余秒数 */
@@ -1572,16 +1572,17 @@ function tickBoss(dt) {
   /* 三/四关：Boss 定时干扰 1.5 秒（三关只黑屏、四关封一名角色的按键） */
   if (isStage3() || isStage4()) {
     B.disableCd -= bdt;
-    if (B.disableCd <= 0) { B.disableCd = 13; disableOneHero(); }
+    if (B.disableCd <= 0) { B.disableCd = disableEvery(); disableOneHero(); }
   }
 
   B.meteorCd -= bdt;
   if (B.meteorCd <= 0) { B.meteorCd = meteorEveryOf(bs.phase); meteorAttack(); }
 }
 
-/* ---------- 第三/四关专属：Boss 干扰技能（每 13 秒，1.5 秒） ----------
-   第三关章鱼「喷墨遮蔽」→ 全屏墨云黑屏，纯视觉遮挡，不禁止任何按键；
-   第四关蝎子「蝎尾麻痹」→ 随机一名角色答题面板变灰、按键无效 */
+/* ---------- 第三/四关专属：Boss 干扰技能（1.5 秒） ----------
+   第三关章鱼「喷墨遮蔽」→ 全屏墨云黑屏，纯视觉遮挡，不禁止任何按键，20 秒一次；
+   第四关蝎子「蝎尾麻痹」→ 随机一名角色答题面板变灰、按键无效，13 秒一次 */
+function disableEvery() { return isStage3() ? 20 : 13; }
 function disableOneHero() {
   if (!B || B.over) return;
   sfx('warn');
