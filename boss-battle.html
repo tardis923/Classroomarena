@@ -140,6 +140,20 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .bigBtn.ghost { background: #4a3f74; color: #fff; height: 62px; font-size: 26px; }
 .bigBtn.off { opacity: .4; filter: grayscale(.7); cursor: default; }
 .storyLine { margin: 0 0 10px; font-size: 22px; line-height: 1.5; color: #ffd98a; letter-spacing: 1px; }
+/* 选关页：去掉按钮下方的大段提示后，把上方信息放大，一体机上更清楚 */
+#setup .storyLine { font-size: 27px; line-height: 1.55; margin-bottom: 14px; }
+#setup h1 { font-size: 52px; margin-bottom: 10px; }
+#setup .sub { font-size: 24px; line-height: 1.6; margin-bottom: 18px; }
+#setup .setLabel { font-size: 27px; margin-bottom: 10px; }
+#setup .opt { font-size: 25px; padding: 14px 22px; }
+#setup .opt .small { font-size: 18px; }
+#setup .energyBar { padding: 18px 22px; }
+#setup .eLine { font-size: 28px; }
+#setup .eLine b { font-size: 38px; }
+#setup .eTip { font-size: 22px; }
+#setup .cardBody .tip { font-size: 20px; line-height: 1.6; }
+#setup .cardFoot .bigBtn { font-size: 38px; height: 80px; }
+#setup .cardFoot .bigBtn.ghost { font-size: 28px; height: 68px; }
 .storyOutro { margin: 14px 0 0; padding: 14px 20px; border-radius: 12px; background: rgba(120,90,190,.2);
   border: 1px solid rgba(200,170,255,.28); font-size: 20px; line-height: 1.65; color: #ffe6b0; text-align: left; }
 .bigBtn.off { background: #3d3358; color: #8d84a8; }
@@ -289,13 +303,8 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
       <div class="cardFoot">
         <button id="btnStart" class="bigBtn">开 始 战 斗</button>
         <button id="btnToArena" class="bigBtn ghost gone">先去「热身赛」通关攒星尘 →</button>
-        <a href="index.html" style="display:block;text-align:center;margin-top:14px;color:#b9a9f0;font-size:19px;text-decoration:none">← 返回星图首页</a>
-        <div class="tip">提示：四个人同时答题、互不干扰；谁答对谁立刻放技能。治疗师答对给血量最少的队友回血；全员都满血时改为给全队加护盾，可以挡下 Boss 的攻击。累计答对 10 次还会全队一起回血。<br>
-        ⏭ 每人每局最多「跳过 / 换一题」<b>6 次</b>（按钮上会显示剩余次数，用完就不能再跳了），遇到难题要努力想一想哦。<br>
-        注意：②③ 阶段的 Boss 会免疫灼烧与冰冻，大招陨石也会越来越频繁（30 → 20 → 10 秒），并且一击就能把护盾砸碎。<br>
-        💢 每倒下一名队友，剩下的角色攻击力 +10%（愤怒），倒得越多打得越狠。<br>
-        🌱 每通关一次，全班攻击 / 血量 / 治疗永久 <b>+2%</b>（上限 20%）—— 打不过没关系，多通关就变强！<br>
-        🎃 第二关特色：技能全面换新 —— 雷芦苇三道电弧连击（末道麻痹机甲）、小火炬连喷火焰豌豆点燃、冰豌豆连喷寒冰豌豆减速（免疫期也有效）；治疗改种<b>坚果墙</b>挡大招（巨人一击砸碎）、博士机甲每 <b>20 秒</b>变怒一次（攻击 +8% · 出手更快），草坪上还会有小僵尸路过凑热闹。</div>
+        <a href="index.html" style="display:block;text-align:center;margin-top:14px;color:#b9a9f0;font-size:24px;text-decoration:none">← 返回星图首页</a>
+
       </div>
     </div>
 
