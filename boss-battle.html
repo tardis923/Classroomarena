@@ -17,6 +17,21 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 
 /* ================= 下方：四个答题区 ================= */
 #panels { width: 1920px; height: 360px; display: flex; }
+/* 章鱼喷墨：全屏墨云黑屏（pointer-events:none，不拦截其它角色点击） */
+#inkScreen { position: absolute; inset: 0; z-index: 340; display: none; pointer-events: none;
+  background: radial-gradient(700px 500px at 72% 40%, rgba(20,10,45,.82), rgba(2,1,10,.97) 70%),
+              linear-gradient(120deg, rgba(6,3,18,.96), rgba(24,10,52,.9));
+  align-items: center; justify-content: center; flex-direction: column; }
+#inkScreen.show { display: flex; animation: inkPulse 1.5s ease-out both; }
+#inkScreen .inkTitle { font-size: 68px; letter-spacing: 12px; color: #b9a5f0; font-weight: 700;
+  text-shadow: 0 0 40px rgba(120,80,220,.8); }
+#inkScreen .inkSub { font-size: 28px; color: #8f7ac8; margin-top: 18px; letter-spacing: 4px; }
+@keyframes inkPulse { 0% { opacity: 0; } 12% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
+/* 蝎尾麻痹：被禁的角色面板变灰 */
+.pcol.paralyzed { filter: grayscale(.85); opacity: .55; }
+.pcol.paralyzed::after { content: '⚡ 麻 痹'; position: absolute; left: 0; right: 0; top: 44%;
+  text-align: center; font-size: 42px; font-weight: 700; color: #ffd45e; letter-spacing: 8px;
+  text-shadow: 0 0 24px rgba(255,180,60,.9); pointer-events: none; }
 .pcol { width: 480px; height: 360px; padding: 8px 12px 10px; position: relative;
         border-left: 3px solid rgba(255,255,255,.10); transition: opacity .2s; }
 .pcol:first-child { border-left: none; }
@@ -243,6 +258,8 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
 
   <canvas id="arena" width="1920" height="720"></canvas>
   <div id="panels"></div>
+  <!-- 第三关「喷墨遮蔽」：全屏墨云黑屏 1.5 秒（不拦截其它角色的点击） -->
+  <div id="inkScreen"><div class="inkTitle">🖤 墨 汁 遮 蔽</div><div class="inkSub">暂时看不清题目…</div></div>
 
   <div id="overlay">
     <div id="setup" class="card">
@@ -953,6 +970,8 @@ var BOSS_X = 1480, BOSS_Y = 400;
 
 function newBattle() {
   clearTimers();
+  var oldInk = document.getElementById('inkScreen');
+  if (oldInk) oldInk.classList.remove('show');
   B = {
     over: false, win: false, paused: false, elapsed: 0,
     tide: 0,                 /* 第三关：潮汐印记层数（每层我方伤害 +12%，满 3 层触发鲸歌共鸣） */
@@ -968,11 +987,11 @@ function newBattle() {
       return {
         i: i, cls: h.cls, name: h.name, key: h.key, ref: h,
         hp: heroMaxHp(), max: heroMaxHp(), alive: true, shield: 0,
-        hitT: 0, castT: 0, glow: 0, shieldT: 0,
+        hitT: 0, castT: 0, glow: 0, shieldT: 0, noInputT: 0,
         q: null, input: '', locked: false, wrongT: 0, healCount: 0, wrongRun: 0
       };
     }),
-    atkCd: CFG.bossAtkEvery, meteorCd: meteorEveryOf(0), meteorWarn: false,
+    atkCd: CFG.bossAtkEvery, meteorCd: meteorEveryOf(0), meteorWarn: false, disableCd: 13,
     /* 第二关专属：怒气机制 + 小怪波次（第一关字段闲置） */
     rageT: 20, rageLvl: 0, dmgMul: 1, atkEveryMul: 1, waveT: 6,
     slowT: 0,          /* 寒冰豌豆：机甲减速剩余秒数 */
@@ -1019,7 +1038,7 @@ function giveQuestion(h) {
 function checkAnswer(i, val) {
   if (!B || B.over || B.paused) return;
   var h = B.heroes[i];
-  if (!h || !h.alive || h.locked || !h.q) return;
+  if (!h || !h.alive || h.locked || !h.q || h.noInputT > 0) return;
   if (val === h.q.ans) {
     h.locked = true;
     B.stats.per[i].right++;
@@ -1539,8 +1558,42 @@ function tickBoss(dt) {
   B.atkCd -= bdt;
   if (B.atkCd <= 0) { B.atkCd = CFG.bossAtkEvery * B.atkEveryMul; normalAttack(); }
 
+  /* 三/四关：Boss 定时封住一名随机角色的答题键 1.5 秒 */
+  if (isStage3() || isStage4()) {
+    B.disableCd -= bdt;
+    if (B.disableCd <= 0) { B.disableCd = 13; disableOneHero(); }
+  }
+
   B.meteorCd -= bdt;
   if (B.meteorCd <= 0) { B.meteorCd = meteorEveryOf(bs.phase); meteorAttack(); }
+}
+
+/* ---------- 第三/四关专属：禁止随机角色答题 1.5 秒 ----------
+   第三关章鱼「喷墨遮蔽」→ 全屏墨云黑屏；第四关蝎子「蝎尾麻痹」→ 该角色答题面板变灰、按键无效 */
+function disableOneHero() {
+  if (!B || B.over) return;
+  var pool = aliveHeroes().filter(function (h) { return h.noInputT <= 0; });
+  if (!pool.length) return;
+  var h = pool[ri(0, pool.length - 1)];
+  h.noInputT = 1.5;
+  sfx('warn');
+  var hp = heroPt(h.i);
+  if (isStage4()) {
+    banner('🦂 蝎尾麻痹！' + h.name + ' 1.5 秒内无法按键答题！');
+    floatText(hp.x, hp.y - 60, '⚡ 麻痹！', '#ffd45e');
+    B.fx.push({ type: 'sting', t: 0, dur: 0.5, from: { x: BOSS_X - 90, y: BOSS_Y - 110 }, to: hp });
+  } else {
+    banner('🐙 章鱼喷墨！墨汁遮蔽 1.5 秒，' + h.name + ' 暂时无法答题！');
+    B.fx.push({ type: 'inkSpray', t: 0, dur: 1.5, x: BOSS_X - 120, y: BOSS_Y - 40 });
+    var scr = document.getElementById('inkScreen');
+    if (scr) { scr.classList.remove('show'); void scr.offsetWidth; scr.classList.add('show'); }
+  }
+  renderPanels();
+  after(1.5, function () {
+    var sc = document.getElementById('inkScreen');
+    if (sc) sc.classList.remove('show');
+    if (B && !B.over) renderPanels();
+  });
 }
 
 function normalAttack() {
@@ -1552,7 +1605,8 @@ function normalAttack() {
   var t = alive[ri(0, alive.length - 1)];
   var dmg = Math.round(CFG.bossAtk * ph.atkMul * B.dmgMul * stageAtkMul());   /* 第二关：含怒气 + 关卡攻击系数 */
   B.boss.atkT = 0.65;
-  B.fx.push({ type: 'bossatk', t: 0, dur: 0.8, from: { x: BOSS_X - 120, y: BOSS_Y }, to: heroPt(t.i) });
+  var atkFx = isStage4() ? 'sting' : (isStage3() ? 'lash' : 'bossatk');
+  B.fx.push({ type: atkFx, t: 0, dur: 0.8, from: { x: BOSS_X - 120, y: BOSS_Y }, to: heroPt(t.i) });
   after(0.42, function () { sfx('hit'); hurtHero(t, dmg); });
 }
 
@@ -1561,17 +1615,21 @@ function meteorAttack() {
   var ph = PH()[B.boss.phase];
   var s2 = isStage2();
   B.meteorWarn = true;
-  banner(s2 ? '巨人僵尸来袭！大家小心！' : '陨石来袭！大家小心！');
+  banner(isStage4() ? '万针齐发！大家小心！' : (isStage3() ? '墨潮席卷！大家小心！' : (s2 ? '巨人僵尸来袭！大家小心！' : '陨石来袭！大家小心！')));
   sfx('warn');
   B.fx.push({ type: 'warn', t: 0, dur: 1.5 });
+  /* 全屏演出从警告阶段就开始涌，命中时达到高潮（不再是「只有陨石」） */
+  if (isStage4()) B.fx.push({ type: 'needleRain', t: 0, dur: 2.8 });
+  else if (isStage3()) B.fx.push({ type: 'inkTide', t: 0, dur: 2.8 });
   after(1.5, function () {
     B.meteorWarn = false;
     if (B.over) return;
     sfx('meteor');
     var dmg = Math.round(CFG.meteorDmg * ph.meteorMul * stageAtkMul());   /* 大招同样含关卡攻击系数 */
     var alive = aliveHeroes(), broke = false;
+    var hitFx = isStage4() ? 'stingHit' : (isStage3() ? 'inkHit' : 'meteor');
     alive.forEach(function (h, k) {
-      B.fx.push({ type: 'meteor', t: 0, dur: 0.9, x: heroPt(h.i).x + 30, y: heroPt(h.i).y, delay: k * 0.13 });
+      B.fx.push({ type: hitFx, t: 0, dur: 0.9, x: heroPt(h.i).x + 30, y: heroPt(h.i).y, delay: k * 0.13 });
       after(0.62 + k * 0.13, function () {
         if (h.shield > 0) broke = true;
         meteorHit(h, dmg);
@@ -1894,8 +1952,8 @@ function drawTopBar(c) {
 
   /* 陨石/巨人倒计时 */
   var ml = Math.max(0, B.meteorCd);
-  txt(c, ml < 5 ? (isStage4() ? '沙暴即将来袭！' : (isStage3() ? '墨汁漩涡即将来袭！' : (isStage2() ? '巨人即将来袭！' : '陨石即将来临！')))
-              : (isStage4() ? '沙暴倒计时 ' : (isStage3() ? '墨汁倒计时 ' : (isStage2() ? '巨人倒计时 ' : '陨石倒计时 '))) + secs(ml) + ' 秒',
+  txt(c, ml < 5 ? (isStage4() ? '万针即将齐发！' : (isStage3() ? '墨潮即将席卷！' : (isStage2() ? '巨人即将来袭！' : '陨石即将来临！')))
+              : (isStage4() ? '万针倒计时 ' : (isStage3() ? '墨潮倒计时 ' : (isStage2() ? '巨人倒计时 ' : '陨石倒计时 '))) + secs(ml) + ' 秒',
       1620, 58, 18, ml < 8 ? '#ff7a6a' : '#b9aed6');
 }
 
@@ -2873,6 +2931,102 @@ function drawFx(c) {
         c.strokeStyle = f.tint || '#7ff0a8'; c.lineWidth = 10;
         c.beginPath(); c.arc(f.to.x, f.to.y, 30 + (p - 0.5) * 260, 0, 6.2832); c.stroke();
       }
+    } else if (f.type === 'sting') {
+      /* 第四关普攻「蝎尾针」：一根毒针带拖尾扎向目标 */
+      var sp = Math.min(1, p * 1.3);
+      var sx = lerp(f.from.x, f.to.x, sp), sy = lerp(f.from.y, f.to.y, sp);
+      var sa = Math.atan2(f.to.y - f.from.y, f.to.x - f.from.x);
+      c.globalAlpha = 1;
+      c.strokeStyle = 'rgba(255,210,110,.5)'; c.lineWidth = 9; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(sx - Math.cos(sa) * 110, sy - Math.sin(sa) * 110); c.lineTo(sx, sy); c.stroke();
+      c.save(); c.translate(sx, sy); c.rotate(sa);
+      c.fillStyle = '#ffe6a0';
+      c.beginPath(); c.moveTo(32, 0); c.lineTo(-16, -8); c.lineTo(-16, 8); c.closePath(); c.fill();
+      c.fillStyle = '#8fe6a0'; c.beginPath(); c.arc(32, 0, 4.5, 0, 6.2832); c.fill();
+      c.restore();
+      if (p > 0.72) {
+        c.globalAlpha = (1 - p) * 3.6; c.fillStyle = '#ffd45e';
+        c.beginPath(); c.arc(f.to.x, f.to.y, 18 + (p - 0.72) * 300, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'lash') {
+      /* 第三关普攻「触手鞭击」：带吸盘的触手从 Boss 甩向目标 */
+      var lp = Math.min(1, p * 1.35);
+      var ex = lerp(f.from.x, f.to.x, lp), ey = lerp(f.from.y, f.to.y, lp);
+      var mx = lerp(f.from.x, f.to.x, 0.5), my = f.from.y - 150 + Math.sin(lp * 6) * 46;
+      c.globalAlpha = 1; c.lineCap = 'round';
+      c.strokeStyle = '#6a4aa0'; c.lineWidth = 24;
+      c.beginPath(); c.moveTo(f.from.x, f.from.y); c.quadraticCurveTo(mx, my, ex, ey); c.stroke();
+      c.strokeStyle = '#c9a8ff'; c.lineWidth = 9;
+      c.beginPath(); c.moveTo(f.from.x, f.from.y); c.quadraticCurveTo(mx, my, ex, ey); c.stroke();
+      c.fillStyle = '#ffd0e8';
+      for (var lq = 1; lq <= 6; lq++) {
+        var u = lq / 7, iu = 1 - u;
+        c.beginPath(); c.arc(iu*iu*f.from.x + 2*iu*u*mx + u*u*ex + 9,
+          iu*iu*f.from.y + 2*iu*u*my + u*u*ey + 9, 5 - lq*0.4, 0, 6.2832); c.fill();
+      }
+      if (p > 0.7) {
+        c.globalAlpha = (1 - p) * 3.2; c.fillStyle = '#bff0ff';
+        c.beginPath(); c.arc(f.to.x, f.to.y, 24 + (p - 0.7) * 320, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'inkSpray') {
+      /* 第三关「喷墨遮蔽」：从 Boss 扩散的墨团 */
+      c.globalAlpha = 1 - p * 0.25;
+      for (var iq = 0; iq < 16; iq++) {
+        var ia = iq * 0.42 + p * 0.8, ir = 24 + p * (170 + (iq % 5) * 72);
+        c.fillStyle = iq % 2 ? 'rgba(32,16,64,.55)' : 'rgba(8,4,22,.66)';
+        c.beginPath(); c.arc(f.x + Math.cos(ia) * ir, f.y + Math.sin(ia) * ir * 0.62,
+          24 + (iq % 4) * 13, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'needleRain') {
+      /* 第四关大招「万针齐发」：满屏针雨 */
+      c.globalAlpha = 1;
+      for (var nq = 0; nq < 52; nq++) {
+        var nx = (nq * 197 + 40) % W;
+        var ny = ((p * 3400 + nq * 91) % (AH + 240)) - 120;
+        var nl = 32 + (nq % 4) * 12;
+        c.strokeStyle = nq % 3 ? 'rgba(255,222,140,.85)' : 'rgba(255,160,70,.92)';
+        c.lineWidth = 3 + (nq % 3);
+        c.beginPath(); c.moveTo(nx, ny); c.lineTo(nx - 11, ny - nl); c.stroke();
+        c.fillStyle = '#fff2cc'; c.beginPath(); c.arc(nx, ny, 3.2, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'inkTide') {
+      /* 第三关大招「墨潮席卷」：从 Boss 方向横向涌来的墨浪 */
+      var tx = lerp(W + 120, -260, p);
+      c.globalAlpha = 0.92; c.fillStyle = 'rgba(9,5,26,.9)';
+      c.beginPath(); c.moveTo(tx, 0);
+      for (var ty = 0; ty <= AH; ty += 36) c.lineTo(tx + Math.sin(ty / 88 + p * 7) * 62, ty);
+      c.lineTo(W, AH); c.lineTo(W, 0); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(150,110,220,.35)';
+      for (var ib = 0; ib < 14; ib++) {
+        c.beginPath(); c.arc(tx + 40 + Math.sin(ib * 2 + p * 6) * 90,
+          60 + ((ib * 137 + p * 300) % (AH - 100)), 8 + (ib % 4) * 7, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'stingHit') {
+      /* 万针齐发的单体命中：一簇毒针扎落 + 沙尘 */
+      c.globalAlpha = 1;
+      for (var sq = 0; sq < 7; sq++) {
+        var a2 = sq * 0.9 + 0.4, r2 = 20 + p * 62;
+        var px2 = f.x + Math.cos(a2) * r2, py2 = f.y + Math.sin(a2) * r2 * 0.7 - 60 + p * 110;
+        c.strokeStyle = '#ffe6a0'; c.lineWidth = 5;
+        c.beginPath(); c.moveTo(px2, py2 - 40); c.lineTo(px2, py2); c.stroke();
+      }
+      if (p > 0.45) {
+        c.globalAlpha = (1 - p) * 1.8; c.fillStyle = '#e0a45c';
+        c.beginPath(); c.arc(f.x, f.y, 28 + (p - 0.45) * 260, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'inkHit') {
+      /* 墨潮的单体命中：墨浪拍下 + 气泡 */
+      c.globalAlpha = 1; c.fillStyle = 'rgba(12,6,30,.8)';
+      c.beginPath(); c.ellipse(f.x, f.y - 40 + p * 90, 40 + p * 46, 30 + p * 34, 0, 0, 6.2832); c.fill();
+      c.fillStyle = 'rgba(180,140,240,.6)';
+      for (var kb = 0; kb < 6; kb++) {
+        c.beginPath(); c.arc(f.x + Math.sin(kb * 2 + p * 5) * (30 + p * 60),
+          f.y - p * 70 - kb * 12, 5 + (kb % 3) * 3, 0, 6.2832); c.fill();
+      }
+      if (p > 0.5) {
+        c.globalAlpha = (1 - p) * 2; c.strokeStyle = '#8e6ad0'; c.lineWidth = 8;
+        c.beginPath(); c.arc(f.x, f.y, 30 + (p - 0.5) * 300, 0, 6.2832); c.stroke();
+      }
     } else if (f.type === 'bossatk') {
       var bx2 = lerp(f.from.x, f.to.x, p), by2 = lerp(f.from.y, f.to.y, p);
       c.globalAlpha = 1;
@@ -2980,7 +3134,7 @@ function drawFx(c) {
       c.strokeStyle = '#ff5a4a'; c.lineWidth = 8;
       rr(c, -330, -62, 660, 124, 18); c.stroke();
       c.fillStyle = 'rgba(40,8,8,.85)'; rr(c, -330, -62, 660, 124, 18); c.fill();
-      txt(c, isStage4() ? '沙 暴 来 袭 ！' : (isStage3() ? '墨 汁 来 袭 ！' : (isStage2() ? '巨 人 来 袭 ！' : '陨 石 来 袭 ！')), 0, 0, 68, '#ffd45e', 'center');
+      txt(c, isStage4() ? '万 针 齐 发 ！' : (isStage3() ? '墨 潮 席 卷 ！' : (isStage2() ? '巨 人 来 袭 ！' : '陨 石 来 袭 ！')), 0, 0, 68, '#ffd45e', 'center');
       c.restore();
       for (var w2 = 0; w2 < 5; w2++) {   /* 下落提示 */
         var wx = 200 + w2 * 340, wy = 120 + ((p * 900 + w2 * 200) % 320);
@@ -3556,6 +3710,8 @@ function panelHTML(i) {
     '<span class="pCls" style="background:' + h.ref.robe + '">' + h.cls + '</span>' +
     '<span class="pStat">' + st + '</span></div>';
   if (!h.alive) return s + '<div class="pQ small">已被击倒，无法行动</div>';
+  if (h.noInputT > 0) return s + '<div class="pQ small">' +
+    (isStage4() ? '⚡ 被蝎尾麻痹，暂时无法按键…' : '🖤 墨汁遮蔽，暂时看不清题目…') + '</div>';
   if (B.paused) return s + '<div class="pQ small">准备中…</div>';
   if (B.over) return s + '<div class="pQ small">战斗结束</div>';
   if (!h.q || h.locked) return s + '<div class="pQ small">' +
@@ -3591,7 +3747,8 @@ function renderPanels() {
     var el = document.getElementById('pcol' + i);
     if (!el) continue;
     var h = B.heroes[i];
-    el.className = 'pcol' + (!h.alive ? ' dead' : (h.castT > 0 ? ' act' : ''));
+    el.className = 'pcol' + (!h.alive ? ' dead' : (h.castT > 0 ? ' act' : '')) +
+      (isStage4() && h.noInputT > 0 ? ' paralyzed' : '');
     el.innerHTML = panelHTML(i);
   }
 }
@@ -3620,6 +3777,7 @@ function bindPanels() {
     var i = parseInt(el.getAttribute('data-i'), 10);
     var h = B.heroes[i];
     if (!h || !h.alive || h.locked) return;     // 自由攻击：谁的区都能点，各自独立
+    if (h.noInputT > 0) { sfx('wrong'); return; }   /* 被麻痹/喷墨：按键无效 */
     var o = el.getAttribute('data-o');
     if (o !== null) { checkAnswer(i, o); return; }
     var k = el.getAttribute('data-k');
@@ -3770,6 +3928,10 @@ function loop(ts) {
         var h = B.heroes[i];
         if (h.hitT > 0) h.hitT -= dt;
         if (h.castT > 0) h.castT -= dt;
+        if (h.noInputT > 0) {
+          h.noInputT -= dt;
+          if (h.noInputT <= 0) { h.noInputT = 0; renderPanels(); }
+        }
         if (h.glow > 0) h.glow -= dt * 1.2;
         if (h.wrongT > 0) { h.wrongT -= dt; if (h.wrongT <= 0) renderPanels(); }
       }
