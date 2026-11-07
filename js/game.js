@@ -1018,19 +1018,19 @@
     });
     bindTap($('btnHome'), function (e) {
       e.preventDefault();
-      location.reload();
+      if (window.FS) FS.keepOnNav(); location.reload();
     });
     /* 星门熄灭的「重来一次」：直接刷新页面，方便下一批学生重新晨练 */
     var rt = $('btnRetry');
-    if (rt) bindTap(rt, function (e) { e.preventDefault(); location.reload(); });
+    if (rt) bindTap(rt, function (e) { e.preventDefault(); if (window.FS) FS.keepOnNav(); location.reload(); });
     /* 胜利黑屏的按钮：星尘够 → 进进阶版；不够 → 刷新重来 */
     var vg = $('btnVicGo');
     if (vg) bindTap(vg, function (e) {
       e.preventDefault();
       var ed = loadEnergy();
-      if (ed.on && ed.pool < ed.need) { Sound.bad(); location.reload(); return; }
+      if (ed.on && ed.pool < ed.need) { Sound.bad(); if (window.FS) FS.keepOnNav(); location.reload(); return; }
       Sound.ok();
-      location.href = 'boss-battle.html';
+      if (window.FS) FS.keepOnNav(); location.href = 'boss-battle.html';
     });
     bindTap($('btnAgain'), function (e) {
       e.preventDefault(); Sound.ok(); startGame();
@@ -1040,11 +1040,11 @@
       e.preventDefault(); Sound.ok(); startGame();
     });
     if ($('btnVicHome')) bindTap($('btnVicHome'), function (e) {
-      e.preventDefault(); Sound.ok(); location.href = 'index.html';
+      e.preventDefault(); Sound.ok(); if (window.FS) FS.keepOnNav(); location.href = 'index.html';
     });
     /* 超时黑屏：回星图首页 */
     if ($('btnToHome')) bindTap($('btnToHome'), function (e) {
-      e.preventDefault(); Sound.ok(); location.href = 'index.html';
+      e.preventDefault(); Sound.ok(); if (window.FS) FS.keepOnNav(); location.href = 'index.html';
     });
     bindTap($('btnBack'), function (e) {
       e.preventDefault();
@@ -1058,7 +1058,7 @@
       var ed = loadEnergy();
       if (ed.on && ed.pool < ed.need) { Sound.bad(); return; }
       Sound.ok();
-      location.href = 'boss-battle.html';
+      if (window.FS) FS.keepOnNav(); location.href = 'boss-battle.html';
     });
 
     // 桌面测试用：物理键盘映射到 1 号玩家

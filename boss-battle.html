@@ -422,6 +422,7 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
 </div>
 
 <script src="js/banks.js"></script>
+<script src="js/fullscreen.js"></script>
 <script>
 /* =========================================================================
    团队合作知识闯关   单文件版
@@ -3349,7 +3350,7 @@ document.getElementById('pwCancel').addEventListener('click', function () { sfx(
 document.getElementById('btnSaveCfg').addEventListener('click', saveSettings);
 document.getElementById('btnResetCfg').addEventListener('click', resetSettings);
 document.getElementById('btnCloseCfg').addEventListener('click', function () { sfx('click'); closeSettings(); });
-document.getElementById('btnToArena').addEventListener('click', function () { sfx('click'); location.href = 'warmup.html'; });
+document.getElementById('btnToArena').addEventListener('click', function () { sfx('click'); if (window.FS) FS.keepOnNav(); location.href = 'warmup.html'; });
 document.getElementById('btnClearEnergy').addEventListener('click', clearEnergy);
 
 /* 首页「管理设置」内嵌帧：?admin=1
@@ -3361,7 +3362,7 @@ function adminExit() {
   if (window.parent !== window) {
     try { window.parent.postMessage({ type: 'adminClose' }, '*'); } catch (e) { }
   } else {
-    location.href = 'index.html';
+    if (window.FS) FS.keepOnNav(); location.href = 'index.html';
   }
 }
 if (!ADMIN_FROM_HOME) requestAnimationFrame(loop);
