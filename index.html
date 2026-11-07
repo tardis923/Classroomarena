@@ -20,7 +20,6 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 .logo { font-size: 30px; letter-spacing: 4px; color: #cfc2ff; font-weight: 500; }
 .logo b { color: #ffe6a6; font-weight: 500; }
 .classTag { font-size: 22px; color: #bdb2e6; border: 1px solid rgba(190,170,255,.28); padding: 10px 22px; border-radius: 30px; background: rgba(40,30,80,.4); }
-.classTag small { color: #8d82b8; margin-left: 14px; font-size: 17px; cursor: pointer; }
 
 .hero { position: absolute; left: 100px; top: 168px; width: 760px; }
 .eyebrow { font-size: 21px; letter-spacing: 8px; color: #9b8bd8; margin-bottom: 22px; }
@@ -101,7 +100,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
 
   <div class="topbar">
     <div class="logo">知识星核 <b>· 四界追光</b></div>
-    <div class="classTag" id="classTag">尚未签到 <small id="btnSwitch">切换班级</small></div>
+    <div class="classTag" id="classTag">尚未签到</div>
   </div>
 
   <div class="hero">
@@ -141,7 +140,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
       <p>星图已经暗了，先写上你们班的名字吧。<br>进度只保存在这台一体机上，不用密码，下次打开自动认出你们。</p>
       <input id="className" maxlength="12" placeholder="输入班级名，如 三年级二班" autocomplete="off">
       <button id="btnEnter">进 入 知 识 学 院</button>
-      <p class="loginTip">换班级或想重填，可在右上角「切换班级」修改 · 不影响已有进度</p>
+      <p class="loginTip">要改班级名：用带 ?class=班级名 的网址打开一次，或（本地运行时）改 class-config.js</p>
     </div>
   </div>
 
@@ -156,6 +155,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
   <div id="toast"></div>
 </div>
 
+<script src="class-config.js"></script>
 <script>
 (function () {
   var W = 1920, H = 1080;
@@ -255,8 +255,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
 
   function showMain(name, isBack) {
     document.getElementById('login').style.display = 'none';
-    document.getElementById('classTag').innerHTML = name + ' <small id="btnSwitch">切换班级</small>';
-    document.getElementById('btnSwitch').addEventListener('click', openLogin);
+    document.getElementById('classTag').textContent = name;
     var p = loadProg();
     renderWorlds(p); renderStatus(p); renderStory();
     if (isBack) toast('欢迎回来，' + name + '！');
@@ -275,14 +274,29 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
 
   document.getElementById('btnEnter').addEventListener('click', doEnter);
   document.getElementById('className').addEventListener('keydown', function (e) { if (e.key === 'Enter') doEnter(); });
-  document.getElementById('btnSwitch').addEventListener('click', openLogin);
   document.getElementById('btnWarmup').addEventListener('click', function () { location.href = 'warmup.html'; });
   document.getElementById('btnBoss').addEventListener('click', function () { location.href = 'boss-battle.html'; });
   document.getElementById('btnStory').addEventListener('click', function () { document.getElementById('story').style.display = 'flex'; });
   document.getElementById('btnStoryClose').addEventListener('click', function () { document.getElementById('story').style.display = 'none'; });
 
-  var saved = getClassName();
-  if (saved) showMain(saved, true); else openLogin();
+  /* 班级名优先级：网址 ?class=班级名 > class-config.js > 本机已存 > 首次签到
+     - GitHub Pages：每台一体机把带 ?class= 的网址设为主页/书签，一次设置长期有效
+     - 本地 file:// 运行：用记事本改 class-config.js 即可（每台机器各自一份） */
+  function urlClassName() {
+    var m = location.search.match(/(?:^|[?&])class=([^&]*)/);
+    if (!m) return '';
+    try { return decodeURIComponent(m[1].replace(/\+/g, ' ')).replace(/^\s+|\s+$/g, '').slice(0, 12); }
+    catch (e) { return ''; }
+  }
+  var fromUrl = urlClassName();
+  var fromFile = (window.CLASS_CONFIG && window.CLASS_CONFIG.className)
+    ? String(window.CLASS_CONFIG.className).replace(/^\s+|\s+$/g, '').slice(0, 12) : '';
+  var initialName = fromUrl || fromFile || getClassName();
+  if (initialName) {
+    if (initialName !== getClassName()) setClassName(initialName);
+    showMain(initialName, !fromUrl && !fromFile);
+    if (fromUrl || fromFile) toast('班级已设为 ' + initialName);
+  } else openLogin();
 })();
 </script>
 </body>
