@@ -2869,7 +2869,9 @@ function drawBoss(c) {
     }
     if (B.pitStacks > 0) st.push('🕳陷坑 x' + B.pitStacks + ' · 可吞 ' + B.pitStacks + ' 次大招');
   }
-  if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, (dc > 0 || (isStage2() && B.rageLvl > 0)) ? '#ffb27a' : '#ffe08a', 'center');
+  /* 有人倒下或第二关怒气时状态栏用警示色（不再依赖已移除的愤怒倍率） */
+  var warn = B.heroes.some(function (h) { return !h.alive; }) || (isStage2() && B.rageLvl > 0);
+  if (st.length) txt(c, st.join('   '), BOSS_X, by + 72, 20, warn ? '#ffb27a' : '#ffe08a', 'center');
 }
 
 /* ---------- 特效 ---------- */
