@@ -35,7 +35,7 @@
 
   /* 题库洗牌（js/banks.js 约定各页面自己调）：源数据正确答案固定在 o[0]，
      调用后打散到 A/B/C/D 随机位置。shuffleBank 自带随机数，不依赖本页面的 ri()。 */
-  try { shuffleBank(CN_BANK); shuffleBank(EN_BANK); shuffleBank(SAFE_BANK); } catch (e) { }
+  try { shuffleBank(SAFE_BANK); } catch (e) { }   /* 热身赛只用安全知识题库 */
 
   var state = 'setup';           // setup | count | play | pause | over
   var cfg = { buns: 10, level: 0, theme: 'star', mode: 'team', names: [] };
@@ -67,10 +67,10 @@
     { id: 'team', name: '团队闯关（推荐！）', desc: '四人合力点亮星门，攒星尘去追回散落各界的星核碎片！' }
   ];
 
-  /* ================= 四科混合出题（三年级水平） =================
-   * 数学 40%（基础档：不进位加减、表内乘除，用键盘输答案）
-   * 语文 20% · 英语 20% · 安全 20%（ABCD 四选一，即点即判）
-   * 题库来自 js/banks.js（与进阶版共享）。 */
+  /* ================= 热身赛出题（两类） =================
+   * ① 乘法口诀 ± 一个数（数字键盘输答案）50%
+   * ② 安全知识（ABCD 四选一，即点即判）50%
+   * 不再出语文 / 英语题；安全题库来自 js/banks.js（与关卡挑战共享）。 */
   function bankQuestion(bank) {
     var it = bank[Math.floor(Math.random() * bank.length)];
     /* 每次抽题把选项顺序打乱（正确答案源数据固定在 o[0]） */
@@ -80,12 +80,11 @@
     return { type: 'opt', text: it.q, opts: o, ans: a };
   }
   function mixedQuestion() {
-    var r = Math.random();
-    if (r < 0.4) {
-      var mq = QGen.next(0);                       // 数学 · 基础档
+    if (Math.random() < 0.5) {
+      var mq = QGen.table();                       // 乘法口诀 ± 一个数
       return { type: 'key', text: mq.text, ans: mq.ans };
     }
-    return bankQuestion(r < 0.6 ? CN_BANK : (r < 0.8 ? EN_BANK : SAFE_BANK));
+    return bankQuestion(SAFE_BANK);                // 安全知识四选一
   }
 
   /* 标题统一为「热身赛」：不含学科词，以后加语文知识竞赛也不用改 */
@@ -233,7 +232,7 @@
   /* ================= 设置面板 ================= */
   var syncBuns = function () { };   // 由 buildSetup 赋值：同步「数量」按钮的选中态
   function buildSetup() {
-    /* 玩法固定为团队闯关、难度固定为三年级混合题：模式/难度选择已移除 */
+    /* 玩法固定为团队闯关：题型为乘法口诀±一个数 + 安全知识，模式/难度选择已移除 */
 
     var bunBox = $('optBuns');
     var bunOpts = [5, 10, 15, 20];
@@ -254,7 +253,7 @@
       bunBox.appendChild(b);
     });
 
-    /* 题目难度已移除：热身赛固定三年级水平混合题（难度档移到进阶版老师设置页） */
+    /* 题目难度已移除：热身赛固定「乘法口诀±一个数 + 安全知识」（难度档移到进阶版老师设置页） */
 
     // 场景 / 角色主题
     var thBox = $('optTheme');

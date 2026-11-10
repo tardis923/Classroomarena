@@ -143,6 +143,17 @@ var QGen = (function () {
     return sameLevel();
   }
 
+  /* 乘法口诀 ± 一个数：a×b（九九表内）后再加或减 1~20，结果非负 */
+  function tableMixed() {
+    var a = ri(2, 9), b = ri(2, 9), p = a * b;
+    if (ri(0, 1)) {
+      var c = ri(1, 20);
+      return { text: a + " × " + b + " + " + c, ans: p + c };
+    }
+    var d = ri(1, Math.min(20, p - 1));
+    return { text: a + " × " + b + " − " + d, ans: p - d };
+  }
+
   var LEVELS = [
     { id: 0, name: "基础", desc: "不进位加减 · 表内乘除", gen: LB, energy: 0.5 },
     { id: 1, name: "提高", desc: "混合 · 括号 · 按顺序", gen: LH, energy: 1 }
@@ -161,8 +172,7 @@ var QGen = (function () {
   }
 
   /* 生成一道题（尽量避免近期重复） */
-  function next(levelId) {
-    var gen = LEVELS[levelId] ? LEVELS[levelId].gen : LB;
+  function nextBy(gen) {
     var q = null;
     for (var i = 0; i < 24; i++) {
       q = gen();
@@ -179,6 +189,9 @@ var QGen = (function () {
     if (recent.length > 12) recent.shift();
     return q;
   }
+  function next(levelId) { return nextBy(LEVELS[levelId] ? LEVELS[levelId].gen : LB); }
+  /* 热身赛专用：乘法口诀 ± 一个数 */
+  function table() { return nextBy(tableMixed); }
 
-  return { LEVELS: LEVELS, next: next, energyPer: energyPer };
+  return { LEVELS: LEVELS, next: next, table: table, energyPer: energyPer };
 })();

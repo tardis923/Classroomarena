@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-10c";</script>
+<script>window.ARENA_BUILD="2026-11-10e";</script>
 <title>团队合作知识闯关 · 进阶版</title>
 <style>
 /* ================= 基础 ================= */
@@ -130,12 +130,6 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
   cursor: not-allowed; filter: grayscale(.55);
 }
 .opt .lockNote { display: block; font-size: 12.5px; font-weight: 700; margin-top: 4px; color: #7ff0a8; }
-/* 关卡题库绑定表 */
-.stageSubjRow { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
-.stageSubjName { flex: 0 0 190px; font-size: 17px; font-weight: 700; color: #ffe08a; }
-.stageSubjRow .opts { flex: 1 1 auto; }
-.stageSubjRow .opt { font-size: 17px; padding: 7px 12px; }
-.stageSubjRow .opt .small { font-size: 12px; }
 .opt.off .lockNote { color: #c08a6a; }
 
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
@@ -292,7 +286,7 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
       <div class="cardHead">
         <div id="storyLine" class="storyLine"></div>
         <h1>团队合作知识闯关 · 第一关</h1>
-        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。题目和难度由老师在设置页统一调整。</p>
+        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。第一关用安全知识题（四选一），第二关的数学口算难度可在设置页调整。</p>
       </div>
       <div class="cardBody">
       <div class="setRow">
@@ -327,17 +321,6 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
         <p class="sub">数值越大越难 / Boss 越强。改完点「保存配置」，会存到本机浏览器，下次打开自动生效；当前这一局结束后才应用新数值。<br><span id="buildTag" style="display:inline-block;margin-top:8px;font-size:15px;color:#8f83b8;letter-spacing:1px"></span></p>
       </div>
       <div class="cardBody">
-        <div class="setRow">
-          <div class="setLabel">当前关题库（改动会同步写入下方的关卡绑定表）</div>
-          <div class="opts" id="optSubj"></div>
-        </div>
-
-        <div class="setRow">
-          <div class="setLabel">关卡题库绑定（每关可单独指定，保存后永久生效）</div>
-          <div class="tip" style="text-align:left;margin:0 0 8px">默认是「数学口算 / 安全知识 / 语文知识 / 英语单词」，可任意改。数学题库走数字键盘，其余走 ABCD 四选一。</div>
-          <div id="stageSubjRows"></div>
-        </div>
-
         <div class="setRow">
           <div class="setLabel">数学口算基准年级（仅「数学口算」题库生效）</div>
           <div class="tip" style="text-align:left;margin:0 0 8px">P1 用所选年级，Boss 每变身一次升一年级：P2 = +1 年级，P3 = +2 年级（封顶六年级）。语文 / 英语 / 安全是固定题库，不受此项影响。</div>
@@ -486,8 +469,7 @@ var ctx = cv.getContext('2d');
    ==================================================================== */
 var DEFAULTS = {
   stage: 1,           // 当前关卡：1 魔法师大战魔王 / 2 植物守卫战
-  subject: 'math',    // 当前关实际使用的题库（由下方关卡绑定决定）
-  stageSubjects: ['math', 'safe', 'chinese', 'english'],  // 每关绑定的题库，可在设置页自定义
+  subject: 'safe',    // 当前关题库（由 STAGES[].subj 决定，不提供后台修改）
   level: 3,           // 数学基准年级 3-6（Boss 每进阶一阶段 +1 年级，封顶 6）
 
   bossHp: 2400,       // Boss 总血量
@@ -526,8 +508,7 @@ var DEFAULTS = {
 var CFG = {};
 function resetCfg() {
   for (var k in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, k)) {
-    CFG[k] = (k === 'offStages') ? []
-      : (k === 'stageSubjects' ? DEFAULTS.stageSubjects.slice() : DEFAULTS[k]);   /* 数组要拷贝，别共享引用 */
+    CFG[k] = (k === 'offStages') ? [] : DEFAULTS[k];   /* 数组要拷贝，别共享引用 */
   }
 }
 resetCfg();
@@ -556,12 +537,6 @@ function loadCfg() {
       }
       if (typeof DEFAULTS[k] === 'number') {
         if (typeof v === 'number' && isFinite(v) && v > 0) CFG[k] = v;
-      } else if (k === 'stageSubjects') {
-        if (Object.prototype.toString.call(v) === '[object Array]' && v.length >= 4) {
-          var allowed = { math: 1, chinese: 1, english: 1, safe: 1 }, good = true;
-          for (var si = 0; si < 4; si++) if (!allowed[v[si]]) { good = false; break; }
-          if (good) CFG[k] = v.slice(0, 4);
-        }
       } else if (k === 'subject') {
         if (v === 'math' || v === 'chinese' || v === 'english' || v === 'safe') CFG[k] = v;
       } else if (k === 'level') {
@@ -3294,7 +3269,7 @@ var LEVELS = [
 
 /* ---------- 关卡列表（闯关制）----------
    解锁看班级进度 loadProg().unlocked：打过第 N 关就永久解锁第 N+1 关。
-   subj = 该关默认绑定的学科（选关时自动切换；老师可在设置页再改）。
+   subj = 该关绑定的题库，写死在代码里（选关时自动切换；管理后台不提供修改入口）。
    done = 关卡是否已做好：false 的占位关（敬请期待）即使开了「全部解锁」也不能进入。
    hpMul / atkMul = Boss 血量 / 攻击系数：从第二关起逐关提升，抵消班级通关成长加成
    （攻/血/疗最高+20%），否则越玩到后面越简单。第二～四关血量已按老师要求加厚，
@@ -3303,10 +3278,10 @@ var LEVELS = [
    故事是开放式的「知识星图」：碎片散落各界，每点亮一块就指出下一界坐标，
    没有「最后一片」，随时可以往数组末尾追加新的一界。 */
 var STAGES = [
-  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '数学口算 · 三阶段变身大魔王', subj: 'math',    done: true,  hpMul: 1,    atkMul: 1,
-    intro: '数学森林的咒语全失灵了 —— 答对口算，把魔君的影子打回去！',
+  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '安全知识 · 三阶段变身大魔王', subj: 'safe',    done: true,  hpMul: 1,    atkMul: 1,
+    intro: '森林的咒语全失灵了 —— 答对安全知识题，把魔君的影子打回去！',
     outro: '第一片星核碎片归位！星图亮起一块，指向一片长满杂草的草坪……那里有个开机甲的博士。' },
-  { id: 2, name: '第二关 · 植物守卫战',     desc: '安全知识 · 僵尸博士开机甲来袭', subj: 'safe',    done: true,  hpMul: 1.5,  atkMul: 1.2,
+  { id: 2, name: '第二关 · 植物守卫战',     desc: '数学口算 · 僵尸博士开机甲来袭', subj: 'math',    done: true,  hpMul: 1.5,  atkMul: 1.2,
     intro: '星核把四个人变成了植物 —— 种好坚果墙，连喷豌豆，拆掉博士的机甲！',
     outro: '又一片星核碎片归位！星图指向深海：珊瑚碑林的字词被一只章鱼怪搅乱了……穿上潜水服，下潜！' },
   { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 章鱼怪守着珊瑚碑林', subj: 'chinese', done: true,  hpMul: 2.0,  atkMul: 1.35,
@@ -3317,11 +3292,6 @@ var STAGES = [
     outro: '又一片星核碎片归位，星图更亮了一块 —— 新的坐标正在浮现，旅程还长着呢。' }
 ];
 function stageOf(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return STAGES[i]; return STAGES[0]; }
-/* 每关绑定的题库：优先读老师自定义，缺省回退到关卡默认值 */
-function subjectForStage(id) {
-  var v = CFG.stageSubjects && CFG.stageSubjects[id - 1];
-  return (v === 'math' || v === 'chinese' || v === 'english' || v === 'safe') ? v : stageOf(id).subj;
-}
 function stageHpMul() { return stageOf(CFG.stage).hpMul || 1; }
 function stageAtkMul() { return stageOf(CFG.stage).atkMul || 1; }
 function stageLocked(id) {
@@ -3381,32 +3351,6 @@ var FIELDS = {
   fldEnergy: [['energyNeed', '开战消耗星尘点数']]
 };
 
-/* 设置页：四关各自的题库绑定 */
-function buildStageSubjOpts() {
-  var box = document.getElementById('stageSubjRows');
-  if (!box) return;
-  box.innerHTML = '';
-  STAGES.forEach(function (st) {
-    if (!st.done) return;
-    var row = document.createElement('div');
-    row.className = 'stageSubjRow';
-    row.innerHTML = '<span class="stageSubjName">' + st.name.split(' · ')[0] + '</span>' +
-                    '<div class="opts" id="stageSubj' + st.id + '"></div>';
-    box.appendChild(row);
-    mkOpts('stageSubj' + st.id, SUBJECTS, subjectForStage(st.id), (function (sid) {
-      return function (sub) {
-        CFG.stageSubjects[sid - 1] = sub;
-        if (CFG.stage === sid) CFG.subject = sub;
-        saveCfg();
-        mkOpts('optSubj', SUBJECTS, CFG.subject, function (id) {
-          CFG.subject = id; CFG.stageSubjects[CFG.stage - 1] = id; saveCfg(); buildStageSubjOpts();
-        });
-        toast(st.name.split(' · ')[0] + ' 已绑定「' + SUBJ_NAMES[sub] + '」');
-      };
-    })(st.id));
-  });
-}
-
 function mkOpts(boxId, list, cur, onPick) {
   var box = document.getElementById(boxId); box.innerHTML = '';
   list.forEach(function (it) {
@@ -3445,7 +3389,7 @@ function buildSetup() {
     for (var ai = 0; ai < STAGES.length; ai++) {
       if (STAGES[ai].done && !stageLocked(STAGES[ai].id)) {
         CFG.stage = STAGES[ai].id;
-        CFG.subject = subjectForStage(STAGES[ai].id);
+        CFG.subject = STAGES[ai].subj;
         saveCfg();
         break;
       }
@@ -3459,13 +3403,6 @@ function buildSetup() {
   buildStageOnOpts();
   /* 开始按钮状态：星尘不足 或 选中关卡锁定 → 置灰 */
   updateStartBtn();
-  mkOpts('optSubj', SUBJECTS, CFG.subject, function (id) {
-    CFG.subject = id;
-    CFG.stageSubjects[CFG.stage - 1] = id;   /* 同步写入当前关的绑定 */
-    saveCfg();
-    buildStageSubjOpts();
-  });
-  buildStageSubjOpts();
   mkOpts('optLevel', LEVELS, CFG.level, function (id) { CFG.level = id; });
   buildUnlockOpts();
   renderGrowth();
@@ -3513,7 +3450,7 @@ function buildStageOnOpts() {
 }
 function pickStage(id) {
   CFG.stage = id;
-  CFG.subject = subjectForStage(id);  /* 每关按老师设置的绑定选题库 */
+  CFG.subject = stageOf(id).subj;     /* 题库写死在 STAGES 里，选关自动切换 */
   saveCfg();
   applyStageText();
   updateStartBtn();    /* 换关后刷新开始按钮（锁定态/星尘态） */
