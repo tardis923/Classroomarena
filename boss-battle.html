@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-10f";</script>
+<script>window.ARENA_BUILD="2026-11-10g";</script>
 <title>团队合作知识闯关 · 进阶版</title>
 <style>
 /* ================= 基础 ================= */
@@ -162,7 +162,11 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
   border: 1px solid rgba(200,170,255,.28); font-size: 20px; line-height: 1.65; color: #ffe6b0; text-align: left; }
 .bigBtn.off { background: #3d3358; color: #8d84a8; }
 .bigBtn:active { filter: brightness(.9); }
-.resBtns { display: flex; gap: 14px; margin-top: 18px; }
+".resBtns { display: flex; gap: 14px; margin-top: 18px; }
+/* 结算页星尘不足时的主行动：独占一行、醒目绿色 */
+.cardFoot .warmBtn { margin-top: 12px; height: 66px; font-size: 29px;
+  background: linear-gradient(#7fe0a4, #2f9e63); color: #0d2a1a; }
+.cardFoot .warmBtn:active { filter: brightness(.92); }
 
 .tip { font-size: 16px; color: #9a8fbb; text-align: center; margin-top: 8px; line-height: 1.5; }
 
@@ -394,6 +398,7 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
           <button id="btnAgain" class="bigBtn">再 来 一 局</button>
           <button id="btnBack" class="bigBtn ghost">返 回 设 置</button>
         </div>
+        <button id="btnResWarm" class="bigBtn warmBtn gone">去「热 身 赛」攒 星 尘 →</button>
       </div>
     </div>
   </div>
@@ -3869,7 +3874,12 @@ function showResult() {
   var rs = document.getElementById('resStory');
   if (rs) {
     if (B.win) { rs.textContent = '✦ ' + stageOf(CFG.stage).outro; rs.style.color = '#ffe6b0'; }
-    else { rs.textContent = '✦ 星尘耗尽，小队被送回了知识学院 —— 去晨练攒点星尘，再来追回碎片吧！'; rs.style.color = '#c9bfe8'; }
+    else {
+      rs.textContent = '✦ 星尘耗尽，小队被送回了知识学院' +
+        (energyLocked() ? ' —— 点下面的绿色按钮去热身赛攒星尘，再回来追碎片！'
+                        : ' —— 整顿一下，再来追回碎片吧！');
+      rs.style.color = '#c9bfe8';
+    }
   }
   document.getElementById('resGrid').innerHTML = B.heroes.map(function (h, i) {
     var s = B.stats.per[i];
@@ -3879,6 +3889,17 @@ function showResult() {
       '释放技能 ' + s.cast + ' 次<br>跳过 ' + s.skip + ' 次' +
       (h.key === 'heal' ? '<br>全队治疗 ' + s.group + ' 次<br>套护盾 ' + s.shield + ' 次' : '') + '</div></div>';
   }).join('');
+  /* 星尘不足：直接给去热身赛的入口，并把「再来一局」置灰，
+     免得学生点了只弹一句 toast，还要返回选关页再点一次 */
+  var lack = energyLocked();
+  var warm = document.getElementById('btnResWarm');
+  var again = document.getElementById('btnAgain');
+  if (warm) warm.classList.toggle('gone', !lack);
+  if (again) {
+    again.disabled = lack;
+    again.classList.toggle('off', lack);
+    again.textContent = lack ? '星 尘 不 足' : '再 来 一 局';
+  }
   document.getElementById('result').classList.remove('hidden');
   syncOverlayDim();
 }
@@ -4033,6 +4054,7 @@ document.getElementById("buildTag").textContent = "构建版本 " + (window.AREN
 
 document.getElementById('btnStart').addEventListener('click', startBattle);
 document.getElementById('btnAgain').addEventListener('click', startBattle);
+document.getElementById('btnResWarm').addEventListener('click', function () { sfx('click'); if (window.FS) FS.keepOnNav(); location.href = 'warmup.html'; });
 document.getElementById('btnBack').addEventListener('click', backToSetup);
 document.getElementById('btnSet').addEventListener('click', function () { ac(); openPw(); });
 document.getElementById('btnFs').addEventListener('click', ac);

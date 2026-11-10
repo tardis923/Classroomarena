@@ -43,14 +43,14 @@
   var startMs = 0, pausedMs = 0, elapsed = 0;
 
   /* 团队闯关：星门充能到 100% 即胜利
-   * 答对 +2.5%（约 40 题充满）、答错 −2%（缓慢漏掉），限时 60 秒。
+   * 答对 +2.5%（约 40 题充满）、答错 −1%（缓慢漏掉），限时 60 秒。
    * 每人基准 10 题（四人共 40 题）；答错后要多答几题补回来。 */
   var TEAM_MAX_LEVEL = 1;
   var TEAM_BUNS = 10;
   var TEAM_TIME = 60;
   var CHARGE_ADD = 0.025;
-  var CHARGE_SUB = 0.02;
-  var CHARGE_IDLE = 0.015;      /* 5 秒没答题：扣 1.5%，防止有人挂机等队友答 */
+  var CHARGE_SUB = 0.01;
+  var CHARGE_IDLE = 0.01;       /* 5 秒没答题：扣 1%，防止有人挂机等队友答 */
   var IDLE_MS = 5000;
   var teamDone = 0, teamLevel = 1, teamWon = false, teamBusy = false;
   function teamNeed() { return cfg.buns * 4; }
@@ -96,7 +96,7 @@
   };
   /* 副标题按主题自动生成，同样不含学科词 */
   var SUBS = {
-    team: function (r) { return r + '侧身骑发电单车：答对 +2.5%、答错 −2%、5 秒不答题 −1.5% —— 60 秒内把星门充到 100% 就赢！'; }
+    team: function (r) { return r + '侧身骑发电单车：答对 +2.5%、答错 −1%、5 秒不答题 −1% —— 60 秒内把星门充到 100% 就赢！'; }
   };
 
   /* 刷新设置页标题与副标题 */
@@ -314,7 +314,7 @@
       list.push({ idx: i, name: sk[i].name, buns: cfg.buns, skin: sk[i], onSwallow: null, onEatDone: null });
     }
     Scene.setPlayers(list);
-    if (cfg.mode === 'team') Scene.teamLevel(1, '星门充能 · 答对 +2.5% · 答错 −2%');
+    if (cfg.mode === 'team') Scene.teamLevel(1, '星门充能 · 答对 +2.5% · 答错 −1%');
     for (i = 0; i < 4; i++) Scene.char(i).plate = cfg.buns;
   }
 
@@ -514,7 +514,7 @@
     p.input = '';
     p.busy = false;
     p.qStart = elapsed;
-    p.idleNext = elapsed + IDLE_MS;      /* 5 秒内不作答 → 扣 1.5% */
+    p.idleNext = elapsed + IDLE_MS;      /* 5 秒内不作答 → 扣 1% */
     setQuestion(i, p.q.text);
 
     var col = $('pcol' + i);
@@ -661,7 +661,7 @@
       }
     }
     Scene.char(i).wrong();
-    Scene.chargeLoss(CHARGE_SUB);        // 答错 → 星门缓慢漏掉 2%
+    Scene.chargeLoss(CHARGE_SUB);        // 答错 → 星门缓慢漏掉 1%
     updateProgress(i);
     setTimeout(function () { if (players[i]) newQuestion(i); }, 950);
   }
@@ -731,7 +731,7 @@
     el2.textContent = p.q.ans;          // 亮出正确答案，学生马上知道错在哪
 
     if (cfg.mode === 'race') Scene.stumble(i); else Scene.char(i).wrong();
-    Scene.chargeLoss(CHARGE_SUB);        // 答错 → 星门缓慢漏掉 2%
+    Scene.chargeLoss(CHARGE_SUB);        // 答错 → 星门缓慢漏掉 1%
 
     // 换一题（食物/进度不丢，只是浪费了时间）
     p.input = '';
@@ -838,7 +838,7 @@
     var v = $('victory'); if (v) v.classList.add('show');
   }
 
-  /* ================= 挂机惩罚：5 秒不答题扣 1.5% =================
+  /* ================= 挂机惩罚：5 秒不答题扣 1% =================
      四人各算各的：谁的题目 5 秒没动，谁就往外漏能；答了（对/错）会换新题并重计时。
      防止有学生干坐着，等另外三位把星门充满。 */
   function checkIdle() {
@@ -851,7 +851,7 @@
       var n = 0;
       while (elapsed >= p.idleNext && n < 3) {
         Scene.chargeLoss(CHARGE_IDLE);
-        Scene.addFloat(i, '−1.5%', '#ff8a7a', true);
+        Scene.addFloat(i, '−1%', '#ff8a7a', true);
         var box = $('pq' + i); if (box) box.classList.add('idleWarn');
         p.idleNext += IDLE_MS;
         n++;
@@ -1035,7 +1035,7 @@
       }
       if (state === 'play') {
         elapsed += dt * 1000;
-        checkIdle();                       /* 谁 5 秒没答题，就漏 1.5% */
+        checkIdle();                       /* 谁 5 秒没答题，就漏 1% */
         if (cfg.mode === 'team' && !teamBusy && !teamWon && Scene.charge().disp >= 1) {
           checkTeamHp();                   /* 充能条真的满 100% 才判定胜利 */
         }
