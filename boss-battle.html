@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script>window.ARENA_BUILD="2026-11-10b";</script>
 <title>团队合作知识闯关 · 进阶版</title>
 <style>
 /* ================= 基础 ================= */
@@ -314,7 +318,7 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
     <div id="settings" class="card hidden">
       <div class="cardHead">
         <h1>参数设置</h1>
-        <p class="sub">数值越大越难 / Boss 越强。改完点「保存配置」，会存到本机浏览器，下次打开自动生效；当前这一局结束后才应用新数值。</p>
+        <p class="sub">数值越大越难 / Boss 越强。改完点「保存配置」，会存到本机浏览器，下次打开自动生效；当前这一局结束后才应用新数值。<br><span id="buildTag" style="display:inline-block;margin-top:8px;font-size:15px;color:#8f83b8;letter-spacing:1px"></span></p>
       </div>
       <div class="cardBody">
         <div class="setRow">
@@ -4014,6 +4018,7 @@ newBattle();
 parkBattle();                                 // 设置页期间只做画面预览
 fit();
 syncEnergyUI();                               // 星尘门票状态
+document.getElementById("buildTag").textContent = "构建版本 " + (window.ARENA_BUILD || "未知") + " · 若一体机显示旧日期请强制刷新";
 
 document.getElementById('btnStart').addEventListener('click', startBattle);
 document.getElementById('btnAgain').addEventListener('click', startBattle);
