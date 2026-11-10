@@ -55,6 +55,7 @@ html, body { background: #0b0820; }
       <div class="hudBtns">
         <button id="btnSound" class="hudBtn" title="音效开关">🔊</button>
         <button id="btnPause" class="hudBtn" title="暂停/继续">⏸</button>
+        <button id="btnFsWarm" class="hudBtn" title="全屏 / 退出全屏">⛶ 全 屏</button>
         <button id="btnHome" class="hudBtn">重开</button>
       </div>
     </div>
@@ -151,5 +152,6 @@ html, body { background: #0b0820; }
 <script src="js/banks.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/game.js"></script>
+<script>if (window.FS && FS.bindButton) FS.bindButton("btnFsWarm", "⛶ 退 出 全 屏", "⛶ 全 屏");</script>
 </body>
 </html>

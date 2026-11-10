@@ -221,9 +221,11 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 #toast.show { opacity: 1; }
 
 /* 首页内嵌的管理帧：只留密码层与设置层，关卡挑战页的画面/面板全部隐藏 */
-body.adminOnly #arena, body.adminOnly #panels, body.adminOnly #hud,
+body.adminOnly #arena, body.adminOnly #panels,
 body.adminOnly #toast, body.adminOnly #warp,
 body.adminOnly #setup, body.adminOnly #result { display: none !important; }
+body.adminOnly #hud { display: flex !important; }
+body.adminOnly #btnSet { display: none !important; }
 body.adminOnly #stage { background: #0d0a20 !important; }
 body.adminOnly #overlay { background: transparent !important; backdrop-filter: none !important; }
 
@@ -3222,13 +3224,18 @@ function render() {
   c.globalAlpha = 1;
   c.clearRect(0, 0, W, AH);
   if (!B) return;
-  drawBg(c);
-  drawTopBar(c);
-  for (var i = 0; i < 4; i++) drawHeroCard(c, B.heroes[i]);
-  drawBoss(c);
-  drawFx(c);
-  drawFloats(c);
-  drawBanner(c);
+  /* 绘制分段隔离：任何一段出错都只跳过它自己，绝不连累后面的
+     特效 / 飘字 / 横幅（一体机上曾出现「大招没动画」就是这个链路被中断） */
+  function seg(name, fn) {
+    try { fn(); }
+    catch (e) { if (window.console && console.error) console.error('render:' + name, e); }
+  }
+  seg('bg', function () { drawBg(c); drawTopBar(c); });
+  for (var i = 0; i < 4; i++) seg('hero' + i, function (i) { return function () { drawHeroCard(c, B.heroes[i]); }; }(i));
+  seg('boss', function () { drawBoss(c); });
+  seg('fx', function () { drawFx(c); });
+  seg('floats', function () { drawFloats(c); });
+  seg('banner', function () { drawBanner(c); });
 }
 
 /* ============================ 舞台缩放 ============================ */
@@ -3239,8 +3246,7 @@ function fit() {
   st.style.left = Math.max(0, (window.innerWidth - W * s) / 2) + 'px';
   st.style.top = Math.max(0, (window.innerHeight - H * s) / 2) + 'px';
 }
-window.addEventListener('resize', fit);
-window.addEventListener('orientationchange', fit);
+bindFitEvents(fit);
 
 /* ============================ 设置页 ============================ */
 var SUBJECTS = [
@@ -3664,29 +3670,10 @@ function buildEnergyOpts() {
   ], CFG.energyOn, function (id) { CFG.energyOn = id; });
 }
 
-/* ============================ 全屏 ============================ */
-function fsEl() {
-  return document.fullscreenElement || document.webkitFullscreenElement ||
-         document.webkitCurrentFullScreenElement || document.msFullscreenElement || null;
-}
-function syncFsBtn() {
-  var b = document.getElementById('btnFs');
-  if (b) b.textContent = fsEl() ? '退出全屏' : '全 屏';
-}
-function toggleFs() {
-  var el = document.documentElement;
-  try {
-    if (!fsEl()) {
-      var r = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-      if (r) r.call(el); else toast('浏览器不支持自动全屏，请按 F11');
-    } else {
-      var x = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
-      if (x) x.call(document); else toast('请按 F11 或 Esc 退出全屏');
-    }
-  } catch (e) { toast('浏览器不支持自动全屏，请按 F11'); }
-}
-document.addEventListener('fullscreenchange', function () { syncFsBtn(); fit(); });
-document.addEventListener('webkitfullscreenchange', function () { syncFsBtn(); fit(); });
+/* ============================ 全屏 ============================
+   统一由 js/fullscreen.js 的 FS.bindButton 管理：左上角一个按钮切换
+   进入 / 退出，管理帧内通过 postMessage 让父文档代为切换。 */
+
 
 /* ============================ 屏蔽鼠标右键 / 拖拽 ============================ */
 document.addEventListener('contextmenu', function (e) { e.preventDefault(); e.stopPropagation(); return false; }, false);
@@ -3789,10 +3776,61 @@ function closestAttr(el, attr) {
   }
   return null;
 }
+
+/* ---------- 触摸命中：按舞台原始坐标找按键，不依赖浏览器对 transform 的命中测试 ----------
+   一体机在非 1920×1080 分辨率 / 系统缩放 / 老内核下，e.target 可能指向相邻按键
+   （表现为「按 1 却输入了别的数字」）。这里把触点换算回 1920×1080 舞台坐标，
+   直接对按钮矩形做命中，并给边缘留 18px 容差。 */
+function hitPanelButton(clientX, clientY, box) {
+  var stage = document.getElementById('stage');
+  if (!box || !stage || clientX == null || clientY == null) return null;
+  var sr = stage.getBoundingClientRect();
+  if (!sr.width) return null;
+  var sc = sr.width / W;
+  var sx = (clientX - sr.left) / sc, sy = (clientY - sr.top) / sc;
+  var nodes = box.querySelectorAll('[data-k],[data-o]');
+  var best = null, bd = Infinity;
+  for (var n = 0; n < nodes.length; n++) {
+    var r = nodes[n].getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    var x0 = (r.left - sr.left) / sc, x1 = (r.right - sr.left) / sc;
+    var y0 = (r.top - sr.top) / sc, y1 = (r.bottom - sr.top) / sc;
+    if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) return nodes[n];
+    var dx = Math.max(x0 - sx, 0, sx - x1), dy = Math.max(y0 - sy, 0, sy - y1);
+    var d = dx * dx + dy * dy;
+    if (d < bd) { bd = d; best = nodes[n]; }
+  }
+  return bd <= 324 ? best : null;      /* 18px（舞台坐标）容差 */
+}
+/* 老内核走 touchstart 时没有 clientX，从 touches 里取 */
+function pointOf(e) {
+  if (e.clientX != null) return { x: e.clientX, y: e.clientY };
+  var t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+  return t ? { x: t.clientX, y: t.clientY } : null;
+}
+var _lastTap = { t: 0, x: -999, y: -999 };
+function tapGuard(x, y) {
+  var now = Date.now();
+  if (now - _lastTap.t < 60 && Math.abs(x - _lastTap.x) < 10 && Math.abs(y - _lastTap.y) < 10) return false;
+  _lastTap = { t: now, x: x, y: y };
+  return true;
+}
+function bindFitEvents(fit) {
+  function refit() { fit(); setTimeout(fit, 120); }
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
+  window.addEventListener('fullscreenchange', refit);
+  window.addEventListener('webkitfullscreenchange', refit);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refit(); });
+  if (window.visualViewport && window.visualViewport.addEventListener) window.visualViewport.addEventListener('resize', refit);
+}
 function bindPanels() {
   document.getElementById('panels').addEventListener('pointerdown', function (e) {
     if (!B || B.over || B.paused) return;
-    var el = closestAttr(e.target, 'data-i');
+    var pt = pointOf(e);
+    if (pt && !tapGuard(pt.x, pt.y)) return;
+    var el = (pt ? hitPanelButton(pt.x, pt.y, document.getElementById('panels')) : null) ||
+             closestAttr(e.target, 'data-i');
     if (!el) return;
     e.preventDefault();
     var i = parseInt(el.getAttribute('data-i'), 10);
@@ -3975,14 +4013,14 @@ buildPwKeys();
 newBattle();
 parkBattle();                                 // 设置页期间只做画面预览
 fit();
-syncFsBtn();
 syncEnergyUI();                               // 星尘门票状态
 
 document.getElementById('btnStart').addEventListener('click', startBattle);
 document.getElementById('btnAgain').addEventListener('click', startBattle);
 document.getElementById('btnBack').addEventListener('click', backToSetup);
 document.getElementById('btnSet').addEventListener('click', function () { ac(); openPw(); });
-document.getElementById('btnFs').addEventListener('click', function () { ac(); toggleFs(); });
+document.getElementById('btnFs').addEventListener('click', ac);
+if (window.FS && FS.bindButton) FS.bindButton('btnFs', '退出全屏', '全 屏');
 document.getElementById('pwCancel').addEventListener('click', function () { sfx('click'); closePw(); });
 document.getElementById('btnSaveCfg').addEventListener('click', saveSettings);
 document.getElementById('btnResetCfg').addEventListener('click', resetSettings);

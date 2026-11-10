@@ -180,7 +180,14 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     stage.style.left = Math.max(0, (window.innerWidth - W * s) / 2) + 'px';
     stage.style.top = Math.max(0, (window.innerHeight - H * s) / 2) + 'px';
   }
-  window.addEventListener('resize', fit); fit();
+  function refit() { fit(); setTimeout(fit, 120); }
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
+  window.addEventListener('fullscreenchange', refit);
+  window.addEventListener('webkitfullscreenchange', refit);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refit(); });
+  if (window.visualViewport && window.visualViewport.addEventListener) window.visualViewport.addEventListener('resize', refit);
+  fit();
 
   /* 星空点缀 */
   var sky = document.getElementById('sky'), frag = document.createDocumentFragment();
@@ -308,15 +315,8 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     if (window.FS) FS.keepOnNav();
     location.href = 'boss-battle.html';
   });
-  /* 首页全屏按钮：文字随状态变化 */
-  var fsBtn = document.getElementById('btnFsHome');
-  function syncFsHome() {
-    if (fsBtn) fsBtn.textContent = (window.FS && FS.isOn()) ? '⛶ 退 出 全 屏' : '⛶ 全 屏';
-  }
-  if (fsBtn) fsBtn.addEventListener('click', function () { if (window.FS) FS.toggle(); });
-  document.addEventListener('fullscreenchange', syncFsHome);
-  document.addEventListener('webkitfullscreenchange', syncFsHome);
-  syncFsHome();
+  /* 首页全屏按钮：同一个按钮切换进入 / 退出，文案随状态变化 */
+  if (window.FS && FS.bindButton) FS.bindButton('btnFsHome', '⛶ 退 出 全 屏', '⛶ 全 屏');
 
   /* 老师专用：在首页内打开全屏管理帧（密码 + 设置），不切换页面 */
   document.getElementById('btnAdmin').addEventListener('click', function () {

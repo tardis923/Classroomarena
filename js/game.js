@@ -186,7 +186,13 @@
     st.style.left = Math.max(0, (window.innerWidth - W * s) / 2) + 'px';
     st.style.top = Math.max(0, (window.innerHeight - H * s) / 2) + 'px';
   }
-  window.addEventListener('resize', fit);
+  function refit() { fit(); setTimeout(fit, 120); }
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
+  window.addEventListener('fullscreenchange', refit);
+  window.addEventListener('webkitfullscreenchange', refit);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refit(); });
+  if (window.visualViewport && window.visualViewport.addEventListener) window.visualViewport.addEventListener('resize', refit);
 
   /* ================= 音效 ================= */
   var Sound = (function () {
@@ -362,11 +368,65 @@
   /* 多点触控：事件委托只绑一次
    * （如果放在 buildPanels 里，每开一局就会多一层监听，
    *   一次点击会触发两遍，输入变成 11、55…… 永远答错） */
+
+/* ---------- 触摸命中：按舞台原始坐标找按键，不依赖浏览器对 transform 的命中测试 ----------
+   一体机在非 1920×1080 分辨率 / 系统缩放 / 老内核下，e.target 可能指向相邻按键
+   （表现为「按 1 却输入了别的数字」）。这里把触点换算回 1920×1080 舞台坐标，
+   直接对按钮矩形做命中，并给边缘留 18px 容差。 */
+  function hitPanelButton(clientX, clientY, box) {
+  var stage = document.getElementById('stage');
+  if (!box || !stage || clientX == null || clientY == null) return null;
+  var sr = stage.getBoundingClientRect();
+  if (!sr.width) return null;
+  var sc = sr.width / W;
+  var sx = (clientX - sr.left) / sc, sy = (clientY - sr.top) / sc;
+  var nodes = box.querySelectorAll('[data-k],[data-o]');
+  var best = null, bd = Infinity;
+  for (var n = 0; n < nodes.length; n++) {
+    var r = nodes[n].getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    var x0 = (r.left - sr.left) / sc, x1 = (r.right - sr.left) / sc;
+    var y0 = (r.top - sr.top) / sc, y1 = (r.bottom - sr.top) / sc;
+    if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) return nodes[n];
+    var dx = Math.max(x0 - sx, 0, sx - x1), dy = Math.max(y0 - sy, 0, sy - y1);
+    var d = dx * dx + dy * dy;
+    if (d < bd) { bd = d; best = nodes[n]; }
+  }
+  return bd <= 324 ? best : null;      /* 18px（舞台坐标）容差 */
+}
+  /* 老内核走 touchstart 时没有 clientX，从 touches 里取 */
+  function pointOf(e) {
+    if (e.clientX != null) return { x: e.clientX, y: e.clientY };
+    var t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+    return t ? { x: t.clientX, y: t.clientY } : null;
+  }
+  var _lastTap = { t: 0, x: -999, y: -999 };
+  function tapGuard(x, y) {
+    var now = Date.now();
+    if (now - _lastTap.t < 60 && Math.abs(x - _lastTap.x) < 10 && Math.abs(y - _lastTap.y) < 10) return false;
+    _lastTap = { t: now, x: x, y: y };
+    return true;
+  }
+  function bindFitEvents(fit) {
+  function refit() { fit(); setTimeout(fit, 120); }
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
+  window.addEventListener('fullscreenchange', refit);
+  window.addEventListener('webkitfullscreenchange', refit);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refit(); });
+  if (window.visualViewport && window.visualViewport.addEventListener) window.visualViewport.addEventListener('resize', refit);
+}
+
   function bindPanels() {
     var box = $('panels');
     bindTap(box, function (e) {
-      var btn = e.target;
-      while (btn && btn !== box && !(btn.classList && (btn.classList.contains('kbtn') || btn.classList.contains('popt')))) btn = btn.parentNode;
+      var pt = pointOf(e);
+      if (pt && !tapGuard(pt.x, pt.y)) return;
+      var btn = pt ? hitPanelButton(pt.x, pt.y, box) : null;
+      if (!btn || btn === box) {
+        btn = e.target;
+        while (btn && btn !== box && !(btn.classList && (btn.classList.contains('kbtn') || btn.classList.contains('popt')))) btn = btn.parentNode;
+      }
       if (!btn || btn === box) return;
       e.preventDefault();
       var colEl = btn.closest ? btn.closest('.pcol') : null;
