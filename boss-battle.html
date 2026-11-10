@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-10e";</script>
+<script>window.ARENA_BUILD="2026-11-10f";</script>
 <title>团队合作知识闯关 · 进阶版</title>
 <style>
 /* ================= 基础 ================= */
@@ -954,7 +954,10 @@ function clearTimers() { timers.length = 0; }
 function tickTimers(dt) {
   for (var i = timers.length - 1; i >= 0; i--) {
     timers[i].t -= dt;
-    if (timers[i].t <= 0) { var f = timers[i].fn; timers.splice(i, 1); try { f(); } catch (e) { } }
+    if (timers[i].t <= 0) {
+      var f = timers[i].fn; timers.splice(i, 1);
+      try { f(); } catch (e) { if (window.console && console.error) console.error('timer:', e); }
+    }
   }
 }
 
@@ -3682,6 +3685,7 @@ function buildEnergyOpts() {
 /* ============================ 屏蔽鼠标右键 / 拖拽 ============================ */
 document.addEventListener('contextmenu', function (e) { e.preventDefault(); e.stopPropagation(); return false; }, false);
 document.addEventListener('dragstart', function (e) { e.preventDefault(); return false; }, false);
+document.addEventListener('selectstart', function (e) { e.preventDefault(); return false; }, false);
 
 /* ============================ 答题区 ============================ */
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -3820,7 +3824,7 @@ function tapGuard(x, y) {
   return true;
 }
 function bindFitEvents(fit) {
-  function refit() { fit(); setTimeout(fit, 120); }
+  function refit() { fit(); setTimeout(fit, 120); setTimeout(fit, 320); }
   window.addEventListener('resize', refit);
   window.addEventListener('orientationchange', refit);
   window.addEventListener('fullscreenchange', refit);
@@ -3964,6 +3968,7 @@ function syncOverlayDim() {
 }
 
 var last = 0;
+var lastIdleRender = 0;
 function loop(ts) {
   var dt = last ? (ts - last) / 1000 : 0.016;
   last = ts;
@@ -4000,7 +4005,13 @@ function loop(ts) {
       }
       if (!B.over && !B.paused) { B.elapsed += dt; tickBoss(dt); }
     }
-    render();
+    /* 设置页暂停时画面被 DOM 暗遮罩盖住，降到约 5 帧/秒省 CPU；
+       结算时不降频——通关礼花 winburst 还要播 2 秒 */
+    var idle = !!(B && B.paused);
+    if (!idle || !lastIdleRender || ts - lastIdleRender > 200) {
+      render();
+      lastIdleRender = idle ? ts : 0;
+    }
   } catch (err) {
     if (window.console && window.console.error) window.console.error('loop:', err);
   }

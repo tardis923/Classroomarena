@@ -185,7 +185,7 @@
     st.style.left = Math.max(0, (window.innerWidth - W * s) / 2) + 'px';
     st.style.top = Math.max(0, (window.innerHeight - H * s) / 2) + 'px';
   }
-  function refit() { fit(); setTimeout(fit, 120); }
+  function refit() { fit(); setTimeout(fit, 120); setTimeout(fit, 320); }
   window.addEventListener('resize', refit);
   window.addEventListener('orientationchange', refit);
   window.addEventListener('fullscreenchange', refit);

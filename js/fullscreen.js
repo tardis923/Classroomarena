@@ -55,7 +55,7 @@
   /* 跳转前调用：当前全屏才写标记，避免非全屏跳转后被强行拉进全屏 */
   function keepOnNav() {
     try {
-      if (isOn()) localStorage.setItem(KEY, '1');
+      if (isOn()) localStorage.setItem(KEY, String(Date.now()));
       else localStorage.removeItem(KEY);
     } catch (e) { }
   }
@@ -79,7 +79,13 @@
   function resume() {
     var flag = null;
     try { flag = localStorage.getItem(KEY); } catch (e) { }
-    if (flag !== '1') return;
+    /* 标记带时间戳，30 秒后自动作废：跳转后没点就离开页面，
+       下次打开不该在第一次点击时突然被拉进全屏 */
+    var stamp = parseInt(flag, 10);
+    if (!stamp || Date.now() - stamp > 30000) {
+      try { localStorage.removeItem(KEY); } catch (e) { }
+      return;
+    }
     var done = false;
     function once(e) {
       /* 点全屏按钮时不要自动续接，否则会「刚进入又被按钮退出」 */

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-10e";</script>
+<script>window.ARENA_BUILD="2026-11-10f";</script>
 <title>学院晨练 · 热身赛</title>
 <link rel="stylesheet" href="css/style.css">
 <style id="starSkin">
@@ -156,6 +156,12 @@ html, body { background: #0b0820; }
 <script src="js/banks.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/game.js"></script>
-<script>if (window.FS && FS.bindButton) FS.bindButton("btnFsWarm", "⛶ 退 出 全 屏", "⛶ 全 屏");</script>
+<script>
+if (window.FS && FS.bindButton) FS.bindButton("btnFsWarm", "⛶ 退 出 全 屏", "⛶ 全 屏");
+/* 一体机触屏：禁掉长按菜单 / 拖拽 / 文本选择 */
+document.addEventListener("contextmenu", function (e) { e.preventDefault(); e.stopPropagation(); return false; }, false);
+document.addEventListener("dragstart", function (e) { e.preventDefault(); return false; }, false);
+document.addEventListener("selectstart", function (e) { e.preventDefault(); return false; }, false);
+</script>
 </body>
 </html>

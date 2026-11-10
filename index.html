@@ -6,11 +6,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-10e";</script>
+<script>window.ARENA_BUILD="2026-11-10f";</script>
 <title>知识星核 · 四界追光</title>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #070612; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; }
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #070612; font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  touch-action: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
 #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: #0d0a20; color: #f3eeff; }
 #sky { position: absolute; inset: 0; background:
   radial-gradient(900px 620px at 72% 34%, rgba(96,72,190,.34), transparent 70%),
@@ -175,6 +176,11 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
 <script src="class-config.js"></script>
 <script src="js/fullscreen.js"></script>
 <script>
+/* 一体机触屏：禁掉长按菜单 / 拖拽 / 文本选择，避免误触弹出系统菜单 */
+document.addEventListener('contextmenu', function (e) { e.preventDefault(); e.stopPropagation(); return false; }, false);
+document.addEventListener('dragstart', function (e) { e.preventDefault(); return false; }, false);
+document.addEventListener('selectstart', function (e) { e.preventDefault(); return false; }, false);
+
 (function () {
   var W = 1920, H = 1080;
   var stage = document.getElementById('stage');
@@ -184,7 +190,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     stage.style.left = Math.max(0, (window.innerWidth - W * s) / 2) + 'px';
     stage.style.top = Math.max(0, (window.innerHeight - H * s) / 2) + 'px';
   }
-  function refit() { fit(); setTimeout(fit, 120); }
+  function refit() { fit(); setTimeout(fit, 120); setTimeout(fit, 320); }
   window.addEventListener('resize', refit);
   window.addEventListener('orientationchange', refit);
   window.addEventListener('fullscreenchange', refit);
