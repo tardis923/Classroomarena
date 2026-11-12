@@ -43,12 +43,12 @@
   var startMs = 0, pausedMs = 0, elapsed = 0;
 
   /* 团队闯关：星门充能到 100% 即胜利
-   * 答对 +2.5%（约 40 题充满）、答错 −1%（缓慢漏掉），限时 60 秒。
-   * 每人基准 10 题（四人共 40 题）；答错后要多答几题补回来。 */
+   * 答对 +2.8%（全对 36 题充满）、答错 −1%（缓慢漏掉），限时 60 秒。
+   * 每人基准 9 题（四人共 36 题）；答错后要多答几题补回来。 */
   var TEAM_MAX_LEVEL = 1;
-  var TEAM_BUNS = 10;
+  var TEAM_BUNS = 9;
   var TEAM_TIME = 60;
-  var CHARGE_ADD = 0.025;
+  var CHARGE_ADD = 0.028;   /* 36 题 × 2.8% = 100.8%，clamp 到 100%；35 题 98% 未满 */
   var CHARGE_SUB = 0.01;
   var teamDone = 0, teamLevel = 1, teamWon = false, teamBusy = false;
   function teamNeed() { return cfg.buns * 4; }
@@ -94,7 +94,7 @@
   };
   /* 副标题按主题自动生成，同样不含学科词 */
   var SUBS = {
-    team: function (r) { return r + '骑发电单车：答对 +2.5%、答错 −1% —— 60 秒内把星门充到 100% 就赢！'; }
+    team: function (r) { return r + '骑发电单车：答对 +2.8%、答错 −1% —— 60 秒内把星门充到 100% 就赢！'; }
   };
 
   /* 刷新设置页标题与副标题 */
@@ -233,7 +233,7 @@
     /* 玩法固定为团队闯关：题型为乘法口诀±一个数 + 安全知识，模式/难度选择已移除 */
 
     var bunBox = $('optBuns');
-    var bunOpts = [5, 10, 15, 20];
+    var bunOpts = [6, 9, 12, 15];
     syncBuns = function () {
       var bs = bunBox.querySelectorAll('.opt');
       for (var i = 0; i < bs.length; i++) {
@@ -312,7 +312,7 @@
       list.push({ idx: i, name: sk[i].name, buns: cfg.buns, skin: sk[i], onSwallow: null, onEatDone: null });
     }
     Scene.setPlayers(list);
-    if (cfg.mode === 'team') Scene.teamLevel(1, '星门充能 · 答对 +2.5% · 答错 −1%');
+    if (cfg.mode === 'team') Scene.teamLevel(1, '星门充能 · 答对 +2.8% · 答错 −1%');
     for (i = 0; i < 4; i++) Scene.char(i).plate = cfg.buns;
   }
 
@@ -623,7 +623,7 @@
     p.eaten++;
     if (Scene.char(i)) Scene.char(i).teamScore(p.eaten);
     teamDone++;
-    Scene.bossHit(i, CHARGE_ADD, teamInfoText());   /* 答对：充能 +2.5% */
+    Scene.bossHit(i, CHARGE_ADD, teamInfoText());   /* 答对：充能 +2.8% */
     updateProgress(i);
     checkTeamHp();                                  /* 充满 100% 即胜利 */
     if (state === 'play') newQuestion(i); // 节奏不断，马上出新题

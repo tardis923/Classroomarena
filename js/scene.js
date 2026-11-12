@@ -40,7 +40,7 @@ var Scene = (function () {
     level: 1, hp: 1, info: '', boss: null,
     flash: 0, shake: 0, dying: -1, enter: 1, projs: [],
     chargeDisp: 0,      /* 星门当前显示充能（连续平滑） */
-    chargeTarget: 0,    /* 真实充能值：答对 +2.5%，答错 -1% */
+    chargeTarget: 0,    /* 真实充能值：答对 +2.8%，答错 -1% */
     leakT: 0,           /* 漏能剩余秒数 */
     leakAmt: 0, leakLeft: 0  /* 本次漏能总量 / 还剩多少没漏完 */
   };
@@ -1478,7 +1478,7 @@ var Scene = (function () {
 
   /* ============================================================
    * 模式三：团队闯关 —— 中央星门（答对 → 星尘汇入 → 充能点亮）
-    * 充能值由答对/答错决定（+2.5% / −1%），显示值平滑追随真实值。
+    * 充能值由答对/答错决定（+2.8% / −1%），显示值平滑追随真实值。
    * ============================================================ */
   function drawBoss(c) {
     if (!team.boss) return;
@@ -1933,7 +1933,7 @@ var Scene = (function () {
       ch.throwFood();
       var last = team.projs[team.projs.length - 1];
       if (last) { last.hp = null; last.info = info; }
-      team.chargeTarget = clamp01(team.chargeTarget + (add || 0));   /* 答对 +2.5% */
+      team.chargeTarget = clamp01(team.chargeTarget + (add || 0));   /* 答对 +2.8% */
     },
     /* 答错：2 秒内缓慢漏掉指定额度（默认 1%），真实值与显示值同步下降 */
     chargeLoss: function (amt) {
