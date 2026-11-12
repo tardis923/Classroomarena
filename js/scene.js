@@ -40,7 +40,7 @@ var Scene = (function () {
     level: 1, hp: 1, info: '', boss: null,
     flash: 0, shake: 0, dying: -1, enter: 1, projs: [],
     chargeDisp: 0,      /* 星门当前显示充能（连续平滑） */
-    chargeTarget: 0,    /* 真实充能值：答对 +2.5%，答错/挂机 -1% */
+    chargeTarget: 0,    /* 真实充能值：答对 +2.5%，答错 -1% */
     leakT: 0,           /* 漏能剩余秒数 */
     leakAmt: 0, leakLeft: 0  /* 本次漏能总量 / 还剩多少没漏完 */
   };
@@ -1938,9 +1938,9 @@ var Scene = (function () {
     /* 答错：2 秒内缓慢漏掉指定额度（默认 1%），真实值与显示值同步下降 */
     chargeLoss: function (amt) {
       if (!starMode()) return;
-      if (team.chargeTarget >= 1) return;      /* 已充满：锁定，不再被挂机/答错拉回 */
+      if (team.chargeTarget >= 1) return;      /* 已充满：锁定，不再被答错拉回 */
       var a = (amt == null) ? 0.01 : amt;
-      /* 同一帧多人挂机/答错：额度累加，不能互相覆盖 */
+      /* 同一帧多人答错：额度累加，不能互相覆盖 */
       if (team.leakT > 0) {
         team.leakAmt += a; team.leakLeft += a;
         team.leakT = Math.max(team.leakT, 2);

@@ -50,8 +50,6 @@
   var TEAM_TIME = 60;
   var CHARGE_ADD = 0.025;
   var CHARGE_SUB = 0.01;
-  var CHARGE_IDLE = 0.01;       /* 5 秒没答题：扣 1%，防止有人挂机等队友答 */
-  var IDLE_MS = 5000;
   var teamDone = 0, teamLevel = 1, teamWon = false, teamBusy = false;
   function teamNeed() { return cfg.buns * 4; }
   function teamInfoText() {
@@ -96,7 +94,7 @@
   };
   /* 副标题按主题自动生成，同样不含学科词 */
   var SUBS = {
-    team: function (r) { return r + '骑发电单车：答对 +2.5%、答错 −1%、5 秒不答题 −1% —— 60 秒内把星门充到 100% 就赢！'; }
+    team: function (r) { return r + '骑发电单车：答对 +2.5%、答错 −1% —— 60 秒内把星门充到 100% 就赢！'; }
   };
 
   /* 刷新设置页标题与副标题 */
@@ -514,7 +512,6 @@
     p.input = '';
     p.busy = false;
     p.qStart = elapsed;
-    p.idleNext = elapsed + IDLE_MS;      /* 5 秒内不作答 → 扣 1% */
     setQuestion(i, p.q.text);
 
     var col = $('pcol' + i);
@@ -838,28 +835,6 @@
     var v = $('victory'); if (v) v.classList.add('show');
   }
 
-  /* ================= 挂机惩罚：5 秒不答题扣 1% =================
-     四人各算各的：谁的题目 5 秒没动，谁就往外漏能；答了（对/错）会换新题并重计时。
-     防止有学生干坐着，等另外三位把星门充满。 */
-  function checkIdle() {
-    if (cfg.mode !== 'team' || teamBusy || teamWon) return;
-    if (Scene.charge().target >= 1) return;   /* 已充满：等胜利过场，不再挂机扣能 */
-    for (var i = 0; i < 4; i++) {
-      var p = players[i];
-      if (!p || !p.q || p.done || p.busy) continue;
-      if (p.idleNext == null) { p.idleNext = elapsed + IDLE_MS; continue; }
-      var n = 0;
-      while (elapsed >= p.idleNext && n < 3) {
-        Scene.chargeLoss(CHARGE_IDLE);
-        Scene.addFloat(i, '−1%', '#ff8a7a', true);
-        var box = $('pq' + i); if (box) box.classList.add('idleWarn');
-        p.idleNext += IDLE_MS;
-        n++;
-      }
-      if (n >= 3) p.idleNext = elapsed + IDLE_MS;   /* 页面卡顿后不一次性猛扣 */
-    }
-  }
-
   /* ================= 团队闯关：60 秒到点，星门熄灭 ================= */
   function teamTimeout() {
     if (state !== 'play') return;
@@ -1035,7 +1010,6 @@
       }
       if (state === 'play') {
         elapsed += dt * 1000;
-        checkIdle();                       /* 谁 5 秒没答题，就漏 1% */
         if (cfg.mode === 'team' && !teamBusy && !teamWon && Scene.charge().disp >= 1) {
           checkTeamHp();                   /* 充能条真的满 100% 才判定胜利 */
         }
