@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-12b";</script>
+<script>window.ARENA_BUILD="2026-11-18a";</script>
 <title>学院晨练 · 热身赛</title>
 <link rel="stylesheet" href="css/style.css">
 <style id="starSkin">
@@ -30,6 +30,8 @@ html, body { background: #0b0820; }
 .popt i { background: rgba(190,170,255,.2); color: #ffe6a6; }
 #hudTime, .hudBtn { color: #ffe6a6; background: rgba(30,20,70,.88); border-color: rgba(190,170,255,.55); }
 .hudBtn:active { background: #4a3690; }
+/* 全屏按钮移到左上角，与关卡挑战页一致 */
+#btnFsWarm { position: absolute; left: 16px; top: 12px; z-index: 80; }
 #overlay { background: rgba(10,6,28,.72); }
 .card { background: linear-gradient(#2a2058, #1b1440); border-color: #6a50b8; }
 .card h1 { color: #ffe6a6; } .card .sub { color: #cfc2f5; }
@@ -54,12 +56,12 @@ html, body { background: #0b0820; }
   <!-- ================= 上方 2/3：动画区 ================= -->
   <div id="sceneWrap">
     <canvas id="scene" width="1920" height="720"></canvas>
+    <button id="btnFsWarm" class="hudBtn" title="全屏 / 退出全屏">⛶ 全 屏</button>
     <div id="hud">
       <div id="hudTime">00:00</div>
       <div class="hudBtns">
         <button id="btnSound" class="hudBtn" title="音效开关">🔊</button>
         <button id="btnPause" class="hudBtn" title="暂停/继续">⏸</button>
-        <button id="btnFsWarm" class="hudBtn" title="全屏 / 退出全屏">⛶ 全 屏</button>
         <button id="btnHome" class="hudBtn">重开</button>
       </div>
     </div>
