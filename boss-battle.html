@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-19a";</script>
+<script>window.ARENA_BUILD="2026-11-19b";</script>
 <title>团队合作知识闯关 · 进阶版</title>
 <style>
 /* ================= 基础 ================= */
@@ -690,6 +690,7 @@ var PVZ_PHASES = [
     body: '#b0453a', dark: '#6e2318', horn: '#ffd45e', eye: '#ffe08a', spikes: 2 }
 ];
 function PH() {
+  if (isHeroStage()) return heroBoss().phases;
   return isStage5() ? TREE_PHASES
     : (isStage4() ? (DESERT_PHASES || PHASES)
     : (isStage3() ? (SEA_PHASES || PHASES) : (isStage2() ? PVZ_PHASES : PHASES)));
@@ -707,12 +708,111 @@ var PVZ_HEROES = [
     desc: '连喷三发冰豌豆 · 减速机甲', robe: '#3fa8c4', dark: '#216a80', orb: '#bff0ff', tone: 500 }
 ];
 function heroSet() {
+  if (isHeroStage()) return HERO_TEAMS[heroBoss().tier];
   return isStage5() ? TREE_HEROES
     : (isStage4() ? (DESERT_HEROES || HEROES)
     : (isStage3() ? (SEA_HEROES || HEROES) : (isStage2() ? PVZ_HEROES : HEROES)));
 }
 function isStage4() { return CFG.stage === 4; }
 function isStage5() { return CFG.stage === 5; }
+function isHeroStage() { return CFG.stage >= 6 && CFG.stage <= 17; }
+function heroBoss() { return HERO_BOSSES[CFG.stage - 6] || null; }
+
+/* ============================ 第六～十七关 · 英雄篇（数据表驱动） ============================
+   影之碎片继续附身正派英雄：不是变坏，是最强的特质被放大成执念。
+   学生不是消灭他们，是用知识唤醒。所有关卡共用一套绘制/攻击引擎，
+   靠这里的颜色、形态、技能类型区分，避免 12 套重复代码。 */
+var HERO_TEAMS = {
+  0: [ /* 初醒战衣（5-7 关） */
+    { cls: '星锋', name: '星锋', skill: '光刃', key: 'thunder', desc: '光刃劈击 · 集火输出', robe: '#d85a4a', dark: '#933c30', orb: '#ffd0a0', tone: 392 },
+    { cls: '曜盾', name: '曜盾', skill: '星盾', key: 'heal', desc: '星盾守护 · 全队减伤', robe: '#3f7fc4', dark: '#2a5588', orb: '#bfe4ff', tone: 300 },
+    { cls: '脉冲', name: '脉冲', skill: '电涌', key: 'fire', desc: '电弧脉冲 · 打断出手', robe: '#8857c4', dark: '#5a3888', orb: '#e0c8ff', tone: 240 },
+    { cls: '织光', name: '织光', skill: '光引', key: 'ice', desc: '光球牵引 · 辅助充能', robe: '#d8c98a', dark: '#93854f', orb: '#fff5c8', tone: 500 }
+  ],
+  1: [ /* 共鸣战衣（8-11 关）：肩甲展开、徽章发光 */
+    { cls: '星锋', name: '星锋', skill: '光刃·共鸣', key: 'thunder', desc: '光刃连斩 · 集火输出', robe: '#e86250', dark: '#a03a2e', orb: '#ffd8a8', tone: 392 },
+    { cls: '曜盾', name: '曜盾', skill: '星盾·共鸣', key: 'heal', desc: '星盾扩散 · 全队减伤', robe: '#4a90d8', dark: '#2e6098', orb: '#cfeaff', tone: 300 },
+    { cls: '脉冲', name: '脉冲', skill: '电涌·共鸣', key: 'fire', desc: '电弧连锁 · 打断出手', robe: '#9866d8', dark: '#664098', orb: '#e8d4ff', tone: 240 },
+    { cls: '织光', name: '织光', skill: '光引·共鸣', key: 'ice', desc: '光球牵引 · 辅助充能', robe: '#e8da9a', dark: '#a09458', orb: '#fffbd8', tone: 500 }
+  ],
+  2: [ /* 星核战衣（12-17 关）：星纹披风、武器发光 */
+    { cls: '星锋', name: '星锋', skill: '星核光刃', key: 'thunder', desc: '光刃破甲 · 集火输出', robe: '#f07058', dark: '#b04030', orb: '#ffe0b0', tone: 392 },
+    { cls: '曜盾', name: '曜盾', skill: '星核之盾', key: 'heal', desc: '星盾壁垒 · 全队减伤', robe: '#58a0f0', dark: '#3870b0', orb: '#d8f0ff', tone: 300 },
+    { cls: '脉冲', name: '脉冲', skill: '星核电涌', key: 'fire', desc: '电弧风暴 · 打断出手', robe: '#a878e8', dark: '#7048a8', orb: '#f0dcff', tone: 240 },
+    { cls: '织光', name: '织光', skill: '星核光引', key: 'ice', desc: '光球汇聚 · 辅助充能', robe: '#f0e4a8', dark: '#b0a468', orb: '#ffffff', tone: 500 }
+  ]
+};
+/* 每位 Boss：名字 / 执念 / 颜色 / 形态 / 大招类型 / 专属机制 / 台词 / 题库 / 难度系数 */
+var HERO_BOSSES = [
+  { id:6, key:'widow', name:'黑寡妇', title:'影之控制', subj:'safe', hpMul:4.0, atkMul:1.9, tier:0,
+    ob:'被放大的控制欲', body:'#3a3f52', dark:'#1e2230', horn:'#e0483c', eye:'#ff6a5a', form:'human', ult:'web', mech:'dodge',
+    intro:'碎片钻进黑寡妇心里 —— 她想把所有事都攥在手里，连你们也不放过。',
+    outro:'树叶变绿，她轻轻放下手腕：「原来不用控制，也能信任同伴。」',
+    lines:{ enter:'你们太小了，掌控不了这力量。', mid:['别急，想清楚再动。','太慢了。','我在看着你。'], ult:'网已经张好了。', wake:'原来不用控制，也能信任同伴。' } },
+  { id:7, key:'hawkeye', name:'鹰眼', title:'完美瞄准', subj:'math', hpMul:4.3, atkMul:2.0, tier:0,
+    ob:'被放大的完美主义', body:'#5a4a86', dark:'#322a5e', horn:'#d8c26a', eye:'#ffe08a', form:'human', ult:'arrows', mech:'mark',
+    intro:'鹰眼的箭不再为守护而发 —— 他觉得不够准的人，不配持有星核。',
+    outro:'他放下长弓：「精准不是用来挑人的，是用来保护人的。」',
+    lines:{ enter:'不够准的人，不配拿星核。', mid:['再瞄一次。','你的答案偏了。','稳住。'], ult:'锁定目标——就是你。', wake:'精准不是用来挑人的，是保护人的。' } },
+  { id:8, key:'spider', name:'蜘蛛侠', title:'独自承担', subj:'safe', hpMul:4.6, atkMul:2.1, tier:1,
+    ob:'被放大的责任感', body:'#c43a4a', dark:'#1e3a8a', horn:'#3a5ac8', eye:'#d8f0ff', form:'human', ult:'swing', mech:'sense',
+    intro:'蜘蛛侠想一个人扛下所有 —— 他把你们推开，说「我来就好」。',
+    outro:'他终于松手：「能力越大，越要学会让别人一起扛。」',
+    lines:{ enter:'别过来，我一个人能扛！', mid:['我来就好！','你们退后！','快答，别让我分心！'], ult:'承担责任的是我——蛛丝来了！', wake:'能力越大，越要学会让别人一起扛。' } },
+  { id:9, key:'yondu', name:'勇度', title:'遥控飞箭', subj:'english', hpMul:4.9, atkMul:2.2, tier:1,
+    ob:'被放大的控制欲', body:'#3a6a8a', dark:'#1e3a52', horn:'#d85a4a', eye:'#8fe0ff', form:'human', ult:'yaka', mech:'window',
+    intro:'勇度的口哨声变得尖锐 —— 他想把飞箭和学生都攥在手里。',
+    outro:'他放下口哨：「原来不用攥着，他也会留下来。」',
+    lines:{ enter:'我的箭，从不落空——连自己人都逃不掉。', mid:['口哨一响，你就是靶子。','别跑，跑不掉。','和当年那小子一样倔。'], ult:'听好了——这才叫真正的箭雨。', wake:'原来不用攥着，他也会留下来。' } },
+  { id:10, key:'panther', name:'黑豹', title:'排外守护', subj:'chinese', hpMul:5.2, atkMul:2.3, tier:1,
+    ob:'被放大的守护本能', body:'#2a2a34', dark:'#14141e', horn:'#c0c8d4', eye:'#bfe4ff', form:'human', ult:'pounce', mech:'absorb',
+    intro:'黑豹把星核当成瓦坎达的私产 —— 他不允许任何人碰它。',
+    outro:'他摘下面罩：「守护不是关上门，是打开门。」',
+    lines:{ enter:'星核属于瓦坎达，外人退下。', mid:['这不是你们该碰的。','守好你的位置。','振金不认外来者。'], ult:'让它见识真正的守护。', wake:'守护不是关上门，是打开门。' } },
+  { id:11, key:'captain', name:'美国队长', title:'秩序纪律', subj:'safe', hpMul:5.5, atkMul:2.4, tier:1,
+    ob:'被放大的秩序感', body:'#3a5a9a', dark:'#1e3058', horn:'#d8c26a', eye:'#e8f0ff', form:'human', ult:'shields', mech:'guard',
+    intro:'美队觉得学生太散漫 —— 他要用盾牌把所有人「管好」。',
+    outro:'他放下盾：「纪律是保护，不是命令。」',
+    lines:{ enter:'散漫的队伍，赢不了这场仗。', mid:['守规矩！','按秩序来！','你们配合得太糟。'], ult:'盾牌——举起来！', wake:'纪律是保护，不是命令。' } },
+  { id:12, key:'iron', name:'钢铁侠', title:'科技自负', subj:'math', hpMul:5.8, atkMul:2.5, tier:2,
+    ob:'被放大的科技自负', body:'#c85a3a', dark:'#8a3020', horn:'#f0c84a', eye:'#8fe0ff', form:'human', ult:'missiles', mech:'armor',
+    intro:'钢铁侠觉得靠学生的脑子太慢 —— 他要证明战甲才是一切。',
+    outro:'他掀开面甲：「最厉害的装备，是四个人的脑子。」',
+    lines:{ enter:'靠你们的脑子？太慢了。', mid:['计算完毕，结论：你们不行。','快一点。','我有更好的方案。'], ult:'全弹齐射，看好了！', wake:'最厉害的装备，是四个人的脑子。' } },
+  { id:13, key:'thor', name:'雷神', title:'荣耀傲慢', subj:'chinese', hpMul:6.1, atkMul:2.6, tier:2,
+    ob:'被放大的荣耀感', body:'#8a6a4a', dark:'#50381e', horn:'#d8d8e8', eye:'#bfe8ff', form:'human', ult:'rainbow', mech:'storm',
+    intro:'雷神认为只有强者才配持有星核 —— 他要学生先证明自己。',
+    outro:'他收起锤子：「荣耀不是打赢，是带大家一起赢。」',
+    lines:{ enter:'只有强者，才配持有星核！', mid:['你在颤抖。','拿出勇气！','不够，还不够！'], ult:'彩虹桥——开！', wake:'荣耀不是打赢，是带大家一起赢。' } },
+  { id:14, key:'hulk', name:'浩克', title:'愤怒', subj:'safe', hpMul:6.4, atkMul:2.7, tier:2,
+    ob:'被放大的愤怒', body:'#4a9a4a', dark:'#2a5a2a', horn:'#6aba6a', eye:'#ffe08a', form:'giant', ult:'quake', mech:'rage',
+    intro:'浩克被碎片激怒 —— 越打越气，越气越猛，拦都拦不住。',
+    outro:'他变回布朗：「生气解决不了问题，但你们做到了。」',
+    lines:{ enter:'浩克……生气！星核……浩克的！', mid:['哼！','太弱了！','再打！'], ult:'浩克——砸！', wake:'生气解决不了问题，但你们做到了。' } },
+  { id:15, key:'witch', name:'绯红女巫', title:'悲伤失控', subj:'english', hpMul:6.7, atkMul:2.8, tier:2,
+    ob:'被放大的悲伤', body:'#9a3a4a', dark:'#5a1e2e', horn:'#e8788a', eye:'#ffb0c0', form:'human', ult:'chaos', mech:'chaos',
+    intro:'女巫让所有人看不清 —— 她说看不清就不会痛。',
+    outro:'幻象散去：「看清了，就不怕了。」',
+    lines:{ enter:'你们也看见了……那个结局吗？', mid:['别看清楚。','看不清就不会痛。','走开。'], ult:'让一切……变得模糊！', wake:'看清了，就不怕了。' } },
+  { id:16, key:'strange', name:'奇异博士', title:'宿命论', subj:'math', hpMul:7.0, atkMul:2.9, tier:2,
+    ob:'被放大的宿命感', body:'#8a4a3a', dark:'#502820', horn:'#f0c84a', eye:'#ffd88a', form:'human', ult:'rewind', mech:'rewind',
+    intro:'奇异博士看见了自己的结局 —— 他把每一次努力都倒转回去。',
+    outro:'他收起法阵：「未来不是看见的，是一题一题做出来的。」',
+    lines:{ enter:'我看见过结局——你们会输。', mid:['多余的动作。','结局不会变。','放弃吧。'], ult:'时间，回到那一刻。', wake:'未来不是看见的，是一题一题做出来的。' } },
+  { id:17, key:'thanos', name:'灭霸', title:'无限宝石', subj:'chinese', hpMul:7.5, atkMul:3.0, tier:2,
+    ob:'主动收集碎片，想统治宇宙', body:'#7a4a9a', dark:'#402858', horn:'#f0d84a', eye:'#ff9a6a', form:'giant', ult:'snap', mech:'gauntlet',
+    intro:'最后一颗碎片落在灭霸手里 —— 他要凑齐宝石，让宇宙「平衡」。',
+    outro:'宝石碎裂，星核终于完整 —— 你们证明了平衡不需要他。',
+    lines:{ enter:'无限宝石，终将归我。', mid:['你们只是数列的一部分。','平衡需要牺牲。','无谓的抵抗。'], ult:'响指之后，一切归零。', wake:'你们证明了，平衡不需要我。' } }
+];
+/* 生成三阶段数据：颜色随阶段加深，攻击系数递增 */
+HERO_BOSSES.forEach(function (b) {
+  b.phases = [
+    { name:b.name+'·影子', scale:b.form==='giant'?1.35:0.95, atkMul:0.9*b.atkMul, atkChance:1.0, meteorMul:1.0, bossImmune:false, body:b.body, dark:b.dark, horn:b.horn, eye:b.eye, spikes:0 },
+    { name:b.name+'·执念', scale:b.form==='giant'?1.55:1.22, atkMul:1.3*b.atkMul, atkChance:0.9, meteorMul:1.1, bossImmune:true, body:b.dark, dark:'#1a1420', horn:b.horn, eye:'#ffb45a', spikes:1 },
+    { name:b.name+'·暴走', scale:b.form==='giant'?1.8:1.5, atkMul:1.7*b.atkMul, atkChance:0.85, meteorMul:1.2, bossImmune:true, body:'#6a3a3a', dark:'#2a1414', horn:'#ffd45e', eye:'#ff6a4a', spikes:2 }
+  ];
+});
 
 /* ============================ 第五关 · 同学设计的树（主题层） ============================
    手绘原案来自三（×）班同学：三阶段形态 + 飞叶 / 凝视 / 枝条三套攻击。
@@ -875,7 +975,15 @@ function bossSay(text) {
   speak(text);
 }
 function bossSayMid() {
-  if (!isStage5() || !B || B.over) return;
+  if (!isStage5() && !isHeroStage()) return;
+  if (!B || B.over) return;
+  if (isHeroStage()) {
+    if (B.elapsed - sayT < 4) return;
+    sayT = B.elapsed;
+    var hb = heroBoss();
+    bossSay(hb.lines.mid[TREE_MID % hb.lines.mid.length]); TREE_MID++;
+    return;
+  }
   if (B.elapsed - sayT < 4) return;         /* 4 秒内不重复说话，避免刷屏 */
   sayT = B.elapsed;
   bossSay(TREE_LINES.mid[TREE_MID % TREE_LINES.mid.length]);
@@ -1132,8 +1240,11 @@ function newBattle() {
   };
   for (var i = 0; i < 4; i++) giveQuestion(B.heroes[i]);
   renderPanels();
-  if (isStage5()) {
-    after(0.4, function () { sting(); bossSay(TREE_LINES.enter); });
+  if (isStage5() || isHeroStage()) {
+    after(0.4, function () {
+      sting();
+      bossSay(isHeroStage() ? heroBoss().lines.enter : TREE_LINES.enter);
+    });
     bgmStart();
   } else bgmStop();
 }
@@ -1189,6 +1300,7 @@ function checkAnswer(i, val) {
     h.hitT = 0.4;
     sfx('wrong');
     if (isStage5()) bossSay(TREE_LINES.mid[1]);
+    else if (isHeroStage()) bossSay(heroBoss().lines.mid[0]);
     floatText(heroPt(i).x, heroPt(i).y - 40, '答错了，换一题', '#ff8a6a');
     h.locked = true;                       /* 短暂锁定，防止连点误触 */
     renderPanels();
@@ -1629,17 +1741,24 @@ function checkPhase() {
     if (PH()[want].bossImmune) {
       /* 二阶段起免疫控制：身上的灼烧 / 冻结一并清掉 */
       B.boss.burn = 0; B.boss.burnT = 0; B.boss.frozen = 0;
-      banner(isStage5() ? '树越长越大！' + PH()[want].name + ' 登场：' + (want === 1 ? '它开始「凝视」了！' : '枝条抽打！')
-        : ((isStage4() ? '巨蝎王蜕壳！' : (isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！'))) + PH()[want].name + ' 登场：免疫灼烧与冰冻，大招更快了！'));
+      banner(isHeroStage() ? PH()[want].name + ' 登场：' + heroBoss().ob
+        : (isStage5() ? '树越长越大！' + PH()[want].name + ' 登场：' + (want === 1 ? '它开始「凝视」了！' : '枝条抽打！')
+        : ((isStage4() ? '巨蝎王蜕壳！' : (isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！'))) + PH()[want].name + ' 登场：免疫灼烧与冰冻，大招更快了！')));
     } else {
-      banner(isStage5() ? PH()[want].name + ' 登场，枝叶更密了！'
-        : ((isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！')) + PH()[want].name + ' 登场，题目难度提升！'));
+      banner(isHeroStage() ? PH()[want].name + ' 登场，执念更深了！'
+        : (isStage5() ? PH()[want].name + ' 登场，枝叶更密了！'
+        : ((isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！')) + PH()[want].name + ' 登场，题目难度提升！')));
     }
     /* 阶段变了，大招节奏跟着变快：剩余倒计时不超过新间隔 */
     var mv = meteorEveryOf(want);
     if (B.meteorCd > mv) B.meteorCd = mv;
     if (isStage5() && want >= 1) after(1.2, treeGazeStart);
     if (isStage5()) bossSay(['我……是格鲁特。', '我——是格鲁特！', '我——是——格鲁特！！'][want]);
+    if (isHeroStage()) {
+      var hb = heroBoss();
+      bossSay(want === 2 ? hb.lines.ult : hb.lines.mid[want]);
+      if ((hb.mech === 'sense' || hb.mech === 'window') && want >= 1) after(1.2, treeGazeStart);
+    }
   }
 }
 
@@ -1652,7 +1771,7 @@ function tickBoss(dt) {
   if (bs.immune > 0) { bs.immune -= dt; if (bs.immune < 0) bs.immune = 0; }
   if (bs.stun > 0) { bs.stun -= dt; if (bs.stun < 0) bs.stun = 0; }   /* 连环电弧：短暂麻痹 */
   if (B.slowT > 0) { B.slowT -= dt; if (B.slowT < 0) B.slowT = 0; }   /* 寒冰豌豆：减速 */
-  if (isStage5()) treeGazeTick(dt);    /* 第五关：凝视持续伤害（不禁止按键） */
+  if (isStage5() || isHeroStage()) treeGazeTick(dt);    /* 凝视持续伤害（不禁止按键） */
 
   if (bs.burnT > 0) {                        /* 灼烧：按秒跳伤害 */
     bs.burnT -= dt; bs.burnTick -= dt;
@@ -1702,7 +1821,7 @@ function tickBoss(dt) {
   if (B.atkCd <= 0) { B.atkCd = CFG.bossAtkEvery * B.atkEveryMul; normalAttack(); }
 
   /* 第五关：阶段 2/3 每 14 秒重新凝视一名角色 */
-  if (isStage5() && B.boss.phase >= 1 && !B.meteorWarn) {
+  if ((isStage5() || (isHeroStage() && ['sense','window'].indexOf(heroBoss().mech)>=0)) && B.boss.phase >= 1 && !B.meteorWarn) {
     B.leafCd -= dt;
     if (B.leafCd <= 0) { B.leafCd = 14; if (B.gazeT <= 0) treeGazeStart(); }
   }
@@ -1756,7 +1875,7 @@ function normalAttack() {
   var t = alive[ri(0, alive.length - 1)];
   var dmg = Math.round(CFG.bossAtk * ph.atkMul * B.dmgMul * stageAtkMul());   /* 第二关：含怒气 + 关卡攻击系数 */
   B.boss.atkT = 0.65;
-  var atkFx = isStage5() ? 'leaf' : (isStage4() ? 'sting' : (isStage3() ? 'lash' : 'bossatk'));
+  var atkFx = isHeroStage() ? 'heroBolt' : (isStage5() ? 'leaf' : (isStage4() ? 'sting' : (isStage3() ? 'lash' : 'bossatk')));
   B.fx.push({ type: atkFx, t: 0, dur: 0.8, from: { x: BOSS_X - 120, y: BOSS_Y }, to: heroPt(t.i) });
   after(0.42, function () { sfx('hit'); hurtHero(t, dmg); });
 }
@@ -1767,11 +1886,33 @@ function normalAttack() {
 /* 第五关核心：树皮护甲 + 双人组合技破防
    普通技能只能削树皮（伤害减半）；两名角色 3 秒内先后答对 → 组合技直接破甲 */
 function barkDamage(d) {
-  if (!isStage5() || !B || B.treeBark <= 0) return d;
+  if (!B || B.treeBark <= 0) return d;
+  if (!isStage5() && !isHeroStage()) return d;
+  if (isHeroStage() && ['guard','armor','chaos'].indexOf(heroBoss().mech) < 0) return d;
   return Math.max(1, Math.round(d * 0.5));
 }
 function comboBreak(i) {
-  if (!B || B.over || !isStage5()) return;
+  if (!B || B.over || (!isStage5() && !isHeroStage())) return;
+  if (isHeroStage()) {
+    var hb = heroBoss();
+    if (hb.mech === 'guard' || hb.mech === 'armor' || hb.mech === 'chaos') {
+      /* 格挡/护甲型：普通技能减半，组合技破防 */
+      if (B.comboBy >= 0 && B.comboBy !== i && now - B.comboT <= 3) {
+        B.comboBy = -1;
+        if (B.treeBark > 0) B.treeBark--;
+        var d = Math.round(CFG.dmgThunder * 0.8 * growMul());
+        B.boss.hp = Math.max(0, B.boss.hp - d);
+        B.fx.push({ type:'combo', t:0, dur:0.9, x:BOSS_X-60, y:BOSS_Y });
+        banner('✦ 组合技 · 破防成功！');
+        floatText(BOSS_X-60, BOSS_Y-190, '破 防 ！', '#ffe08a');
+        sfx('thunder'); bossSay('呃……你们两个，一起上？'); checkPhase();
+        return;
+      }
+      B.comboBy = i; B.comboT = B.elapsed;
+      floatText(heroPt(i).x, heroPt(i).y-150, '共鸣就绪', '#ffe08a');
+    }
+    return;
+  }
   var now = B.elapsed;
   if (B.comboBy >= 0 && B.comboBy !== i && now - B.comboT <= 3) {
     B.comboBy = -1;
@@ -1808,6 +1949,57 @@ function treeGazeTick(dt) {
     if (h && h.alive) { hurtHero(h, Math.max(3, Math.round(CFG.bossAtk * 0.18))); }
   }
 }
+/* ===== 英雄篇通用大招引擎：按 b.ult 分派，12 位 Boss 各有演出 ===== */
+var ULT_NAMES = {
+  web:'蛛网收束', arrows:'万箭齐发', swing:'荡绳横扫', yaka:'万箭归巢', pounce:'黑豹突袭',
+  shields:'回旋盾阵', missiles:'全弹齐射', rainbow:'彩虹桥光束', quake:'伽马咆哮',
+  chaos:'猩红幻象', rewind:'时间循环', snap:'响指'
+};
+function heroMeteor() {
+  var b = heroBoss(), ph = PH()[B.boss.phase], phase = B.boss.phase;
+  B.meteorWarn = true;
+  banner(ULT_NAMES[b.ult] + '！大家小心！');
+  sfx('warn'); B.fx.push({ type:'warn', t:0, dur:1.5 });
+  bossSay(b.lines.ult);
+  /* 预警演出：光束/导弹/幻象各有不同前奏 */
+  B.fx.push({ type:'heroWarn', t:0, dur:2.8, ult:b.ult, color:ph.eye });
+  after(1.5, function () {
+    B.meteorWarn = false; if (B.over) return;
+    sfx('meteor');
+    var alive = aliveHeroes();
+    var dmg = Math.round(CFG.meteorDmg * ph.meteorMul * stageAtkMul());
+    /* 单体大招（凝视/狙击类）只打一人，其余群攻 */
+    if (b.ult === 'arrows' || b.ult === 'yaka') {
+      var t = weakestHero() || alive[0];
+      if (t) {
+        B.fx.push({ type:'heroHit', t:0, dur:0.9, x:heroPt(t.i).x+20, y:heroPt(t.i).y, ult:b.ult, delay:0 });
+        after(0.55, function () { hurtHero(t, Math.round(dmg * 1.6)); });
+      }
+    } else {
+      alive.forEach(function (h, k) {
+        B.fx.push({ type:'heroHit', t:0, dur:0.9, x:heroPt(h.i).x+20, y:heroPt(h.i).y,
+          ult:b.ult, color:ph.eye, delay:k * 0.13 });
+        after(0.6 + k * 0.13, function () {
+          if (h.shield > 0) { h.shield = 0; floatText(heroPt(h.i).x, heroPt(h.i).y-40, '护盾碎裂', '#ffd98a'); }
+          hurtHero(h, dmg);
+        });
+      });
+    }
+    /* 专属机制在大招后触发 */
+    if (b.mech === 'sense' || b.mech === 'window') {
+      var pick = alive[ri(0, alive.length-1)];
+      if (pick) {
+        B.fx.push({ type:'gaze', t:0, dur:6, x:heroPt(pick.i).x, y:heroPt(pick.i).y });
+        B.gazeIdx = pick.i; B.gazeT = 6; B.gazeTick = 2;
+      }
+    }
+    if (b.mech === 'rewind' && B.boss.hp < B.boss.max * 0.9) {
+      B.boss.hp = Math.min(B.boss.max, B.boss.hp + Math.round(B.boss.max * 0.06));
+      floatText(BOSS_X, BOSS_Y-190, '时间回滚 +6%', '#ffd88a');
+    }
+  });
+}
+
 function treeMeteor() {
   var ph = PH()[B.boss.phase], phase = B.boss.phase;
   B.meteorWarn = true;
@@ -1852,6 +2044,7 @@ function treeMeteor() {
 
 function meteorAttack() {
   if (!B || B.over) return;
+  if (isHeroStage()) { heroMeteor(); return; }
   if (isStage5()) { treeMeteor(); return; }
   /* 第四关：陷坑吞掉这一次大招（倒计时在 tickBoss 里已照常重置） */
   if (isStage4() && B.pitStacks > 0 && !B.pitGuard) {
@@ -1931,12 +2124,12 @@ function win() {
   saveProg(pr);
   B.stats.ms = Date.now() - B.stats.start;
   B.fx.push({ type: 'winburst', t: 0, dur: 2.0 });
-  if (isStage5()) {
+  if (isStage5() || isHeroStage()) {
     B.boss.phase = 0; B.boss.morph = 1.3;
-    bossSay(TREE_LINES.wake);
+    bossSay(isHeroStage() ? heroBoss().lines.wake : TREE_LINES.wake);
     B.fx.push({ type: 'awaken', t: 0, dur: 2.2, x: BOSS_X, y: BOSS_Y });
   }
-  sfx('win'); bgmStop(); after(isStage5() ? 2.2 : 1.2, showResult);
+  sfx('win'); bgmStop(); after((isStage5() || isHeroStage()) ? 2.2 : 1.2, showResult);
 }
 function lose() {
   if (B.over) return;
@@ -2154,7 +2347,93 @@ function drawTreeBg(c) {
   }
 }
 
+/* ===== 英雄篇通用背景：按关卡 tier 与 boss.key 变化 ===== */
+function drawHeroBg(c) {
+  var b = heroBoss(), phase = B.boss.phase;
+  var pal = [
+    ['#2a2438','#4a4058'], ['#24303a','#3c4a52'], ['#2a2030','#4a3040']
+  ][b.tier];
+  var g = c.createLinearGradient(0, 0, 0, AH);
+  g.addColorStop(0, pal[0]); g.addColorStop(1, pal[1]);
+  c.fillStyle = g; c.fillRect(0, 0, W, AH);
+  /* 远景城市/建筑剪影：按 tier 变化密度 */
+  c.fillStyle = 'rgba(12,10,22,.55)';
+  var count = 6 + b.tier * 3;
+  for (var i = 0; i < count; i++) {
+    var x = (i * 197 + (b.id * 37)) % W, h = 110 + ((i * 71 + b.id * 13) % 190);
+    c.fillRect(x, AH - 240 - h, 90 + (i % 3) * 22, h + 240);
+    if (i % 3 === 0) c.fillRect(x + 24, AH - 250 - h, 8, 14);
+  }
+  /* 地面 */
+  c.fillStyle = b.tier === 2 ? 'rgba(30,18,40,.85)' : 'rgba(20,18,30,.8)';
+  c.fillRect(0, AH - 200, W, 200);
+  /* 动态元素：阶段越高粒子越多 */
+  c.fillStyle = 'rgba(255,220,150,.35)';
+  for (var k = 0; k < 10 + phase * 6; k++) {
+    var px = (k * 233 + Math.sin(B.boss.bob * 0.6 + k) * 60) % W;
+    var py = (k * 97 + B.boss.bob * 22 * (0.4 + (k % 3) * 0.2)) % (AH - 180);
+    c.beginPath(); c.arc(px, py, 2 + (k % 3), 0, 6.2832); c.fill();
+  }
+  /* 阶段2+：执念之眼 */
+  if (phase >= 1) {
+    var glow = 0.3 + 0.2 * Math.sin(B.boss.bob * 2);
+    c.fillStyle = 'rgba(255,180,90,' + glow + ')';
+    for (var e = 0; e < phase + 1; e++) {
+      var ex = 300 + e * 560, ey = 130 + (e % 2) * 60;
+      c.beginPath(); c.ellipse(ex, ey, 14, 8, 0, 0, 6.2832); c.fill();
+      c.fillStyle = '#201818'; c.beginPath(); c.arc(ex, ey, 4, 0, 6.2832); c.fill();
+      c.fillStyle = 'rgba(255,180,90,' + glow + ')';
+    }
+  }
+}
+
+/* ===== 英雄篇通用 Boss 绘制：人形 / 巨人两种形态 ===== */
+function drawHeroBoss(c, ph, R) {
+  var b = heroBoss(), phase = B.boss.phase;
+  var giant = b.form === 'giant';
+  /* 影子底座 */
+  c.fillStyle = 'rgba(10,8,18,.5)';
+  c.beginPath(); c.ellipse(0, R * 0.98, R * 1.2, R * 0.22, 0, 0, 6.2832); c.fill();
+  /* 腿 */
+  c.strokeStyle = ph.dark; c.lineWidth = giant ? 30 : 20; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-26, R * 0.4); c.lineTo(-36, R * 0.95); c.stroke();
+  c.beginPath(); c.moveTo(26, R * 0.4); c.lineTo(36, R * 0.95); c.stroke();
+  /* 身体 */
+  c.fillStyle = ph.body;
+  c.beginPath(); c.ellipse(0, -R * 0.05, R * 0.62, R * 0.68, 0, 0, 6.2832); c.fill();
+  /* 胸前徽章 */
+  c.fillStyle = ph.horn;
+  c.beginPath(); c.arc(0, -R * 0.08, 22, 0, 6.2832); c.fill();
+  c.fillStyle = ph.dark;
+  c.beginPath(); c.arc(0, -R * 0.08, 12, 0, 6.2832); c.fill();
+  /* 手臂（阶段越多越张开） */
+  var armY = -R * 0.3 - phase * 12;
+  c.strokeStyle = ph.body; c.lineWidth = giant ? 26 : 18;
+  c.beginPath(); c.moveTo(-R * 0.5, -R * 0.2); c.lineTo(-R * 0.95, armY); c.stroke();
+  c.beginPath(); c.moveTo(R * 0.5, -R * 0.2); c.lineTo(R * 0.95, armY); c.stroke();
+  /* 头 */
+  c.fillStyle = ph.body;
+  c.beginPath(); c.arc(0, -R * 0.85, giant ? 46 : 38, 0, 6.2832); c.fill();
+  /* 面罩/头盔纹路（用 horn 色画一道） */
+  c.strokeStyle = ph.horn; c.lineWidth = 6;
+  c.beginPath(); c.arc(0, -R * 0.85, giant ? 40 : 32, 0.2, Math.PI - 0.2); c.stroke();
+  /* 眼睛 */
+  var eg = 0.6 + 0.4 * Math.sin(B.boss.bob * 2.2);
+  c.fillStyle = ph.eye; c.globalAlpha = eg;
+  c.beginPath(); c.ellipse(-13, -R * 0.87, 10, 6, 0, 0, 6.2832); c.fill();
+  c.beginPath(); c.ellipse(13, -R * 0.87, 10, 6, 0, 0, 6.2832); c.fill();
+  c.globalAlpha = 1;
+  /* 阶段3：头顶尖刺（暴走） */
+  if (phase >= 2) {
+    c.fillStyle = ph.horn;
+    for (var s = -1; s <= 1; s++) {
+      c.beginPath(); c.moveTo(s * 20, -R * 1.15); c.lineTo(s * 26, -R * 1.5); c.lineTo(s * 8, -R * 1.18); c.closePath(); c.fill();
+    }
+  }
+}
+
 function drawBg(c) {
+  if (isHeroStage()) { drawHeroBg(c); return; }
   if (isStage5()) { drawTreeBg(c); return; }
   if (isStage4()) { drawDesertBg(c); return; }
   if (isStage3()) { drawSeaBg(c); return; }
@@ -2263,10 +2542,12 @@ function drawTopBar(c) {
 
   /* 大招倒计时（按关卡显示对应名称） */
   var ml = Math.max(0, B.meteorCd);
-  var soon = isStage5() ? '枝叶即将袭来！'
-    : (isStage4() ? '蝎雨即将来袭！' : (isStage3() ? '墨潮即将席卷！' : (isStage2() ? '巨人即将来袭！' : '陨石即将来临！')));
-  var label = isStage5() ? (B.boss.phase === 0 ? '飞叶倒计时 ' : '枝叶倒计时 ')
-    : (isStage4() ? '蝎雨倒计时 ' : (isStage3() ? '墨潮倒计时 ' : (isStage2() ? '巨人倒计时 ' : '陨石倒计时 ')));
+  var soon = isHeroStage() ? ULT_NAMES[heroBoss().ult] + '即将发动！'
+    : (isStage5() ? '枝叶即将袭来！'
+    : (isStage4() ? '蝎雨即将来袭！' : (isStage3() ? '墨潮即将席卷！' : (isStage2() ? '巨人即将来袭！' : '陨石即将来临！'))));
+  var label = isHeroStage() ? heroBoss().name + '倒计时 '
+    : (isStage5() ? (B.boss.phase === 0 ? '飞叶倒计时 ' : '枝叶倒计时 ')
+    : (isStage4() ? '蝎雨倒计时 ' : (isStage3() ? '墨潮倒计时 ' : (isStage2() ? '巨人倒计时 ' : '陨石倒计时 '))));
   txt(c, ml < 5 ? soon : label + secs(ml) + ' 秒',
       1620, 58, 18, ml < 8 ? '#ff7a6a' : '#b9aed6');
 }
@@ -3119,7 +3400,8 @@ function drawBoss(c) {
   }
 
   var R = 130;
-  if (isStage5()) { drawTreeBoss(c, ph, R); }
+  if (isHeroStage()) { drawHeroBoss(c, ph, R); }
+  else if (isStage5()) { drawTreeBoss(c, ph, R); }
   else if (isStage2()) { drawZombot(c, ph, R); }
   else if (isStage3()) { drawOctopus(c, ph, R); }
   else if (isStage4()) { drawScorpion(c, ph, R); }
@@ -3433,6 +3715,46 @@ function drawFx(c) {
       }
       c.fillStyle = 'rgba(255,224,138,.5)';
       c.beginPath(); c.arc(f.x, f.y, 30 + p * 60, 0, 6.2832); c.fill();
+    } else if (f.type === 'heroBolt') {
+      /* 通用单体攻击：一道能量弹飞向目标 */
+      c.globalAlpha = 1;
+      var bp = Math.min(1, p / 0.55);
+      var bx = lerp(f.from.x, f.to.x, bp), by = lerp(f.from.y, f.to.y, bp);
+      c.fillStyle = f.color || '#ffd88a';
+      c.beginPath(); c.arc(bx, by, 14, 0, 6.2832); c.fill();
+      c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(bx-30, by); c.lineTo(bx, by); c.stroke();
+    } else if (f.type === 'heroWarn') {
+      /* 大招预警：按类型画不同前奏 */
+      c.globalAlpha = Math.min(1, p*2) * (1 - Math.max(0,(p-0.85)/0.15));
+      var col = f.color || '#ffd88a';
+      if (f.ult === 'rainbow') {
+        c.strokeStyle = col; c.lineWidth = 24;
+        c.beginPath(); c.moveTo(W, 60); c.lineTo(200, AH-120); c.stroke();
+      } else if (f.ult === 'missiles' || f.ult === 'yaka' || f.ult === 'arrows') {
+        for (var mi=0; mi<12; mi++) {
+          var my = 120 + mi*42, mx = BOSS_X - p*600 - (mi%3)*60;
+          c.fillStyle = col; c.beginPath(); c.arc(mx, my, 7, 0, 6.2832); c.fill();
+        }
+      } else {
+        c.strokeStyle = col; c.lineWidth = 8;
+        c.beginPath(); c.arc(BOSS_X, BOSS_Y, 80 + p*260, 0, 6.2832); c.stroke();
+      }
+    } else if (f.type === 'heroHit') {
+      /* 大招命中：按类型不同演出 */
+      c.globalAlpha = 1 - Math.max(0,(p-0.7)/0.3);
+      var hc = f.color || '#ffd88a';
+      if (f.ult === 'snap') {
+        c.fillStyle = 'rgba(255,255,255,' + (1-p) + ')'; c.fillRect(0,0,W,AH);
+      } else if (f.ult === 'quake' || f.ult === 'pounce') {
+        c.strokeStyle = hc; c.lineWidth = 9;
+        c.beginPath(); c.arc(f.x, f.y, 20 + p*150, 0, 6.2832); c.stroke();
+      } else {
+        for (var hi=0; hi<3; hi++) {
+          c.strokeStyle = hi%2 ? hc : '#fff'; c.lineWidth = 6;
+          c.beginPath(); c.arc(f.x, f.y, 18 + p*90 + hi*22, 0, 6.2832); c.stroke();
+        }
+      }
     } else if (f.type === 'leaf') {
       /* 阶段1：单片飞叶旋转飞向目标 */
       c.globalAlpha = 1;
@@ -3745,6 +4067,11 @@ var STAGES = [
     intro: '魔君最后一击裂出十一枚影之碎片，第一枚钻进了一棵树 —— 它疯长成密林，认不出你们了。用学过的知识，把它叫醒！',
     outro: '树叶由暗转绿，大树缩回一棵小树苗 —— 它轻轻晃了晃枝头：「我是格鲁特。」本关由三（×）班同学设计。' }
 ];
+/* 英雄篇 12 关自动追加（数据表在上方 HERO_BOSSES） */
+HERO_BOSSES.forEach(function (b) {
+  STAGES.push({ id:b.id, name:'第'+b.id+'关 · '+b.title, desc:b.subj+' · '+b.ob, subj:b.subj,
+    done:true, hpMul:b.hpMul, atkMul:b.atkMul, intro:b.intro, outro:b.outro });
+});
 function stageOf(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return STAGES[i]; return STAGES[0]; }
 function stageHpMul() { return stageOf(CFG.stage).hpMul || 1; }
 function stageAtkMul() { return stageOf(CFG.stage).atkMul || 1; }
@@ -3865,7 +4192,7 @@ function buildSetup() {
     voiceOn = !!id; bgmOn = !!id;
     if (!voiceOn && window.speechSynthesis) window.speechSynthesis.cancel();
     if (!bgmOn) bgmStop();
-    else if (B && !B.paused && !B.over && isStage5()) bgmStart();
+    else if (B && !B.paused && !B.over && (isStage5() || isHeroStage())) bgmStart();
   });
   buildUnlockOpts();
   renderGrowth();
@@ -4366,13 +4693,23 @@ function playWarp(cb) {
   var st = stageOf(CFG.stage);
   var dest = (st.name.split(' · ')[1] || st.name);
   var w = document.getElementById('warp');
-  if (isStage5()) {
-    /* 第五关：新篇章开场——先讲为什么正派变成了对立面，再切到 Boss 台词 */
-    w.classList.add('bossQuote', 'tellStory');
-    document.getElementById('warpKicker').textContent = '影 之 碎 片 · 第 一 枚';
-    document.getElementById('warpTitle').textContent = st.name.split(' · ')[1] || st.name;
-    document.getElementById('warpSub').textContent = '一棵认不出你们的大树，挡在了星图前面';
-    document.getElementById('warpQuote').textContent = '「' + TREE_LINES.enter + '」';
+  if (isStage5() || isHeroStage()) {
+    /* 新篇章：先讲影之碎片来历（仅第五关），再切到 Boss 台词 */
+    w.classList.add('bossQuote');
+    if (isHeroStage()) {
+      var hb = heroBoss();
+      w.classList.remove('tellStory');
+      document.getElementById('warpKicker').textContent = '影 之 碎 片 · 第 ' + (st.id - 4) + ' 枚';
+      document.getElementById('warpTitle').textContent = hb.name;
+      document.getElementById('warpSub').textContent = hb.ob;
+      document.getElementById('warpQuote').textContent = '「' + hb.lines.enter + '」';
+    } else {
+      w.classList.add('tellStory');
+      document.getElementById('warpKicker').textContent = '影 之 碎 片 · 第 一 枚';
+      document.getElementById('warpTitle').textContent = st.name.split(' · ')[1] || st.name;
+      document.getElementById('warpSub').textContent = '一棵认不出你们的大树，挡在了星图前面';
+      document.getElementById('warpQuote').textContent = '「' + TREE_LINES.enter + '」';
+    }
   } else {
     w.classList.remove('bossQuote', 'tellStory');
     document.getElementById('warpKicker').textContent = '星 门 定 位 中';
@@ -4384,15 +4721,15 @@ function playWarp(cb) {
   w.classList.add('show');
   warpBusy = true;
   var storyTm = null;
-  if (isStage5()) {
-    /* 1.6 秒后从故事切到 Boss 台词，并朗读 */
+  if (isStage5() || isHeroStage()) {
+    /* 故事切台词：第五关 1.6 秒，其余关 0.8 秒 */
     storyTm = setTimeout(function () {
       if (!w.classList.contains('show')) return;
       w.classList.remove('tellStory');
       var q = document.getElementById('warpQuote');
       q.style.animation = 'none'; void q.offsetWidth; q.style.animation = '';
-      if (voiceOn) speak(TREE_LINES.enter);
-    }, 1600);
+      if (voiceOn) speak(isHeroStage() ? heroBoss().lines.enter : TREE_LINES.enter);
+    }, isHeroStage() ? 800 : 1600);
   }
   var done = false, tm;
   function finish() {

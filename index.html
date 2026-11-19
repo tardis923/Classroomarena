@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-19a";</script>
+<script>window.ARENA_BUILD="2026-11-19b";</script>
 <title>知识星核 · 四界追光</title>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -75,6 +75,13 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
 .n1 { left: 0; top: 90px; } .n2 { left: 480px; top: 210px; }
 .n3 { left: 40px; top: 400px; } .n4 { left: 480px; top: 520px; }
 .n5 { left: 960px; top: 300px; }   /* 第五关：星核暗影，星图向右延伸 */
+/* 英雄篇节点：网格排布，17 界分四行 */
+.n6 { left:960px; top:80px; } .n7 { left:960px; top:520px; }
+.n8 { left:1440px; top:80px; } .n9 { left:1440px; top:300px; } .n10 { left:1440px; top:520px; }
+.n11 { left:1920px; top:80px; } .n12 { left:1920px; top:300px; } .n13 { left:1920px; top:520px; }
+.n14 { left:2400px; top:80px; } .n15 { left:2400px; top:300px; } .n16 { left:2400px; top:520px; }
+.n17 { left:2880px; top:300px; }
+#nodes { width: 3400px; }
 .more { position: absolute; left: 300px; top: 690px; width: 300px; text-align: center;
   font-size: 18px; color: #7f76a8; letter-spacing: 2px; }
 
@@ -149,6 +156,11 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     <div class="node n3" id="nd3"></div>
     <div class="node n4" id="nd4"></div>
     <div class="node n5" id="nd5"></div>
+    <script>
+    for (var _i = 6; _i <= 17; _i++) {
+      document.write('<div class="node n' + _i + '" id="nd' + _i + '"></div>');
+    }
+    </script>
     <div class="more">· 星图之外，还有更多坐标 ·</div>
   </div>
 
@@ -218,6 +230,22 @@ document.addEventListener('selectstart', function (e) { e.preventDefault(); retu
   var CFG_KEY = 'bossbattle_cfg_v1';
   var ENERGY_KEY = 'arena_energy_v1';
 
+  /* 英雄篇各界说明（与 boss-battle.html 的 HERO_BOSSES 对应） */
+  var HERO_WORLDS = [
+    { id:6, name:'影之控制', subj:'安全知识 · 黑寡妇', done:true, intro:'碎片放大了她的控制欲 —— 她想把所有事都攥在手里。' },
+    { id:7, name:'完美瞄准', subj:'数学口算 · 鹰眼', done:true, intro:'他觉得不够准的人，不配持有星核。' },
+    { id:8, name:'独自承担', subj:'安全知识 · 蜘蛛侠', done:true, intro:'他推开所有人，说「我来就好」。' },
+    { id:9, name:'遥控飞箭', subj:'英语单词 · 勇度', done:true, intro:'口哨声变得尖锐，飞箭不再听使唤。' },
+    { id:10, name:'排外守护', subj:'语文知识 · 黑豹', done:true, intro:'星核被当成了瓦坎达的私产。' },
+    { id:11, name:'秩序纪律', subj:'安全知识 · 美国队长', done:true, intro:'他要用盾牌把所有人「管好」。' },
+    { id:12, name:'科技自负', subj:'数学口算 · 钢铁侠', done:true, intro:'他觉得靠你们的脑子太慢了。' },
+    { id:13, name:'荣耀傲慢', subj:'语文知识 · 雷神', done:true, intro:'只有强者才配持有星核 —— 他这样认为。' },
+    { id:14, name:'愤怒', subj:'安全知识 · 浩克', done:true, intro:'越打越气，越气越猛，拦都拦不住。' },
+    { id:15, name:'悲伤失控', subj:'英语单词 · 绯红女巫', done:true, intro:'她说看不清就不会痛。' },
+    { id:16, name:'宿命论', subj:'数学口算 · 奇异博士', done:true, intro:'他看见了自己的结局，把努力都倒转回去。' },
+    { id:17, name:'无限宝石', subj:'语文知识 · 灭霸', done:true, intro:'最后一颗碎片落在他手里 —— 终极一战。' }
+  ];
+
   /* 与关卡表对应的各界（开放式：星图之外还能继续加） */
   var WORLDS = [
     { id: 1, name: '数学森林', subj: '安全知识 · 魔法师小队', done: true,
@@ -231,6 +259,8 @@ document.addEventListener('selectstart', function (e) { e.preventDefault(); retu
     { id: 5, name: '星核暗影', subj: '安全知识 · 同学设计的树', done: true,
       intro: '一片影之碎片钻进树里，它疯长成密林 —— 用学过的知识把树叫醒。' }
   ];
+  /* 英雄篇 12 界：影之碎片继续附身正派英雄，按强度递增 */
+  HERO_WORLDS.forEach(function (w) { WORLDS.push(w); });
 
   function readJSON(k, d) {
     try { var s = localStorage.getItem(k); if (!s) return d; var o = JSON.parse(s); return o && typeof o === 'object' ? o : d; }
