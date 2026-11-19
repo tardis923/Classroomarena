@@ -145,12 +145,12 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .bigBtn.off { opacity: .4; filter: grayscale(.7); cursor: default; }
 .storyLine { margin: 0 0 10px; font-size: 22px; line-height: 1.5; color: #ffd98a; letter-spacing: 1px; }
 /* 选关页：去掉按钮下方的大段提示后，把上方信息放大，一体机上更清楚 */
-#setup .storyLine { font-size: 27px; line-height: 1.55; margin-bottom: 14px; }
+#setup .storyLine { font-size: 24px; line-height: 1.5; margin-bottom: 12px; }
 #setup h1 { font-size: 52px; margin-bottom: 10px; }
-#setup .sub { font-size: 24px; line-height: 1.6; margin-bottom: 18px; }
+#setup .sub { font-size: 20px; line-height: 1.55; margin-bottom: 14px; }
 #setup .setLabel { font-size: 27px; margin-bottom: 10px; }
-#setup .opt { font-size: 25px; padding: 14px 22px; }
-#setup .opt .small { font-size: 18px; }
+#setup .opt { font-size: 22px; padding: 11px 18px; }
+#setup .opt .small { font-size: 16px; }
 #setup .energyBar { padding: 18px 22px; }
 #setup .eLine { font-size: 28px; }
 #setup .eLine b { font-size: 38px; }
@@ -4612,7 +4612,13 @@ function applyStageText() {
   var sub = document.querySelector('#setup .sub');
   var st = stageOf(CFG.stage);
   var sl = document.getElementById('storyLine');
-  if (sl) sl.textContent = '◆ ' + st.intro;
+  if (sl) {
+    /* 英雄篇：顶部只放关卡定位，故事放下方详情，避免重复 */
+    var loc = (isStage5() || isHeroStage())
+      ? '◆ 第 ' + st.id + ' 关 · ' + (isHeroStage() ? heroBoss().name + ' —— ' + heroBoss().ob : '同学设计的树 —— 被放大的生长本能')
+      : '◆ ' + st.intro;
+    sl.textContent = loc;
+  }
   if (h1) h1.textContent = '团队合作知识闯关 · ' + st.name.split(' · ')[0];
   if (sub) {
     /* 第五关起：每关专属玩法介绍（数据驱动，避免落到第一关的通用说明） */
