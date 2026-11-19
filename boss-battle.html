@@ -2349,88 +2349,280 @@ function drawTreeBg(c) {
 
 /* ===== 英雄篇通用背景：按关卡 tier 与 boss.key 变化 ===== */
 function drawHeroBg(c) {
-  var b = heroBoss(), phase = B.boss.phase;
-  var pal = [
-    ['#2a2438','#4a4058'], ['#24303a','#3c4a52'], ['#2a2030','#4a3040']
-  ][b.tier];
-  var g = c.createLinearGradient(0, 0, 0, AH);
-  g.addColorStop(0, pal[0]); g.addColorStop(1, pal[1]);
-  c.fillStyle = g; c.fillRect(0, 0, W, AH);
-  /* 远景城市/建筑剪影：按 tier 变化密度 */
-  c.fillStyle = 'rgba(12,10,22,.55)';
-  var count = 6 + b.tier * 3;
-  for (var i = 0; i < count; i++) {
-    var x = (i * 197 + (b.id * 37)) % W, h = 110 + ((i * 71 + b.id * 13) % 190);
-    c.fillRect(x, AH - 240 - h, 90 + (i % 3) * 22, h + 240);
-    if (i % 3 === 0) c.fillRect(x + 24, AH - 250 - h, 8, 14);
-  }
-  /* 地面 */
-  c.fillStyle = b.tier === 2 ? 'rgba(30,18,40,.85)' : 'rgba(20,18,30,.8)';
-  c.fillRect(0, AH - 200, W, 200);
-  /* 动态元素：阶段越高粒子越多 */
-  c.fillStyle = 'rgba(255,220,150,.35)';
-  for (var k = 0; k < 10 + phase * 6; k++) {
-    var px = (k * 233 + Math.sin(B.boss.bob * 0.6 + k) * 60) % W;
-    var py = (k * 97 + B.boss.bob * 22 * (0.4 + (k % 3) * 0.2)) % (AH - 180);
-    c.beginPath(); c.arc(px, py, 2 + (k % 3), 0, 6.2832); c.fill();
-  }
-  /* 阶段2+：执念之眼 */
-  if (phase >= 1) {
-    var glow = 0.3 + 0.2 * Math.sin(B.boss.bob * 2);
-    c.fillStyle = 'rgba(255,180,90,' + glow + ')';
-    for (var e = 0; e < phase + 1; e++) {
-      var ex = 300 + e * 560, ey = 130 + (e % 2) * 60;
-      c.beginPath(); c.ellipse(ex, ey, 14, 8, 0, 0, 6.2832); c.fill();
-      c.fillStyle = '#201818'; c.beginPath(); c.arc(ex, ey, 4, 0, 6.2832); c.fill();
-      c.fillStyle = 'rgba(255,180,90,' + glow + ')';
-    }
-  }
+  var b = heroBoss(), ph = B.boss.phase;
+  var fn = HERO_BG[b.key];
+  if (fn) fn(c, ph);
 }
+/* 12 关专属背景：每关独立场景与动态元素 */
+var HERO_BG = {
+  widow: function (c, ph) {                    /* 6 训练室：靶场 + 红色训练激光 */
+    c.fillStyle = '#242630'; c.fillRect(0,0,W,AH);
+    c.fillStyle = '#2e3140'; for (var i=0;i<6;i++) c.fillRect(i*320, 0, 14, AH);
+    c.fillStyle = '#1a1c26'; c.fillRect(0, AH-120, W, 120);
+    for (var t=0;t<5;t++) { c.strokeStyle='#8a3a3a'; c.lineWidth=4;
+      c.strokeRect(160+t*380, 240, 110, 160); c.beginPath(); c.arc(215+t*380, 320, 34, 0, 6.2832); c.stroke(); }
+    c.strokeStyle='rgba(255,60,60,'+(0.4+0.3*Math.sin(B.boss.bob*3))+')'; c.lineWidth=3;
+    c.beginPath(); c.moveTo(0, 180+Math.sin(B.boss.bob)*40); c.lineTo(W, 180+Math.sin(B.boss.bob)*40); c.stroke();
+  },
+  hawkeye: function (c, ph) {                  /* 7 天台：楼群剪影 + 水塔 + 直升机 */
+    var g=c.createLinearGradient(0,0,0,AH); g.addColorStop(0,'#1a2545'); g.addColorStop(1,'#4a3a52');
+    c.fillStyle=g; c.fillRect(0,0,W,AH);
+    c.fillStyle='rgba(255,228,160,.8)'; for(var s=0;s<40;s++){var sx=(s*197)%W,sy=(s*83)%260; c.fillRect(sx,sy,2,2);}
+    c.fillStyle='#141a2e'; for(var i=0;i<9;i++){var h=180+((i*97)%220);c.fillRect(i*220, AH-140-h, 190, h+140);}
+    c.fillStyle='#202a40'; c.fillRect(300, 240, 70, 60); c.fillRect(318, 200, 34, 40);
+    var hx=(B.boss.bob*40)%2600-300; c.fillStyle='rgba(20,24,36,.8)'; c.fillRect(hx,120,90,22); c.fillRect(hx+40,105,120,8);
+  },
+  spider: function (c, ph) {                   /* 8 曼哈顿黄昏：幕墙反光 + 蛛丝 */
+    var g=c.createLinearGradient(0,0,0,AH); g.addColorStop(0,'#d86a4a'); g.addColorStop(.6,'#6a4a7a'); g.addColorStop(1,'#2a2440');
+    c.fillStyle=g; c.fillRect(0,0,W,AH);
+    c.fillStyle='#2a2440'; for(var i=0;i<8;i++){var h=240+((i*131)%260);c.fillRect(i*250, AH-160-h, 210, h+160);}
+    c.fillStyle='rgba(255,200,120,.25)'; for(var k=0;k<8;k++) for(var r=0;r<4;r++) c.fillRect(k*250+20+r*42, AH-140-((k*131)%260)+r*50, 26, 16);
+    c.strokeStyle='rgba(255,255,255,.35)'; c.lineWidth=2;
+    for(var w=0;w<5;w++){c.beginPath();c.moveTo(w*420,0);c.lineTo(w*420+180, 260+Math.sin(B.boss.bob+w)*30);c.stroke();}
+  },
+  yondu: function (c, ph) {                    /* 9 飞船内部：金属舱 + 破窗星空 */
+    c.fillStyle='#1e2836'; c.fillRect(0,0,W,AH);
+    c.fillStyle='#2a3648'; c.fillRect(0,0,W,90); c.fillRect(0,AH-100,W,100);
+    for(var i=0;i<7;i++){c.fillStyle='#3a4a60';c.fillRect(i*290+20,90,10,AH-190);}
+    c.fillStyle='#0a1020'; c.beginPath(); c.ellipse(1540,300,260,180,0,0,6.2832); c.fill();
+    c.fillStyle='#fff'; for(var s=0;s<26;s++){var sx=1320+(s*83)%450,sy=140+(s*61)%320;c.fillRect(sx,sy,2,2);}
+    c.strokeStyle='rgba(120,220,255,'+(0.5+0.3*Math.sin(B.boss.bob*4))+')';c.lineWidth=3;
+    for(var a=0;a<3;a++){c.beginPath();c.moveTo(BOSS_X,BOSS_Y);c.lineTo(200+a*300, 180+a*140);c.stroke();}
+  },
+  panther: function (c, ph) {                  /* 10 瓦坎达：紫金未来城市 + 能量纹 */
+    c.fillStyle='#1a1830'; c.fillRect(0,0,W,AH);
+    c.fillStyle='#2e2a4a'; for(var i=0;i<7;i++){var h=200+((i*113)%240);c.beginPath();c.ellipse(i*300, AH-140, 130, h, 0, Math.PI, 0);c.fill();}
+    c.strokeStyle='rgba(180,120,255,.55)';c.lineWidth=3;
+    for(var k=0;k<9;k++){c.beginPath();c.moveTo(k*230, AH);c.lineTo(k*230+60, AH-180);c.lineTo(k*230+20, AH-320);c.stroke();}
+    c.fillStyle='rgba(200,160,255,.25)';c.beginPath();c.arc(BOSS_X, BOSS_Y, 240+Math.sin(B.boss.bob)*16,0,6.2832);c.fill();
+  },
+  captain: function (c, ph) {                  /* 11 复仇者基地：玻璃幕墙 + 全息投影 */
+    c.fillStyle='#1c2438';c.fillRect(0,0,W,AH);
+    c.fillStyle='rgba(120,170,230,.12)';for(var i=0;i<8;i++)c.fillRect(i*250, 60, 190, AH-220);
+    c.strokeStyle='#4a6a9a';c.lineWidth=3;for(var j=0;j<8;j++){c.beginPath();c.moveTo(j*250,60);c.lineTo(j*250,AH-160);c.stroke();}
+    c.fillStyle='rgba(100,200,255,'+(0.2+0.1*Math.sin(B.boss.bob*2))+')';
+    c.beginPath();c.arc(400,320,120,0,6.2832);c.fill();
+    c.strokeStyle='rgba(160,220,255,.6)';c.beginPath();c.arc(400,320,150,0,6.2832);c.stroke();
+    c.fillStyle='#141a2a';c.fillRect(0,AH-140,W,140);
+  },
+  iron: function (c, ph) {                     /* 12 实验室：机械臂 + 屏幕墙 + 反应堆 */
+    c.fillStyle='#101828';c.fillRect(0,0,W,AH);
+    c.fillStyle='rgba(40,90,140,.2)';for(var i=0;i<10;i++)c.fillRect(60+i*190, 90, 150, 110);
+    c.strokeStyle='#3a90c0';c.lineWidth=5;
+    for(var k=0;k<4;k++){c.beginPath();c.moveTo(k*520+100,120);c.lineTo(k*520+180,220);c.lineTo(k*520+120,300);c.stroke();}
+    c.fillStyle='rgba(80,200,255,'+(0.3+0.15*Math.sin(B.boss.bob*3))+')';
+    c.beginPath();c.arc(960,AH-140,90,0,6.2832);c.fill();
+    c.fillStyle='#0a1018';c.fillRect(0,AH-90,W,90);
+  },
+  thor: function (c, ph) {                     /* 13 阿斯加德：宫殿尖塔 + 彩虹桥 */
+    var g=c.createLinearGradient(0,0,0,AH);g.addColorStop(0,'#1a1a3a');g.addColorStop(1,'#4a3a5a');c.fillStyle=g;c.fillRect(0,0,W,AH);
+    c.fillStyle='#d8d8e8';for(var s=0;s<50;s++){c.fillRect((s*271)%W,(s*97)%300,2,2);}
+    c.fillStyle='#2a2a4a';for(var i=0;i<6;i++){c.fillRect(i*330,AH-260,160,260);c.beginPath();c.moveTo(i*330-10,AH-260);c.lineTo(i*330+80,AH-360);c.lineTo(i*330+170,AH-260);c.closePath();c.fill();}
+    var cols=['#e85a5a','#e8a84a','#e8e84a','#5ae86a','#5a8ae8','#a85ae8'];
+    for(var r=0;r<6;r++){c.fillStyle=cols[r];c.globalAlpha=.35;c.fillRect(900+r*22, 0, 22, AH);}
+    c.globalAlpha=1;
+  },
+  hulk: function (c, ph) {                     /* 14 废墟：倾覆车辆 + 烟尘 + 裂纹 */
+    c.fillStyle='#4a4a42';c.fillRect(0,0,W,AH);
+    c.fillStyle='rgba(60,70,50,.5)';for(var i=0;i<8;i++){c.beginPath();c.arc(i*260,120+i%3*60,90,0,6.2832);c.fill();}
+    c.fillStyle='#2e2e2a';c.fillRect(0,AH-160,W,160);
+    c.fillStyle='#5a5a52';for(var k=0;k<4;k++){c.fillRect(140+k*480,AH-240,150,60);c.fillRect(160+k*480,AH-260,100,24);}
+    c.strokeStyle='#1a1a16';c.lineWidth=7;
+    for(var j=0;j<8;j++){c.beginPath();c.moveTo(j*250,AH);c.lineTo(j*250+60,AH-100);c.lineTo(j*250+20,AH-190);c.stroke();}
+    var sh=Math.sin(B.boss.bob*12)*3;c.translate(sh,0);
+  },
+  witch: function (c, ph) {                    /* 15 混沌空间：扭曲几何 + 红雾 */
+    c.fillStyle='#2a0e1a';c.fillRect(0,0,W,AH);
+    c.strokeStyle='rgba(230,60,90,.4)';c.lineWidth=3;
+    for(var i=0;i<9;i++){c.beginPath();
+      for(var x=0;x<=W;x+=40){var y=180+i*50+Math.sin(x*0.01+B.boss.bob+i)*30; if(x===0)c.moveTo(x,y);else c.lineTo(x,y);} c.stroke();}
+    c.fillStyle='rgba(200,40,80,.18)';for(var k=0;k<7;k++){c.beginPath();c.arc(k*300,200+(k%3)*130,70,0,6.2832);c.fill();}
+    c.fillStyle='#1a0810';c.fillRect(0,AH-120,W,120);
+  },
+  strange: function (c, ph) {                  /* 16 镜像维度：倒转建筑 + 金色法阵 */
+    c.fillStyle='#201830';c.fillRect(0,0,W,AH);
+    c.fillStyle='#302440';for(var i=0;i<7;i++){var h=160+((i*127)%200);c.fillRect(i*290,60,190,h);}
+    c.save();c.translate(0,AH);c.scale(1,-1);c.fillStyle='rgba(48,36,64,.7)';
+    for(var k=0;k<7;k++)c.fillRect(k*290,60,190,160+((k*127)%200));c.restore();
+    c.strokeStyle='rgba(255,210,100,'+(0.5+0.2*Math.sin(B.boss.bob*2))+')';c.lineWidth=4;
+    c.beginPath();c.arc(BOSS_X,BOSS_Y,200,0,6.2832);c.stroke();
+    for(var a=0;a<8;a++){var ang=a*Math.PI/4+B.boss.bob*0.3;
+      c.beginPath();c.moveTo(BOSS_X+Math.cos(ang)*90,BOSS_Y+Math.sin(ang)*90);
+      c.lineTo(BOSS_X+Math.cos(ang)*190,BOSS_Y+Math.sin(ang)*190);c.stroke();}
+  },
+  thanos: function (c, ph) {                   /* 17 泰坦星：紫色荒原 + 星空 + 陨石坑 */
+    var g=c.createLinearGradient(0,0,0,AH);g.addColorStop(0,'#120a20');g.addColorStop(1,'#3a2048');c.fillStyle=g;c.fillRect(0,0,W,AH);
+    c.fillStyle='#e8d8ff';for(var s=0;s<60;s++){c.fillRect((s*317)%W,(s*89)%420,2,2);}
+    c.fillStyle='#2a1838';for(var i=0;i<8;i++){c.beginPath();c.ellipse(i*270, AH-60+((i*37)%40), 150, 40, 0, 0, 6.2832);c.fill();}
+    c.fillStyle='#3a2848';c.fillRect(0,AH-120,W,120);
+    var gems=['#ff5a5a','#5a8aff','#ffd84a','#5aff8a','#c85aff','#ff8a3a'];
+    for(var k=0;k<6;k++){c.fillStyle=gems[k];c.globalAlpha=.4+.3*Math.sin(B.boss.bob*2+k);
+      c.beginPath();c.arc(300+k*260, 130, 12, 0, 6.2832);c.fill();}
+    c.globalAlpha=1;
+  }
+};
 
-/* ===== 英雄篇通用 Boss 绘制：人形 / 巨人两种形态 ===== */
 function drawHeroBoss(c, ph, R) {
-  var b = heroBoss(), phase = B.boss.phase;
-  var giant = b.form === 'giant';
-  /* 影子底座 */
-  c.fillStyle = 'rgba(10,8,18,.5)';
-  c.beginPath(); c.ellipse(0, R * 0.98, R * 1.2, R * 0.22, 0, 0, 6.2832); c.fill();
-  /* 腿 */
-  c.strokeStyle = ph.dark; c.lineWidth = giant ? 30 : 20; c.lineCap = 'round';
-  c.beginPath(); c.moveTo(-26, R * 0.4); c.lineTo(-36, R * 0.95); c.stroke();
-  c.beginPath(); c.moveTo(26, R * 0.4); c.lineTo(36, R * 0.95); c.stroke();
-  /* 身体 */
-  c.fillStyle = ph.body;
-  c.beginPath(); c.ellipse(0, -R * 0.05, R * 0.62, R * 0.68, 0, 0, 6.2832); c.fill();
-  /* 胸前徽章 */
-  c.fillStyle = ph.horn;
-  c.beginPath(); c.arc(0, -R * 0.08, 22, 0, 6.2832); c.fill();
-  c.fillStyle = ph.dark;
-  c.beginPath(); c.arc(0, -R * 0.08, 12, 0, 6.2832); c.fill();
-  /* 手臂（阶段越多越张开） */
-  var armY = -R * 0.3 - phase * 12;
-  c.strokeStyle = ph.body; c.lineWidth = giant ? 26 : 18;
-  c.beginPath(); c.moveTo(-R * 0.5, -R * 0.2); c.lineTo(-R * 0.95, armY); c.stroke();
-  c.beginPath(); c.moveTo(R * 0.5, -R * 0.2); c.lineTo(R * 0.95, armY); c.stroke();
-  /* 头 */
-  c.fillStyle = ph.body;
-  c.beginPath(); c.arc(0, -R * 0.85, giant ? 46 : 38, 0, 6.2832); c.fill();
-  /* 面罩/头盔纹路（用 horn 色画一道） */
-  c.strokeStyle = ph.horn; c.lineWidth = 6;
-  c.beginPath(); c.arc(0, -R * 0.85, giant ? 40 : 32, 0.2, Math.PI - 0.2); c.stroke();
-  /* 眼睛 */
-  var eg = 0.6 + 0.4 * Math.sin(B.boss.bob * 2.2);
-  c.fillStyle = ph.eye; c.globalAlpha = eg;
-  c.beginPath(); c.ellipse(-13, -R * 0.87, 10, 6, 0, 0, 6.2832); c.fill();
-  c.beginPath(); c.ellipse(13, -R * 0.87, 10, 6, 0, 0, 6.2832); c.fill();
-  c.globalAlpha = 1;
-  /* 阶段3：头顶尖刺（暴走） */
-  if (phase >= 2) {
-    c.fillStyle = ph.horn;
-    for (var s = -1; s <= 1; s++) {
-      c.beginPath(); c.moveTo(s * 20, -R * 1.15); c.lineTo(s * 26, -R * 1.5); c.lineTo(s * 8, -R * 1.18); c.closePath(); c.fill();
-    }
-  }
+  var fn = HERO_DRAW[heroBoss().key];
+  if (fn) fn(c, ph, R);
 }
+/* 12 位 Boss 专属形象：轮廓 / 武器 / 标志物完全不同 */
+var HERO_DRAW = {
+  widow: function (c, ph, R) {                 /* 纤细黑衣 + 双腕鞭 + 红沙漏 */
+    c.fillStyle='#14161e';c.beginPath();c.ellipse(0,R*0.9,80,18,0,0,6.2832);c.fill();
+    c.fillStyle=ph.body;c.beginPath();c.ellipse(0,0,52,88,0,0,6.2832);c.fill();
+    c.fillStyle='#e0483c';c.beginPath();c.moveTo(0,-30);c.lineTo(16,0);c.lineTo(0,30);c.lineTo(-16,0);c.closePath();c.fill();
+    c.strokeStyle='#e0483c';c.lineWidth=4;c.beginPath();c.moveTo(-52,-30);
+      c.quadraticCurveTo(-150,-100+Math.sin(B.boss.bob*4)*40,-190,20);c.stroke();
+    c.strokeStyle='#a0a8b8';c.lineWidth=3;c.beginPath();c.moveTo(52,-30);c.lineTo(120,-90);c.stroke();
+    c.fillStyle=ph.body;c.beginPath();c.arc(0,-R*0.85,32,0,6.2832);c.fill();
+    c.strokeStyle='#e0483c';c.lineWidth=5;c.beginPath();c.moveTo(-24,-R*0.9);c.lineTo(24,-R*0.9);c.stroke();
+    c.fillStyle=ph.eye;c.fillRect(-16,-R*0.85-4,10,5);c.fillRect(8,-R*0.85-4,10,5);
+  },
+  hawkeye: function (c, ph, R) {               /* 兜帽 + 长弓 + 背箭袋 */
+    c.fillStyle='#3a2a5a';c.beginPath();c.ellipse(0,R*0.9,70,16,0,0,6.2832);c.fill();
+    c.fillStyle=ph.body;c.beginPath();c.ellipse(0,0,55,85,0,0,6.2832);c.fill();
+    c.fillStyle='#4a3a70';c.fillRect(-70,-70,26,90);
+    c.strokeStyle='#d8c26a';c.lineWidth=5;for(var i=0;i<4;i++){c.beginPath();c.moveTo(-64,-56+i*20);c.lineTo(-64,-80+i*20);c.stroke();}
+    c.strokeStyle='#b8904a';c.lineWidth=8;c.beginPath();c.arc(80,-10,90,-1.2,1.2);c.stroke();
+    c.strokeStyle='#e8e0c0';c.lineWidth=2;c.beginPath();c.moveTo(80,-100);c.lineTo(80,80);c.stroke();
+    c.fillStyle='#2a1a48';c.beginPath();c.arc(0,-R*0.85,34,0,Math.PI);c.fill();
+    c.fillStyle=ph.body;c.beginPath();c.arc(0,-R*0.85+6,28,0,6.2832);c.fill();
+    c.fillStyle=ph.eye;c.fillRect(-14,-R*0.85+4,9,4);c.fillRect(7,-R*0.85+4,9,4);
+  },
+  spider: function (c, ph, R) {                /* 红蓝战衣 + 大眼面罩 + 蛛网纹 */
+    c.fillStyle='#1a2a5a';c.beginPath();c.ellipse(0,R*0.9,75,18,0,0,6.2832);c.fill();
+    c.fillStyle='#c43a4a';c.beginPath();c.ellipse(0,0,54,86,0,0,6.2832);c.fill();
+    c.fillStyle='#1e3a8a';c.beginPath();c.ellipse(0,30,54,58,0,0,6.2832);c.fill();
+    c.strokeStyle='rgba(255,255,255,.5)';c.lineWidth=2;
+    for(var k=0;k<6;k++){c.beginPath();c.moveTo(0,0);c.lineTo(Math.cos(k)*70,Math.sin(k)*70);c.stroke();}
+    c.fillStyle='#1e3a8a';c.beginPath();c.arc(0,-R*0.85,34,0,6.2832);c.fill();
+    c.strokeStyle='#c43a4a';c.lineWidth=3;
+    c.beginPath();c.moveTo(-34,-R*0.85);c.quadraticCurveTo(-16,-R*0.85-22,0,-R*0.85+4);
+    c.quadraticCurveTo(16,-R*0.85-22,34,-R*0.85);c.stroke();
+    c.fillStyle='#d8f0ff';c.beginPath();c.ellipse(-14,-R*0.85+2,12,17,-0.2,0,6.2832);c.fill();
+    c.beginPath();c.ellipse(14,-R*0.85+2,12,17,0.2,0,6.2832);c.fill();
+    c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=2;c.beginPath();c.moveTo(-120,-120);c.lineTo(-40,-70);c.stroke();
+  },
+  yondu: function (c, ph, R) {                 /* 蓝皮肤 + 莫霍克 + 飞箭 */
+    c.fillStyle='#182430';c.beginPath();c.ellipse(0,R*0.9,80,18,0,0,6.2832);c.fill();
+    c.fillStyle='#3a6a8a';c.beginPath();c.ellipse(0,0,58,88,0,0,6.2832);c.fill();
+    c.strokeStyle='#d85a4a';c.lineWidth=5;c.beginPath();c.moveTo(-40,-40);c.lineTo(40,40);c.moveTo(40,-40);c.lineTo(-40,40);c.stroke();
+    c.fillStyle='#3a6a8a';c.beginPath();c.arc(0,-R*0.85,36,0,6.2832);c.fill();
+    c.fillStyle='#d85a4a';c.fillRect(-12,-R*0.85-50,24,22);
+    c.fillStyle=ph.eye;c.fillRect(-18,-R*0.86,10,5);c.fillRect(8,-R*0.86,10,5);
+    var ax=Math.sin(B.boss.bob*2)*160;c.fillStyle='#d8e8ff';
+    c.beginPath();c.moveTo(BOSS_X-40-ax,BOSS_Y-60);c.lineTo(BOSS_X-120-ax,BOSS_Y+20);c.lineTo(BOSS_X-100-ax,BOSS_Y+10);c.closePath();c.fill();
+    c.strokeStyle='rgba(140,220,255,.7)';c.lineWidth=2;c.beginPath();c.moveTo(-40,-60);c.lineTo(-120-ax,20);c.stroke();
+  },
+  panther: function (c, ph, R) {               /* 豹耳 + 银色爪痕 + 振金纹 */
+    c.fillStyle='#12121c';c.beginPath();c.ellipse(0,R*0.9,84,18,0,0,6.2832);c.fill();
+    c.fillStyle='#242430';c.beginPath();c.ellipse(0,0,60,88,0,0,6.2832);c.fill();
+    c.strokeStyle='#a8b0c0';c.lineWidth=5;
+    for(var i=0;i<4;i++){c.beginPath();c.moveTo(-40+i*20,-40);c.lineTo(-26+i*20,30);c.stroke();}
+    c.strokeStyle='rgba(180,120,255,.7)';c.lineWidth=3;
+    c.beginPath();c.arc(0,10,44,0,6.2832);c.stroke();
+    c.fillStyle='#1a1a26';c.beginPath();c.arc(0,-R*0.85,36,0,6.2832);c.fill();
+    c.fillStyle='#242430';c.beginPath();c.moveTo(-26,-R*0.85-24);c.lineTo(-12,-R*0.85-52);c.lineTo(-2,-R*0.85-26);c.closePath();c.fill();
+    c.beginPath();c.moveTo(26,-R*0.85-24);c.lineTo(12,-R*0.85-52);c.lineTo(2,-R*0.85-26);c.closePath();c.fill();
+    c.fillStyle='#bfe4ff';c.beginPath();c.ellipse(-14,-R*0.85,11,7,0,0,6.2832);c.fill();
+    c.beginPath();c.ellipse(14,-R*0.85,11,7,0,0,6.2832);c.fill();
+  },
+  captain: function (c, ph, R) {               /* 圆盾 + 星条制服 + W 头盔 */
+    c.fillStyle='#141a2a';c.beginPath();c.ellipse(0,R*0.9,80,18,0,0,6.2832);c.fill();
+    c.fillStyle='#3a5a9a';c.beginPath();c.ellipse(0,0,56,88,0,0,6.2832);c.fill();
+    c.fillStyle='#b84040';c.fillRect(-56,-20,112,16);c.fillRect(-56,8,112,12);
+    c.fillStyle='#d8c26a';c.beginPath();c.arc(0,-40,14,0,6.2832);c.fill();
+    c.fillStyle='#3a5a9a';c.beginPath();c.arc(120,0,58,0,6.2832);c.fill();
+    c.fillStyle='#d8c26a';c.beginPath();c.arc(120,0,44,0,6.2832);c.fill();
+    c.fillStyle='#b84040';c.beginPath();c.arc(120,0,30,0,6.2832);c.fill();
+    c.fillStyle='#fff';c.beginPath();c.arc(120,0,16,0,6.2832);c.fill();
+    c.fillStyle='#3a5a9a';c.beginPath();c.arc(0,-R*0.85,34,0,6.2832);c.fill();
+    c.fillStyle='#d8c26a';c.font='700 30px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('W',0,-R*0.85);
+    c.fillStyle=ph.eye;c.fillRect(-18,-R*0.85+14,10,4);c.fillRect(8,-R*0.85+14,10,4);
+  },
+  iron: function (c, ph, R) {                  /* 红金战甲 + 胸反应堆 + 面罩眼缝 */
+    c.fillStyle='#2a1810';c.beginPath();c.ellipse(0,R*0.9,86,20,0,0,6.2832);c.fill();
+    c.fillStyle='#c85a3a';c.beginPath();c.ellipse(0,0,62,90,0,0,6.2832);c.fill();
+    c.fillStyle='#e8b83a';c.beginPath();c.ellipse(0,-20,40,50,0,0,6.2832);c.fill();
+    c.fillStyle='#c85a3a';c.beginPath();c.ellipse(0,-20,32,42,0,0,6.2832);c.fill();
+    c.fillStyle='#8fe0ff';c.beginPath();c.arc(0,-20,20+Math.sin(B.boss.bob*3)*3,0,6.2832);c.fill();
+    c.strokeStyle='#fff';c.lineWidth=3;c.beginPath();c.arc(0,-20,26,0,6.2832);c.stroke();
+    c.fillStyle='#c85a3a';c.beginPath();c.arc(0,-R*0.85,38,0,6.2832);c.fill();
+    c.fillStyle='#e8b83a';c.beginPath();c.ellipse(0,-R*0.85,34,14,0,0,6.2832);c.fill();
+    c.fillStyle='#8fe0ff';c.beginPath();c.ellipse(-15,-R*0.85+4,11,5,0,0,6.2832);c.fill();
+    c.beginPath();c.ellipse(15,-R*0.85+4,11,5,0,0,6.2832);c.fill();
+    c.fillStyle='#8fe0ff';for(var k=0;k<5;k++)c.fillRect(-60+k*30,-70,12,6);
+  },
+  thor: function (c, ph, R) {                  /* 金发 + 红披风 + 妙尔尼尔锤 */
+    c.fillStyle='#2a2438';c.beginPath();c.ellipse(0,R*0.9,82,18,0,0,6.2832);c.fill();
+    c.fillStyle='#8a3a4a';c.beginPath();c.moveTo(-50,-70);c.lineTo(-90,80);c.lineTo(90,80);c.lineTo(50,-70);c.closePath();c.fill();
+    c.fillStyle=ph.body;c.beginPath();c.ellipse(0,0,56,88,0,0,6.2832);c.fill();
+    c.strokeStyle='#d8d8e8';c.lineWidth=6;for(var i=0;i<3;i++){c.beginPath();c.moveTo(-40+i*40,-50);c.lineTo(-30+i*40,50);c.stroke();}
+    c.fillStyle='#d8c26a';c.beginPath();c.arc(0,-R*0.85,36,0,6.2832);c.fill();
+    c.fillStyle='#c8b060';c.beginPath();c.ellipse(0,-R*0.85-26,40,14,0,0,6.2832);c.fill();
+    c.fillStyle=ph.eye;c.fillRect(-18,-R*0.86,10,5);c.fillRect(8,-R*0.86,10,5);
+    var hy=-R*0.3+Math.sin(B.boss.bob*2)*20;
+    c.fillStyle='#8890a0';c.fillRect(100,hy-25,44,50);
+    c.strokeStyle='#6a4a2a';c.lineWidth=8;c.beginPath();c.moveTo(122,hy-25);c.lineTo(122,hy-90);c.stroke();
+    c.strokeStyle='#8fe0ff';c.lineWidth=3;for(var k=0;k<3;k++){c.beginPath();c.arc(122,hy,k*18+12,0,6.2832);c.stroke();}
+  },
+  hulk: function (c, ph, R) {                  /* 巨大绿色身躯 + 宽肩 + 紫短裤 */
+    c.fillStyle='#1e281e';c.beginPath();c.ellipse(0,R*1.0,130,26,0,0,6.2832);c.fill();
+    c.fillStyle='#4a9a4a';c.beginPath();c.ellipse(0,-R*0.1,105,120,0,0,6.2832);c.fill();
+    c.fillStyle='#5a2a6a';c.beginPath();c.ellipse(0,R*0.5,95,50,0,0,6.2832);c.fill();
+    c.fillStyle='#4a9a4a';c.beginPath();c.arc(-100,-R*0.3,44,0,6.2832);c.fill();
+    c.beginPath();c.arc(100,-R*0.3,44,0,6.2832);c.fill();
+    c.strokeStyle='#2a5a2a';c.lineWidth=4;
+    for(var i=0;i<5;i++){c.beginPath();c.moveTo(-60+i*30,-60);c.quadraticCurveTo(-40+i*30,0,-50+i*30,60);c.stroke();}
+    c.fillStyle='#4a9a4a';c.beginPath();c.arc(0,-R*0.95,52,0,6.2832);c.fill();
+    c.fillStyle='#3a7a3a';c.beginPath();c.moveTo(-46,-R*0.98);c.lineTo(-20,-R*1.12);c.lineTo(0,-R*0.99);c.lineTo(20,-R*1.12);c.lineTo(46,-R*0.98);c.fill();
+    c.fillStyle='#ffe08a';c.fillRect(-26,-R*0.96,16,6);c.fillRect(10,-R*0.96,16,6);
+    c.strokeStyle='#2a1a1a';c.lineWidth=5;c.beginPath();c.arc(0,-R*0.82,26,0.2,Math.PI-0.2);c.stroke();
+  },
+  witch: function (c, ph, R) {                 /* 红发 + 深红长袍 + 双手混沌红光 */
+    c.fillStyle='#1a0810';c.beginPath();c.ellipse(0,R*0.9,78,18,0,0,6.2832);c.fill();
+    c.fillStyle='#9a3a4a';c.beginPath();c.moveTo(0,-R);c.lineTo(-70,90);c.lineTo(70,90);c.closePath();c.fill();
+    c.strokeStyle='rgba(255,120,150,.6)';c.lineWidth=3;
+    for(var i=0;i<4;i++){c.beginPath();c.arc(0,0,30+i*22,0,6.2832);c.stroke();}
+    c.fillStyle='#e8788a';for(var k=0;k<8;k++){c.beginPath();c.moveTo(-40+k*10,-R*0.8);
+      c.quadraticCurveTo(-60+k*12,-R*1.3,-30+k*10,-R*1.5);c.stroke();}
+    c.fillStyle='#e8a0a8';c.beginPath();c.arc(0,-R*0.85,32,0,6.2832);c.fill();
+    c.fillStyle='#a02030';c.beginPath();c.ellipse(0,-R*1.0,38,20,0,0,6.2832);c.fill();
+    c.fillStyle='#ffb0c0';c.fillRect(-16,-R*0.86,10,5);c.fillRect(6,-R*0.86,10,5);
+    var glow=0.5+0.4*Math.sin(B.boss.bob*4);
+    c.fillStyle='rgba(255,80,120,'+glow+')';
+    c.beginPath();c.arc(-90,-10,22,0,6.2832);c.fill();c.beginPath();c.arc(90,-10,22,0,6.2832);c.fill();
+  },
+  strange: function (c, ph, R) {               /* 红斗篷 + 法阵 + 阿戈摩托之眼 */
+    c.fillStyle='#1a1020';c.beginPath();c.ellipse(0,R*0.9,80,18,0,0,6.2832);c.fill();
+    c.fillStyle='#8a3a2a';c.beginPath();c.moveTo(0,-R);c.lineTo(-80,90);c.lineTo(80,90);c.closePath();c.fill();
+    c.fillStyle='#5a2a4a';c.beginPath();c.ellipse(0,0,52,84,0,0,6.2832);c.fill();
+    c.strokeStyle='#f0c84a';c.lineWidth=4;
+    c.save();c.translate(0,0);c.rotate(B.boss.bob*0.5);
+    for(var k=0;k<8;k++){var a=k*Math.PI/4;c.beginPath();c.moveTo(Math.cos(a)*30,Math.sin(a)*30);
+      c.lineTo(Math.cos(a)*62,Math.sin(a)*62);c.stroke();}
+    c.beginPath();c.arc(0,0,30,0,6.2832);c.stroke();c.restore();
+    c.fillStyle='#e8b080';c.beginPath();c.arc(0,-R*0.85,34,0,6.2832);c.fill();
+    c.fillStyle='#f0c84a';c.beginPath();c.arc(0,-R*0.85+2,15,0,6.2832);c.fill();
+    c.fillStyle='#2a1830';c.beginPath();c.arc(0,-R*0.85+2,8,0,6.2832);c.fill();
+    c.fillStyle=ph.eye;c.fillRect(-18,-R*0.9,10,4);c.fillRect(8,-R*0.9,10,4);
+    c.strokeStyle='#f0c84a';c.lineWidth=7;c.beginPath();c.moveTo(100,-70);c.lineTo(130,70);c.stroke();
+  },
+  thanos: function (c, ph, R) {                /* 紫巨人 + 金甲 + 无限手套六宝石 */
+    c.fillStyle='#1a0e28';c.beginPath();c.ellipse(0,R*1.0,135,28,0,0,6.2832);c.fill();
+    c.fillStyle='#7a4a9a';c.beginPath();c.ellipse(0,-R*0.05,110,125,0,0,6.2832);c.fill();
+    c.fillStyle='#c8a84a';c.beginPath();c.moveTo(-100,-70);c.lineTo(100,-70);c.lineTo(80,60);c.lineTo(-80,60);c.closePath();c.fill();
+    c.fillStyle='#7a4a9a';c.beginPath();c.arc(-120,-R*0.2,50,0,6.2832);c.fill();
+    c.fillStyle='#c8a84a';c.beginPath();c.arc(120,-R*0.3,54,0,6.2832);c.fill();
+    var gems=['#ff5a5a','#5a8aff','#ffd84a','#5aff8a','#c85aff','#ff8a3a'];
+    for(var k=0;k<6;k++){c.fillStyle=gems[k];c.beginPath();c.arc(100+(k%3)*16,-R*0.3-16+Math.floor(k/3)*16,7,0,6.2832);c.fill();}
+    c.fillStyle='#7a4a9a';c.beginPath();c.arc(0,-R*0.95,56,0,6.2832);c.fill();
+    c.fillStyle='#c8a84a';c.beginPath();c.moveTo(-50,-R*0.98);c.lineTo(50,-R*0.98);c.lineTo(36,-R*1.2);c.lineTo(-36,-R*1.2);c.closePath();c.fill();
+    c.fillStyle='#ff9a6a';c.fillRect(-30,-R*0.96,18,7);c.fillRect(12,-R*0.96,18,7);
+    c.strokeStyle='#4a2a5a';c.lineWidth=4;c.beginPath();c.arc(0,-R*0.78,30,0.2,Math.PI-0.2);c.stroke();
+  }
+};
 
 function drawBg(c) {
   if (isHeroStage()) { drawHeroBg(c); return; }
