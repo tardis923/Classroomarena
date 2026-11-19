@@ -222,7 +222,7 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .eTip.ok { color: #7ff0a8; }
 
 /* ================= 轻提示 ================= */
-#toast { position: absolute; left: 50%; top: 900px; transform: translateX(-50%); z-index: 300;
+#toast { position: absolute; left: 50%; top: 36px; transform: translateX(-50%); z-index: 300;
          background: rgba(20,14,35,.96); border: 3px solid #ffd45e; color: #ffd45e;
          font-size: 24px; font-weight: 700; padding: 14px 32px; border-radius: 14px;
          pointer-events: none; opacity: 0; transition: opacity .25s; white-space: nowrap; }
@@ -3895,7 +3895,6 @@ function pickStage(id) {
   applyStageText();
   updateStartBtn();    /* 换关后刷新开始按钮（锁定态/星尘态） */
   sfx('click');
-  toast(stageOf(id).name + '：题库「' + SUBJ_NAMES[CFG.subject] + '」（设置页可改绑定）');
 }
 /* 按关卡切换设置页标题与副标题 */
 function applyStageText() {
