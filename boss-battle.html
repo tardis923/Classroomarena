@@ -274,6 +274,11 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
 #warp .wTitle { font-size: 76px; letter-spacing: 8px; color: #ffe6a6; margin: 18px 0 12px;
   text-shadow: 0 0 50px rgba(255,200,110,.5); }
 #warp .wSub { font-size: 26px; color: #cfc2f5; letter-spacing: 3px; }
+#warp .wQuote { margin: 26px auto 0; max-width: 1100px; font-size: 34px; line-height: 1.6;
+  color: #d8f5b8; letter-spacing: 3px; text-align: center; min-height: 54px; }
+#warp.bossQuote .wShip, #warp.bossQuote .wFlame, #warp.bossQuote .wGate { display: none; }
+#warp.bossQuote .wQuote { animation: quoteIn .5s ease-out both; }
+@keyframes quoteIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 #warp .wSkip { position: absolute; right: 60px; bottom: 46px; font-size: 20px; color: #8d82b8; letter-spacing: 2px; }
 </style>
 </head>
@@ -450,9 +455,10 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
       </svg>
     </div>
     <div class="wText">
-      <div class="wKicker">星 门 定 位 中</div>
+      <div class="wKicker" id="warpKicker">星 门 定 位 中</div>
       <div class="wTitle" id="warpTitle">前 往 下 一 界</div>
-      <div class="wSub">坐稳了，四人小队坐飞船出发！</div>
+      <div class="wSub" id="warpSub">坐稳了，四人小队坐飞船出发！</div>
+      <div class="wQuote" id="warpQuote"></div>
     </div>
     <div class="wSkip">点击任意处跳过</div>
   </div>
@@ -1869,7 +1875,7 @@ function meteorAttack() {
     });
     /* 大招专破护盾：有任何人的盾被击碎就提示一次 */
     after(1.6, function () {
-      if (broke && B && !B.over) banner(s2 ? '巨人的铁桩把坚果砸碎了！快补种一颗！' : '陨石把护盾砸碎了！治疗师重新套盾吧');
+      if (broke && B && !B.over) banner(s2 ? '巨人的铁桩把坚果砸碎了！快补种一颗！' : '护盾被砸碎了！治疗师重新套盾吧');
     });
   });
 }
@@ -2241,10 +2247,13 @@ function drawTopBar(c) {
     txt(c, '冻结', sx + 46, 34, 19, '#fff', 'center'); sx += 100;
   }
 
-  /* 陨石/巨人倒计时 */
+  /* 大招倒计时（按关卡显示对应名称） */
   var ml = Math.max(0, B.meteorCd);
-  txt(c, ml < 5 ? (isStage4() ? '蝎雨即将来袭！' : (isStage3() ? '墨潮即将席卷！' : (isStage2() ? '巨人即将来袭！' : '陨石即将来临！')))
-              : (isStage4() ? '蝎雨倒计时 ' : (isStage3() ? '墨潮倒计时 ' : (isStage2() ? '巨人倒计时 ' : '陨石倒计时 '))) + secs(ml) + ' 秒',
+  var soon = isStage5() ? '枝叶即将袭来！'
+    : (isStage4() ? '蝎雨即将来袭！' : (isStage3() ? '墨潮即将席卷！' : (isStage2() ? '巨人即将来袭！' : '陨石即将来临！')));
+  var label = isStage5() ? (B.boss.phase === 0 ? '飞叶倒计时 ' : '枝叶倒计时 ')
+    : (isStage4() ? '蝎雨倒计时 ' : (isStage3() ? '墨潮倒计时 ' : (isStage2() ? '巨人倒计时 ' : '陨石倒计时 ')));
+  txt(c, ml < 5 ? soon : label + secs(ml) + ' 秒',
       1620, 58, 18, ml < 8 ? '#ff7a6a' : '#b9aed6');
 }
 
@@ -4342,8 +4351,22 @@ var warpPass = false, warpBusy = false;
 function playWarp(cb) {
   var st = stageOf(CFG.stage);
   var dest = (st.name.split(' · ')[1] || st.name);
-  document.getElementById('warpTitle').textContent = '前 往 ' + dest;
   var w = document.getElementById('warp');
+  if (isStage5()) {
+    /* 第五关：不放飞船，直接给 Boss 的开场白 */
+    w.classList.add('bossQuote');
+    document.getElementById('warpKicker').textContent = '影 之 碎 片 · 第 一 枚';
+    document.getElementById('warpTitle').textContent = st.name.split(' · ')[1] || st.name;
+    document.getElementById('warpSub').textContent = '一棵认不出你们的大树，挡在了星图前面';
+    document.getElementById('warpQuote').textContent = '「' + TREE_LINES.enter + '」';
+    if (voiceOn) speak(TREE_LINES.enter);
+  } else {
+    w.classList.remove('bossQuote');
+    document.getElementById('warpKicker').textContent = '星 门 定 位 中';
+    document.getElementById('warpTitle').textContent = '前 往 ' + dest;
+    document.getElementById('warpSub').textContent = '坐稳了，四人小队坐飞船出发！';
+    document.getElementById('warpQuote').textContent = '';
+  }
   w.classList.remove('show'); void w.offsetWidth;      /* 重启动画 */
   w.classList.add('show');
   warpBusy = true;
