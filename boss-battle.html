@@ -2747,14 +2747,11 @@ function drawTopBar(c) {
   var sec = Math.floor(B.elapsed);
   var nxt;
   if (B.over) nxt = '战斗结束';
-  else if (bs.frozen > 0) nxt = 'Boss 冻结中 ' + secs(bs.frozen) + ' 秒';
-  else nxt = 'Boss 出手倒计时 ' + secs(B.atkCd) + ' 秒';
-  var t1 = '用时 ' + Math.floor(sec / 60) + ' 分 ' + (sec % 60) + ' 秒';
-  txt(c, '自 由 攻 击', 150, 24, 26, '#ffd45e');
-  txt(c, t1, 150, 54, 19, '#b9aed6');
-  c.font = '700 19px "Microsoft YaHei","PingFang SC",sans-serif';
-  var w1 = c.measureText(t1).width;
-  txt(c, '　·　' + nxt, 150 + w1, 54, 19,
+  else if (bs.frozen > 0) nxt = '冻结 ' + secs(bs.frozen) + 's';
+  else nxt = '出手 ' + secs(B.atkCd) + 's';
+  var t1 = '用时 ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  txt(c, '自 由 攻 击', 290, 24, 26, '#ffd45e');
+  txt(c, t1 + '　·　' + nxt, 290, 54, 19,
       (nxt.indexOf('冻结') >= 0) ? '#8fe6ff' : (B.over ? '#b9aed6' : '#ff9a9a'));
 
   /* 中：Boss 名 + 血条 */
