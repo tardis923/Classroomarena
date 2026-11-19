@@ -480,6 +480,7 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
 </div>
 
 <script src="js/banks.js"></script>
+<script src="js/newbanks.js"></script>
 <script src="js/fullscreen.js"></script>
 <script>
 /* =========================================================================
@@ -1172,9 +1173,32 @@ function genOpts(bank) {
 
 function genQuestion() {
   if (CFG.subject === 'math') return genMath(battleLevel(), battleBoost());
+  /* 豆包分年级题库：按关卡难度取对应科目；同局内不重复出题 */
+  if (typeof NEW_BY_KEY !== 'undefined') {
+    var pool = poolForStage(CFG.stage, CFG.subject);
+    if (pool && pool.length) {
+      var tried = 0, it;
+      do {
+        it = pool[Math.floor(Math.random() * pool.length)];
+        tried++;
+      } while (B && B.usedQs && B.usedQs[it.q] && tried < pool.length);
+      if (B) { B.usedQs = B.usedQs || {}; B.usedQs[it.q] = 1; }
+      /* 与原 genOpts 一致：打乱选项，ans 存打乱后正确答案所在的位置(0-3) */
+      var idx = [0, 1, 2, 3];
+      for (var z = 3; z > 0; z--) { var j2 = Math.floor(Math.random() * (z + 1)), t2 = idx[z]; idx[z] = idx[j2]; idx[j2] = t2; }
+      var opts = [], ans = 0;
+      for (var k2 = 0; k2 < 4; k2++) { opts.push(it.o[idx[k2]]); if (idx[k2] === it.a) ans = k2; }
+      return { text: it.q, ans: String(ans), mode: 'opt', opts: opts };
+    }
+  }
   var bank = CFG.subject === 'chinese' ? CN_BANK
     : (CFG.subject === 'safe' ? SAFE_BANK : EN_BANK);
   return genOpts(bank);
+}
+function shuffleInPlace(a) {
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t;
+  }
 }
 function answerMode() { return CFG.subject === 'math' ? 'num' : 'opt'; }
 
