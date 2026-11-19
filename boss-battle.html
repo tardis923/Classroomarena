@@ -2350,6 +2350,13 @@ function drawTreeBg(c) {
 /* ===== 英雄篇通用背景：按关卡 tier 与 boss.key 变化 ===== */
 function drawHeroBg(c) {
   var b = heroBoss(), ph = B.boss.phase;
+  var im = HERO_BGS[b.id];
+  if (im && im.complete && im.naturalWidth) {
+    c.drawImage(im, 0, 0, W, AH);
+    /* 阶段加深：P2/P3 轻微压暗背景，突出 Boss */
+    if (ph >= 1) { c.fillStyle = ph===1?'rgba(30,10,50,.22)':'rgba(60,10,10,.3)'; c.fillRect(0,0,W,AH); }
+    return;
+  }
   var fn = HERO_BG[b.key];
   if (fn) fn(c, ph);
 }
@@ -2463,7 +2470,9 @@ var HERO_BG = {
 };
 
 function drawHeroBoss(c, ph, R) {
-  var fn = HERO_DRAW[heroBoss().key];
+  var b = heroBoss();
+  if (HERO_IMGS[b.id] && HERO_IMGS[b.id].complete && HERO_IMGS[b.id].naturalWidth) return;  /* 图片由 render 独立层绘制 */
+  var fn = HERO_DRAW[b.key];
   if (fn) fn(c, ph, R);
 }
 /* 12 位 Boss 专属形象：轮廓 / 武器 / 标志物完全不同 */
@@ -3140,8 +3149,17 @@ function drawHeroCard(c, h) {
     c.lineWidth = 8; rr(c, CARD_X - 2, y - 2, CARD_W + 4, CARD_H + 4, 16); c.stroke();
   }
 
-  /* 头像 */
-  drawMage(c, CARD_X + 78, y + CARD_H - 14, h, 0.72, h.castT > 0 ? h.castT / 0.9 : 0, !h.alive);
+  /* 头像：优先豆包图（按 tier 与角色序号），未加载则用矢量兜底 */
+  var tier = isHeroStage() ? heroBoss().tier : (isStage5() ? 0 : -1);
+  var face = tier >= 0 ? TEAM_IMGS[tier + '_' + i] : null;
+  if (face && face.complete && face.naturalWidth) {
+    var fs = 112;
+    c.save(); c.globalAlpha = h.alive ? 1 : 0.45;
+    c.drawImage(face, CARD_X + 22, y + CARD_H - fs - 8, fs, fs);
+    c.restore();
+  } else {
+    drawMage(c, CARD_X + 78, y + CARD_H - 14, h, 0.72, h.castT > 0 ? h.castT / 0.9 : 0, !h.alive);
+  }
 
   /* 名字 / 职业 */
   txt(c, h.name, CARD_X + 140, y + 32, 28, '#fff');
@@ -3533,18 +3551,52 @@ function loadTreeImages() {
 }
 loadTreeImages();
 
+/* 豆包生成的 12 位英雄 Boss 图片（白底已抠成透明底） */
+var HERO_IMGS = {}, HERO_IMG_TRIED = false;
+function loadHeroImages() {
+  if (HERO_IMG_TRIED) return;
+  HERO_IMG_TRIED = true;
+  for (var i = 6; i <= 17; i++) {
+    (function (id) {
+      var im = new Image();
+      im.onload = function () { HERO_IMGS[id] = im; };
+      im.src = 'images/boss' + id + '_t.png';
+    })(i);
+  }
+}
+loadHeroImages();
+
+/* 豆包生成的 12 张场景背景 + 三套星核小队战衣 */
+var HERO_BGS = {}, TEAM_IMGS = {}, ASSET_TRIED = false;
+function loadScenery() {
+  if (ASSET_TRIED) return;
+  ASSET_TRIED = true;
+  for (var i = 6; i <= 17; i++) {
+    (function (id) {
+      var im = new Image();
+      im.onload = function () { HERO_BGS[id] = im; };
+      im.src = 'images/bg' + id + '.png';
+    })(i);
+  }
+  ['team0','team1','team2'].forEach(function (name, i) {
+    var im = new Image();
+    im.onload = function () { TEAM_IMGS[i] = im; };
+    im.src = 'images/' + name + '.png';
+  });
+  /* 切成四个单头像：team{tier}_{i}.png */
+  for (var t = 0; t <= 2; t++) for (var k = 0; k < 4; k++) {
+    (function (tier, idx) {
+      var im2 = new Image();
+      im2.onload = function () { TEAM_IMGS[tier + '_' + idx] = im2; };
+      im2.src = 'images/team' + tier + '_' + idx + '.png';
+    })(t, k);
+  }
+}
+loadScenery();
+
 function drawTreeBoss(c, ph, R) {
   var phase = B.boss.phase;
-  var img = TREE_IMGS[phase];
-  if (img && img.complete && img.naturalWidth) {
-    /* 豆包图：按阶段切换；体型随阶段放大，唤醒时变回小树 */
-    var size = [1.5, 1.9, 2.5][phase] * R;
-    var awake = B.win ? 0 : phase;
-    if (awake !== phase) size = 1.5 * R;
-    c.globalAlpha = 1;
-    c.drawImage(img, -size / 2, -size / 2 + 20, size, size);
-    return;
-  }
+  if (TREE_IMGS[phase] && TREE_IMGS[phase].complete && TREE_IMGS[phase].naturalWidth) return;  /* 图片由 render 独立层绘制 */
   /* 图片未加载：矢量兜底 */
   /* 树根底座 */
   c.fillStyle = ph.dark;
@@ -4228,6 +4280,25 @@ function render() {
   seg('bg', function () { drawBg(c); drawTopBar(c); });
   for (var i = 0; i < 4; i++) seg('hero' + i, function (i) { return function () { drawHeroCard(c, B.heroes[i]); }; }(i));
   seg('boss', function () { drawBoss(c); });
+  /* Boss 图片独立层：绝对坐标绘制，避免受 drawBoss 内部变换影响 */
+  if (isHeroStage() || isStage5()) {
+    seg('bossImg', function () {
+      var im = isHeroStage() ? HERO_IMGS[CFG.stage] : TREE_IMGS[B.boss.phase];
+      if (!im || !im.complete || !im.naturalWidth) return;
+      var ph0 = B.boss.phase;
+      var size = isStage5() ? [1.5,1.9,2.5][ph0]*130*2
+        : ((heroBoss().form==='giant'?3.4:2.9)*130*2*(1+ph0*0.16));
+      var bob = Math.sin(B.boss.bob*1.7)*8;
+      if (B.win) { im = TREE_IMGS[0]; size = 1.5*130*2; }
+      c.save(); c.globalAlpha = 1;
+      c.drawImage(im, BOSS_X - size/2, BOSS_Y - size/2 + bob + 20, size, size);
+      if (ph0>=1 && !B.win) {
+        c.fillStyle = ph0===1?'rgba(80,30,120,.16)':'rgba(160,30,30,.2)';
+        c.beginPath(); c.ellipse(BOSS_X, BOSS_Y, size*0.3, size*0.38, 0, 0, 6.2832); c.fill();
+      }
+      c.restore();
+    });
+  }
   seg('fx', function () { drawFx(c); });
   seg('floats', function () { drawFloats(c); });
   seg('banner', function () { drawBanner(c); });
