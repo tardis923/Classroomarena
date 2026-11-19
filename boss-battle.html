@@ -279,6 +279,14 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
 #warp.bossQuote .wShip, #warp.bossQuote .wFlame, #warp.bossQuote .wGate { display: none; }
 #warp.bossQuote .wQuote { animation: quoteIn .5s ease-out both; }
 @keyframes quoteIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+/* 新篇章开场：先讲影之碎片的来历，再切到 Boss 台词 */
+#warp .wStory { position: absolute; left: 0; right: 0; top: 250px; text-align: center; display: none; }
+#warp.tellStory .wStory { display: block; }
+#warp.tellStory .wText { display: none; }
+#warp .wStoryLine { font-size: 34px; line-height: 1.9; color: #e8d8ff; letter-spacing: 4px; margin: 8px 0; }
+#warp .wStoryLine.hl { color: #ffe6a6; font-size: 40px; }
+#warp .wStoryLine.dim { color: #b6a5d8; font-size: 26px; }
+
 #warp .wSkip { position: absolute; right: 60px; bottom: 46px; font-size: 20px; color: #8d82b8; letter-spacing: 2px; }
 </style>
 </head>
@@ -453,6 +461,12 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
         <circle cx="190" cy="66" r="7" fill="#e8f8ff" opacity=".9"/>
         <path d="M250 56 L288 28 L282 70 Z" fill="#ffd970" stroke="#8a6a20" stroke-width="3"/>
       </svg>
+    </div>
+    <div class="wStory">
+      <div class="wStoryLine dim" id="warpStory0">魔君最后一击，知识星核裂成十一枚碎片</div>
+      <div class="wStoryLine" id="warpStory1">碎片钻进英雄心里最亮的那一角</div>
+      <div class="wStoryLine hl" id="warpStory2">把守护变成执念，把朋友变成敌人</div>
+      <div class="wStoryLine dim" style="margin-top:22px">用学过的知识，把他们叫醒</div>
     </div>
     <div class="wText">
       <div class="wKicker" id="warpKicker">星 门 定 位 中</div>
@@ -4353,15 +4367,14 @@ function playWarp(cb) {
   var dest = (st.name.split(' · ')[1] || st.name);
   var w = document.getElementById('warp');
   if (isStage5()) {
-    /* 第五关：不放飞船，直接给 Boss 的开场白 */
-    w.classList.add('bossQuote');
+    /* 第五关：新篇章开场——先讲为什么正派变成了对立面，再切到 Boss 台词 */
+    w.classList.add('bossQuote', 'tellStory');
     document.getElementById('warpKicker').textContent = '影 之 碎 片 · 第 一 枚';
     document.getElementById('warpTitle').textContent = st.name.split(' · ')[1] || st.name;
     document.getElementById('warpSub').textContent = '一棵认不出你们的大树，挡在了星图前面';
     document.getElementById('warpQuote').textContent = '「' + TREE_LINES.enter + '」';
-    if (voiceOn) speak(TREE_LINES.enter);
   } else {
-    w.classList.remove('bossQuote');
+    w.classList.remove('bossQuote', 'tellStory');
     document.getElementById('warpKicker').textContent = '星 门 定 位 中';
     document.getElementById('warpTitle').textContent = '前 往 ' + dest;
     document.getElementById('warpSub').textContent = '坐稳了，四人小队坐飞船出发！';
@@ -4370,10 +4383,21 @@ function playWarp(cb) {
   w.classList.remove('show'); void w.offsetWidth;      /* 重启动画 */
   w.classList.add('show');
   warpBusy = true;
+  var storyTm = null;
+  if (isStage5()) {
+    /* 1.6 秒后从故事切到 Boss 台词，并朗读 */
+    storyTm = setTimeout(function () {
+      if (!w.classList.contains('show')) return;
+      w.classList.remove('tellStory');
+      var q = document.getElementById('warpQuote');
+      q.style.animation = 'none'; void q.offsetWidth; q.style.animation = '';
+      if (voiceOn) speak(TREE_LINES.enter);
+    }, 1600);
+  }
   var done = false, tm;
   function finish() {
     if (done) return;
-    done = true; clearTimeout(tm);
+    done = true; clearTimeout(tm); if (storyTm) clearTimeout(storyTm);
     w.classList.remove('show');
     w.removeEventListener('click', finish);
     warpBusy = false;
