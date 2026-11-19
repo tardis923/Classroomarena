@@ -1893,27 +1893,26 @@ function barkDamage(d) {
 }
 function comboBreak(i) {
   if (!B || B.over || (!isStage5() && !isHeroStage())) return;
+  var now = B.elapsed;                       /* 必须先定义：旧代码写在第五关分支后面导致英雄篇永远为 undefined */
   if (isHeroStage()) {
     var hb = heroBoss();
-    if (hb.mech === 'guard' || hb.mech === 'armor' || hb.mech === 'chaos') {
-      /* 格挡/护甲型：普通技能减半，组合技破防 */
-      if (B.comboBy >= 0 && B.comboBy !== i && now - B.comboT <= 3) {
-        B.comboBy = -1;
-        if (B.treeBark > 0) B.treeBark--;
-        var d = Math.round(CFG.dmgThunder * 0.8 * growMul());
-        B.boss.hp = Math.max(0, B.boss.hp - d);
-        B.fx.push({ type:'combo', t:0, dur:0.9, x:BOSS_X-60, y:BOSS_Y });
-        banner('✦ 组合技 · 破防成功！');
-        floatText(BOSS_X-60, BOSS_Y-190, '破 防 ！', '#ffe08a');
-        sfx('thunder'); bossSay('呃……你们两个，一起上？'); checkPhase();
-        return;
-      }
-      B.comboBy = i; B.comboT = B.elapsed;
-      floatText(heroPt(i).x, heroPt(i).y-150, '共鸣就绪', '#ffe08a');
+    var needCombo = ['guard','armor','chaos'].indexOf(hb.mech) >= 0;
+    if (B.comboBy >= 0 && B.comboBy !== i && now - B.comboT <= 3) {
+      /* 双人接力成功：所有英雄关卡都可触发；破防型额外削甲 */
+      B.comboBy = -1;
+      if (needCombo && B.treeBark > 0) B.treeBark--;
+      var d = Math.round(CFG.dmgThunder * (needCombo ? 1.2 : 0.8) * growMul());
+      B.boss.hp = Math.max(0, B.boss.hp - d);
+      B.fx.push({ type:'combo', t:0, dur:0.9, x:BOSS_X-60, y:BOSS_Y });
+      banner('✦ 组合技 · ' + (needCombo ? '破防成功！' : '双星合击！'));
+      floatText(BOSS_X-60, BOSS_Y-190, needCombo ? '破 防 ！' : '合 击 ！', '#ffe08a');
+      sfx('thunder'); bossSay('呃……你们两个，一起上？'); checkPhase();
+      return;
     }
+    B.comboBy = i; B.comboT = now;
+    floatText(heroPt(i).x, heroPt(i).y-150, '共鸣就绪 · 等搭档', '#ffe08a');
     return;
   }
-  var now = B.elapsed;
   if (B.comboBy >= 0 && B.comboBy !== i && now - B.comboT <= 3) {
     B.comboBy = -1;
     if (B.treeBark > 0) B.treeBark--;
@@ -3997,15 +3996,55 @@ function drawFx(c) {
       /* 大招预警：按类型画不同前奏 */
       c.globalAlpha = Math.min(1, p*2) * (1 - Math.max(0,(p-0.85)/0.15));
       var col = f.color || '#ffd88a';
-      if (f.ult === 'rainbow') {
-        c.strokeStyle = col; c.lineWidth = 24;
-        c.beginPath(); c.moveTo(W, 60); c.lineTo(200, AH-120); c.stroke();
+      if (f.ult === 'web') {                 /* 6 蛛网：网格从 Boss 向四卡铺开 */
+        c.strokeStyle='#c8d0e0'; c.lineWidth=3;
+        for (var g=0;g<7;g++){
+          c.beginPath(); c.moveTo(BOSS_X,BOSS_Y); c.lineTo(g*300, AH-160); c.stroke();
+          c.beginPath(); c.arc(BOSS_X,BOSS_Y, 60+g*90*p, 2.4, 4.0); c.stroke();
+        }
+      } else if (f.ult === 'rainbow') {       /* 13 彩虹桥：七彩斜光带 */
+        var cols=['#e85a5a','#e8a84a','#e8e84a','#5ae86a','#5a8ae8','#8a5ae8','#e85ae8'];
+        for(var r=0;r<7;r++){c.strokeStyle=cols[r];c.lineWidth=18;c.beginPath();
+          c.moveTo(W,40+r*20);c.lineTo(200,AH-140+r*20);c.stroke();}
       } else if (f.ult === 'missiles' || f.ult === 'yaka' || f.ult === 'arrows') {
+        /* 9/12/7 飞弹类：成排弹体从右向左掠过 */
         for (var mi=0; mi<12; mi++) {
           var my = 120 + mi*42, mx = BOSS_X - p*600 - (mi%3)*60;
           c.fillStyle = col; c.beginPath(); c.arc(mx, my, 7, 0, 6.2832); c.fill();
         }
-      } else {
+      } else if (f.ult === 'swing') {         /* 8 荡绳：弧形蛛丝轨迹 */
+        c.strokeStyle='#d8f0ff';c.lineWidth=6;
+        c.beginPath();c.moveTo(BOSS_X,BOSS_Y-60);
+        c.quadraticCurveTo(BOSS_X-500,120+p*200, 200+Math.sin(p*6)*40, AH-200);c.stroke();
+      } else if (f.ult === 'pounce') {        /* 10 黑豹：残影三连闪 */
+        for(var s=0;s<3;s++){c.globalAlpha=(0.5-s*0.15)*(1-p*0.4);
+          c.fillStyle='#3a3a4a';c.beginPath();
+          c.ellipse(BOSS_X-200-s*260*p, BOSS_Y+Math.sin(p*8+s)*30, 54, 90,0,0,6.2832);c.fill();}
+      } else if (f.ult === 'shields') {       /* 11 盾阵：六盾扇形飞出 */
+        for(var sh=0;sh<6;sh++){var ang=sh*Math.PI/3+p*2;
+          var sx=BOSS_X+Math.cos(ang)*(140+p*400),sy=BOSS_Y+Math.sin(ang)*(100+p*260);
+          c.fillStyle='#d8c26a';c.beginPath();c.arc(sx,sy,34,0,6.2832);c.fill();
+          c.fillStyle='#b84040';c.beginPath();c.arc(sx,sy,20,0,6.2832);c.fill();}
+      } else if (f.ult === 'quake') {         /* 14 咆哮：地面同心冲击波 */
+        c.strokeStyle='#7fe07a';c.lineWidth=10;
+        for(var q=0;q<3;q++){c.beginPath();c.ellipse(BOSS_X,BOSS_Y+180,
+          (120+p*500)*(1-q*0.2),(40+p*150)*(1-q*0.2),0,0,6.2832);c.stroke();}
+      } else if (f.ult === 'chaos') {         /* 15 幻象：红色扭曲波纹 */
+        c.strokeStyle='#e8788a';c.lineWidth=5;
+        for(var w=0;w<6;w++){c.beginPath();
+          for(var x=0;x<=W;x+=40){var y=w*120+Math.sin(x*0.012+p*8+w)*40;
+            if(x===0)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();}
+      } else if (f.ult === 'rewind') {        /* 16 时间：倒转时钟法阵 */
+        c.strokeStyle='#f0c84a';c.lineWidth=7;
+        c.beginPath();c.arc(BOSS_X,BOSS_Y,150,0,6.2832);c.stroke();
+        var hand=-p*8;c.beginPath();c.moveTo(BOSS_X,BOSS_Y);
+        c.lineTo(BOSS_X+Math.cos(hand)*130,BOSS_Y+Math.sin(hand)*130);c.stroke();
+      } else if (f.ult === 'snap') {          /* 17 响指：紫金能量汇聚 */
+        var gems=['#ff5a5a','#5a8aff','#ffd84a','#5aff8a','#c85aff','#ff8a3a'];
+        for(var k=0;k<6;k++){var a2=k*Math.PI/3+p*4;
+          c.fillStyle=gems[k];c.beginPath();
+          c.arc(BOSS_X+Math.cos(a2)*(80+p*260),BOSS_Y+Math.sin(a2)*(80+p*200),14,0,6.2832);c.fill();}
+      } else {                               /* 兜底扩散圈 */
         c.strokeStyle = col; c.lineWidth = 8;
         c.beginPath(); c.arc(BOSS_X, BOSS_Y, 80 + p*260, 0, 6.2832); c.stroke();
       }
@@ -4200,7 +4239,10 @@ function drawFx(c) {
       c.strokeStyle = '#ff5a4a'; c.lineWidth = 8;
       rr(c, -330, -62, 660, 124, 18); c.stroke();
       c.fillStyle = 'rgba(40,8,8,.85)'; rr(c, -330, -62, 660, 124, 18); c.fill();
-      txt(c, isStage4() ? '万 针 蝎 雨 ！' : (isStage3() ? '墨 潮 席 卷 ！' : (isStage2() ? '巨 人 来 袭 ！' : '陨 石 来 袭 ！')), 0, 0, 68, '#ffd45e', 'center');
+      var warnTxt = isHeroStage() ? ULT_NAMES[heroBoss().ult]
+        : (isStage5() ? (B.boss.phase===0 ? '飞 叶 来 袭 ！' : '枝 叶 来 袭 ！')
+        : (isStage4() ? '万 针 蝎 雨 ！' : (isStage3() ? '墨 潮 席 卷 ！' : (isStage2() ? '巨 人 来 袭 ！' : '陨 石 来 袭 ！'))));
+      txt(c, warnTxt.split('').join(' '), 0, 0, 68, '#ffd45e', 'center');
       c.restore();
       for (var w2 = 0; w2 < 5; w2++) {   /* 下落提示 */
         var wx = 200 + w2 * 340, wy = 120 + ((p * 900 + w2 * 200) % 320);
@@ -4286,16 +4328,28 @@ function render() {
       var im = isHeroStage() ? HERO_IMGS[CFG.stage] : TREE_IMGS[B.boss.phase];
       if (!im || !im.complete || !im.naturalWidth) return;
       var ph0 = B.boss.phase;
-      var size = isStage5() ? [1.5,1.9,2.5][ph0]*130*2
-        : ((heroBoss().form==='giant'?3.4:2.9)*130*2*(1+ph0*0.16));
+      /* 缩小尺寸：Boss 顶部不越过 y=95，避免遮住血条/倒计时 */
+      var size = isStage5() ? [1.05,1.3,1.65][ph0]*130*2
+        : ((heroBoss().form==='giant'?2.15:1.9)*130*2*(1+ph0*0.12));
       var bob = Math.sin(B.boss.bob*1.7)*8;
-      if (B.win) { im = TREE_IMGS[0]; size = 1.5*130*2; }
+      if (B.win) { im = TREE_IMGS[0]; size = 1.05*130*2; }
       c.save(); c.globalAlpha = 1;
-      c.drawImage(im, BOSS_X - size/2, BOSS_Y - size/2 + bob + 20, size, size);
+      c.drawImage(im, BOSS_X - size/2, BOSS_Y - size/2 + bob + 55, size, size);
       if (ph0>=1 && !B.win) {
         c.fillStyle = ph0===1?'rgba(80,30,120,.16)':'rgba(160,30,30,.2)';
         c.beginPath(); c.ellipse(BOSS_X, BOSS_Y, size*0.3, size*0.38, 0, 0, 6.2832); c.fill();
       }
+      c.restore();
+    });
+  }
+  /* 顶栏信息（血条/阶段/状态标签/倒计时）重画在最上层，避免被 Boss 图片盖住 */
+  if (isHeroStage() || isStage5()) {
+    seg('topOverlay', function () {
+      c.save();
+      c.beginPath(); c.rect(0, 0, W, 110); c.clip();
+      c.clearRect(0, 0, W, 110);
+      drawBg(c);            /* 仅重画顶栏区域的背景，保持原样 */
+      drawTopBar(c);
       c.restore();
     });
   }
