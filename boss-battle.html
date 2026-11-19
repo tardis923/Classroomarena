@@ -1172,7 +1172,20 @@ function genOpts(bank) {
 }
 
 function genQuestion() {
-  if (CFG.subject === 'math') return genMath(battleLevel(), battleBoost());
+  if (CFG.subject === 'math') {
+    /* 豆包数学题库：按关卡难度取数字输入题；同局去重；失败回退实时生成 */
+    if (typeof MATH_BY_D !== 'undefined') {
+      var mp = mathPoolForStage(CFG.stage), tries = 0, mt;
+      do { mt = mp[Math.floor(Math.random() * mp.length)]; tries++; }
+      while (B && B.usedQs && B.usedQs[mt.q] && tries < mp.length);
+      if (mt) {
+        if (B) { B.usedQs = B.usedQs || {}; B.usedQs[mt.q] = 1; }
+        var isCalc = /^[0-9＋＋\-×÷()（） +\-×÷]+$/.test(mt.q) && /[＋＋\-×÷]/.test(mt.q);
+        return { text: isCalc ? mt.q + ' = ?' : mt.q, ans: String(mt.ans), mode: 'num' };
+      }
+    }
+    return genMath(battleLevel(), battleBoost());
+  }
   /* 豆包分年级题库：按关卡难度取对应科目；同局内不重复出题 */
   if (typeof NEW_BY_KEY !== 'undefined') {
     var pool = poolForStage(CFG.stage, CFG.subject);
