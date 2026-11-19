@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-18a";</script>
+<script>window.ARENA_BUILD="2026-11-19a";</script>
 <title>知识星核 · 四界追光</title>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -74,6 +74,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
 .node.lit .nstate { background: rgba(255,215,130,.16); color: #ffd98a; }
 .n1 { left: 0; top: 90px; } .n2 { left: 480px; top: 210px; }
 .n3 { left: 40px; top: 400px; } .n4 { left: 480px; top: 520px; }
+.n5 { left: 960px; top: 300px; }   /* 第五关：星核暗影，星图向右延伸 */
 .more { position: absolute; left: 300px; top: 690px; width: 300px; text-align: center;
   font-size: 18px; color: #7f76a8; letter-spacing: 2px; }
 
@@ -147,6 +148,7 @@ h1 { margin: 0; font-size: 108px; letter-spacing: 12px; line-height: 1.12; font-
     <div class="node n2" id="nd2"></div>
     <div class="node n3" id="nd3"></div>
     <div class="node n4" id="nd4"></div>
+    <div class="node n5" id="nd5"></div>
     <div class="more">· 星图之外，还有更多坐标 ·</div>
   </div>
 
@@ -225,7 +227,9 @@ document.addEventListener('selectstart', function (e) { e.preventDefault(); retu
     { id: 3, name: '海底碑林', subj: '语文知识 · 深海潜水小队', done: true,
       intro: '珊瑚碑林的字词被章鱼怪搅乱了 —— 穿上潜水服，破译鲸歌密码！' },
     { id: 4, name: '流沙遗迹', subj: '英语单词 · 沙漠远征', done: true,
-      intro: '沙海深处的遗迹里，巨蝎王守着又一片星核碎片。' }
+      intro: '沙海深处的遗迹里，巨蝎王守着又一片星核碎片。' },
+    { id: 5, name: '星核暗影', subj: '安全知识 · 同学设计的树', done: true,
+      intro: '一片影之碎片钻进树里，它疯长成密林 —— 用学过的知识把树叫醒。' }
   ];
 
   function readJSON(k, d) {

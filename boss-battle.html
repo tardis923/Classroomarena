@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-18a";</script>
+<script>window.ARENA_BUILD="2026-11-19a";</script>
 <title>团队合作知识闯关 · 进阶版</title>
 <style>
 /* ================= 基础 ================= */
@@ -325,6 +325,12 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
         <p class="sub">数值越大越难 / Boss 越强。改完点「保存配置」，会存到本机浏览器，下次打开自动生效；当前这一局结束后才应用新数值。<br><span id="buildTag" style="display:inline-block;margin-top:8px;font-size:15px;color:#8f83b8;letter-spacing:1px"></span></p>
       </div>
       <div class="cardBody">
+        <div class="setRow">
+          <div class="setLabel">声音（一体机可关）</div>
+          <div class="opts" id="optVoiceOn"></div>
+          <div class="tip" style="text-align:left;margin:6px 0 0">Boss 台词用系统内置中文朗读，无需网络；没装语音包可关掉，字幕照常显示。背景音乐为程序合成，不占空间。</div>
+        </div>
+
         <div class="setRow">
           <div class="setLabel">数学口算基准年级（仅「数学口算」题库生效）</div>
           <div class="tip" style="text-align:left;margin:0 0 8px">P1 用所选年级，Boss 每变身一次升一年级：P2 = +1 年级，P3 = +2 年级（封顶六年级）。语文 / 英语 / 安全是固定题库，不受此项影响。</div>
@@ -664,8 +670,9 @@ var PVZ_PHASES = [
     body: '#b0453a', dark: '#6e2318', horn: '#ffd45e', eye: '#ffe08a', spikes: 2 }
 ];
 function PH() {
-  return isStage4() ? (DESERT_PHASES || PHASES)
-    : (isStage3() ? (SEA_PHASES || PHASES) : (isStage2() ? PVZ_PHASES : PHASES));
+  return isStage5() ? TREE_PHASES
+    : (isStage4() ? (DESERT_PHASES || PHASES)
+    : (isStage3() ? (SEA_PHASES || PHASES) : (isStage2() ? PVZ_PHASES : PHASES)));
 }
 
 /* 四植物：技能与第一关完全不同 —— PvZ 式连射弹幕，答对就连喷三发 */
@@ -680,10 +687,36 @@ var PVZ_HEROES = [
     desc: '连喷三发冰豌豆 · 减速机甲', robe: '#3fa8c4', dark: '#216a80', orb: '#bff0ff', tone: 500 }
 ];
 function heroSet() {
-  return isStage4() ? (DESERT_HEROES || HEROES)
-    : (isStage3() ? (SEA_HEROES || HEROES) : (isStage2() ? PVZ_HEROES : HEROES));
+  return isStage5() ? TREE_HEROES
+    : (isStage4() ? (DESERT_HEROES || HEROES)
+    : (isStage3() ? (SEA_HEROES || HEROES) : (isStage2() ? PVZ_HEROES : HEROES)));
 }
 function isStage4() { return CFG.stage === 4; }
+function isStage5() { return CFG.stage === 5; }
+
+/* ============================ 第五关 · 同学设计的树（主题层） ============================
+   手绘原案来自三（×）班同学：三阶段形态 + 飞叶 / 凝视 / 枝条三套攻击。
+   影之碎片放大了「生长本能」，树长得太大停不下来，把训练广场围成密林。
+   学生不是砍树，是用知识唤醒它，让它变回小树苗。 */
+var TREE_PHASES = [
+  { name: '幼苗·影子', scale: 0.95, atkMul: 0.9, atkChance: 1.0, meteorMul: 1.0, bossImmune: false,
+    body: '#4f9e52', dark: '#2c6338', horn: '#8fd07a', eye: '#d8ff9a', spikes: 0 },
+  { name: '生长·凝视', scale: 1.22, atkMul: 1.3, atkChance: 0.9, meteorMul: 1.1, bossImmune: true,
+    body: '#5f7f49', dark: '#34462c', horn: '#a5c98a', eye: '#ffe27a', spikes: 1 },
+  { name: '古树·暴走', scale: 1.55, atkMul: 1.7, atkChance: 0.85, meteorMul: 1.2, bossImmune: true,
+    body: '#6b5a3c', dark: '#3a3022', horn: '#c79a5e', eye: '#ff9a6a', spikes: 2 }
+];
+/* 星核小队·初醒战衣：四色轻甲，胸前徽章暗淡（三段式的第一段） */
+var TREE_HEROES = [
+  { cls: '星锋', name: '星锋', skill: '光刃', key: 'thunder',
+    desc: '光刃劈击 · 集火输出', robe: '#d85a4a', dark: '#933c30', orb: '#ffd0a0', tone: 392 },
+  { cls: '曜盾', name: '曜盾', skill: '星盾', key: 'heal',
+    desc: '星盾守护 · 全队减伤', robe: '#3f7fc4', dark: '#2a5588', orb: '#bfe4ff', tone: 300 },
+  { cls: '脉冲', name: '脉冲', skill: '电涌', key: 'fire',
+    desc: '电弧脉冲 · 打断出手', robe: '#8857c4', dark: '#5a3888', orb: '#e0c8ff', tone: 240 },
+  { cls: '织光', name: '织光', skill: '光引', key: 'ice',
+    desc: '光球牵引 · 辅助充能', robe: '#d8c98a', dark: '#93854f', orb: '#fff5c8', tone: 500 }
+];
 
 /* ============================ 第四关 · 流沙遗迹（主题层） ============================
    沙海巨蝎王守着又一片星核碎片。四人换上沙漠装束，
@@ -763,6 +796,72 @@ function noise(dur, peak, freq, delay, q) {
   var g = a.createGain(); env(g, t0, dur, peak || 0.14);
   s.connect(f); f.connect(g); g.connect(a.destination); s.start(t0);
 }
+/* ===== 程序化 BGM（Web Audio，无外部文件） =====
+   每关一段主题动机循环，配合出场 sting。 */
+var bgmOn = true, bgmTimer = null, bgmStep = 0;
+var TREE_MOTIF = [196, 262, 294, 330, 294, 262, 220, 196];
+function note(freq, dur, peak, type, delay) {
+  if (!bgmOn || !sfxOn) return;
+  var a = ac(); if (!a) return;
+  var t0 = a.currentTime + (delay || 0);
+  var o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'triangle'; o.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(peak || 0.03, t0 + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function bgmStart() {
+  if (bgmTimer) return;
+  bgmStep = 0;
+  bgmTimer = setInterval(function () {
+    if (!bgmOn || !B || B.paused || B.over || !sfxOn) return;
+    var f = TREE_MOTIF[bgmStep % TREE_MOTIF.length];
+    note(f, 0.42, 0.028, 'triangle');
+    if (bgmStep % 4 === 0) note(f / 2, 0.7, 0.02, 'sine');
+    bgmStep++;
+  }, 460);
+}
+function bgmStop() { if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; } }
+function sting() {
+  if (!bgmOn || !sfxOn) return;
+  [147, 196, 262].forEach(function (f, i) { note(f, 0.5, 0.06, 'sawtooth', i * 0.16); });
+}
+
+/* ===== 第五关台词与语音（学生设计的树） =====
+   格鲁特只会说「我是格鲁特」，靠语调和停顿表达情绪。
+   TTS 用浏览器内置 speechSynthesis，无外部文件；设置页可关。 */
+var voiceOn = true;
+var TREE_LINES = {
+  enter: '我是……格鲁特。',
+  mid: ['我是格鲁特？', '……我是格鲁特。', '我是格鲁特！', '别让树根跑掉。'],
+  ult: ['看清楚，只是一片叶子。', '无数片叶子，就是一场风暴。', '我——是——格鲁特！！'],
+  wake: '我是格鲁特。'
+};
+var TREE_MID = 0, sayT = 0;
+function speak(text) {
+  if (!voiceOn || !window.speechSynthesis) return;
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN'; u.rate = 0.85; u.pitch = 0.75; u.volume = 0.85;
+    window.speechSynthesis.speak(u);
+  } catch (e) { }
+}
+function bossSay(text) {
+  if (!B || B.over) return;
+  B.sayText = text; B.sayT = 2.6;
+  B.fx.push({ type: 'bubble', t: 0, dur: 2.6, text: text, x: BOSS_X - 40, y: BOSS_Y - 200 });
+  speak(text);
+}
+function bossSayMid() {
+  if (!isStage5() || !B || B.over) return;
+  if (B.elapsed - sayT < 4) return;         /* 4 秒内不重复说话，避免刷屏 */
+  sayT = B.elapsed;
+  bossSay(TREE_LINES.mid[TREE_MID % TREE_LINES.mid.length]);
+  TREE_MID++;
+}
+
 function sfx(name) {
   switch (name) {
     case 'thunder': noise(0.30, 0.26, 5200, 0, 1); beep(900, 0.22, 'sawtooth', 0.14, 0.05, 180); break;
@@ -1001,7 +1100,11 @@ function newBattle() {
     /* 第二关专属：怒气机制 + 小怪波次（第一关字段闲置） */
     rageT: 20, rageLvl: 0, dmgMul: 1, atkEveryMul: 1, waveT: 6,
     slowT: 0,          /* 寒冰豌豆：机甲减速剩余秒数 */
+    /* 第五关：同学设计的树 —— 凝视目标 + 枝叶攻击计时 */
+    gazeIdx: -1, gazeT: 0, gazeTick: 0, leafCd: 8, branchCd: 0, treeBark: 3, treeBarkT: 0,
+    comboT: 0, comboBy: -1,
     fx: [], floats: [], banner: '', bannerT: 0,
+    sayText: '', sayT: 0,
     stats: {
       start: Date.now(), ms: 0,
       per: heroSet().map(function () { return { right: 0, wrong: 0, cast: 0, skip: 0, shield: 0, group: 0 }; })
@@ -1009,11 +1112,15 @@ function newBattle() {
   };
   for (var i = 0; i < 4; i++) giveQuestion(B.heroes[i]);
   renderPanels();
+  if (isStage5()) {
+    after(0.4, function () { sting(); bossSay(TREE_LINES.enter); });
+    bgmStart();
+  } else bgmStop();
 }
 
 /* 回到设置页：暂停出题与计时，只保留画面预览 */
 function parkBattle() {
-  clearTimers();
+  clearTimers(); bgmStop();
   if (!B) return;
   B.paused = true;
   for (var i = 0; i < 4; i++) { B.heroes[i].q = null; B.heroes[i].locked = true; B.heroes[i].input = ''; }
@@ -1051,6 +1158,8 @@ function checkAnswer(i, val) {
     B.stats.per[i].cast++;
     sfx('right');
     renderPanels();
+    bossSayMid();
+    comboBreak(i);
     castSkill(h);
   } else {                               /* 答错：题目直接刷新 */
     B.stats.per[i].wrong++;
@@ -1059,6 +1168,7 @@ function checkAnswer(i, val) {
     h.wrongT = 0.6;
     h.hitT = 0.4;
     sfx('wrong');
+    if (isStage5()) bossSay(TREE_LINES.mid[1]);
     floatText(heroPt(i).x, heroPt(i).y - 40, '答错了，换一题', '#ff8a6a');
     h.locked = true;                       /* 短暂锁定，防止连点误触 */
     renderPanels();
@@ -1451,6 +1561,7 @@ function castSkill(h) {
 /* ---------- 伤害 / 治疗 ---------- */
 function damageBoss(d, kind) {
   if (!B || B.over) return;
+  d = barkDamage(d);
   B.boss.hp -= d; if (B.boss.hp < 0) B.boss.hp = 0;
   B.boss.hitT = 0.45;
   B.boss.shake = 0.3;
@@ -1485,7 +1596,10 @@ function hurtHero(h, d) {
 /* ---------- Boss 阶段 ---------- */
 function checkPhase() {
   var r = B.boss.hp / B.boss.max;
-  var want = r > 0.66 ? 0 : (r > 0.33 ? 1 : 2);
+  /* 第五关：按学生原案的血量阈值（9000 → 7000 → 3000） */
+  var want = isStage5()
+    ? (B.boss.hp > 7000 ? 0 : (B.boss.hp > 3000 ? 1 : 2))
+    : (r > 0.66 ? 0 : (r > 0.33 ? 1 : 2));
   if (want > B.boss.phase) {
     B.boss.phase = want;
     B.boss.name = PH()[want].name;
@@ -1495,13 +1609,17 @@ function checkPhase() {
     if (PH()[want].bossImmune) {
       /* 二阶段起免疫控制：身上的灼烧 / 冻结一并清掉 */
       B.boss.burn = 0; B.boss.burnT = 0; B.boss.frozen = 0;
-      banner((isStage4() ? '巨蝎王蜕壳！' : (isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！'))) + PH()[want].name + ' 登场：免疫灼烧与冰冻，大招更快了！');
+      banner(isStage5() ? '树越长越大！' + PH()[want].name + ' 登场：' + (want === 1 ? '它开始「凝视」了！' : '枝条抽打！')
+        : ((isStage4() ? '巨蝎王蜕壳！' : (isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！'))) + PH()[want].name + ' 登场：免疫灼烧与冰冻，大招更快了！'));
     } else {
-      banner((isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！')) + PH()[want].name + ' 登场，题目难度提升！');
+      banner(isStage5() ? PH()[want].name + ' 登场，枝叶更密了！'
+        : ((isStage3() ? '章鱼怪暴走！' : (isStage2() ? '机甲升级！' : 'Boss 变身！')) + PH()[want].name + ' 登场，题目难度提升！'));
     }
     /* 阶段变了，大招节奏跟着变快：剩余倒计时不超过新间隔 */
     var mv = meteorEveryOf(want);
     if (B.meteorCd > mv) B.meteorCd = mv;
+    if (isStage5() && want >= 1) after(1.2, treeGazeStart);
+    if (isStage5()) bossSay(['我……是格鲁特。', '我——是格鲁特！', '我——是——格鲁特！！'][want]);
   }
 }
 
@@ -1514,6 +1632,7 @@ function tickBoss(dt) {
   if (bs.immune > 0) { bs.immune -= dt; if (bs.immune < 0) bs.immune = 0; }
   if (bs.stun > 0) { bs.stun -= dt; if (bs.stun < 0) bs.stun = 0; }   /* 连环电弧：短暂麻痹 */
   if (B.slowT > 0) { B.slowT -= dt; if (B.slowT < 0) B.slowT = 0; }   /* 寒冰豌豆：减速 */
+  if (isStage5()) treeGazeTick(dt);    /* 第五关：凝视持续伤害（不禁止按键） */
 
   if (bs.burnT > 0) {                        /* 灼烧：按秒跳伤害 */
     bs.burnT -= dt; bs.burnTick -= dt;
@@ -1562,6 +1681,11 @@ function tickBoss(dt) {
   B.atkCd -= bdt;
   if (B.atkCd <= 0) { B.atkCd = CFG.bossAtkEvery * B.atkEveryMul; normalAttack(); }
 
+  /* 第五关：阶段 2/3 每 14 秒重新凝视一名角色 */
+  if (isStage5() && B.boss.phase >= 1 && !B.meteorWarn) {
+    B.leafCd -= dt;
+    if (B.leafCd <= 0) { B.leafCd = 14; if (B.gazeT <= 0) treeGazeStart(); }
+  }
   /* 三/四关：Boss 定时干扰 1.5 秒（三关只黑屏、四关封一名角色的按键） */
   if (isStage3() || isStage4()) {
     B.disableCd -= bdt;
@@ -1612,13 +1736,103 @@ function normalAttack() {
   var t = alive[ri(0, alive.length - 1)];
   var dmg = Math.round(CFG.bossAtk * ph.atkMul * B.dmgMul * stageAtkMul());   /* 第二关：含怒气 + 关卡攻击系数 */
   B.boss.atkT = 0.65;
-  var atkFx = isStage4() ? 'sting' : (isStage3() ? 'lash' : 'bossatk');
+  var atkFx = isStage5() ? 'leaf' : (isStage4() ? 'sting' : (isStage3() ? 'lash' : 'bossatk'));
   B.fx.push({ type: atkFx, t: 0, dur: 0.8, from: { x: BOSS_X - 120, y: BOSS_Y }, to: heroPt(t.i) });
   after(0.42, function () { sfx('hit'); hurtHero(t, dmg); });
 }
 
+/* ===== 第五关专属：学生设计的三阶段攻击 =====
+   阶段1 单片飞叶随机攻击 / 阶段2 飞叶群攻 + 凝视点名 /
+   阶段3 枝条群体抽打 + 缠住最弱者（只做视觉，绝不禁止按键） */
+/* 第五关核心：树皮护甲 + 双人组合技破防
+   普通技能只能削树皮（伤害减半）；两名角色 3 秒内先后答对 → 组合技直接破甲 */
+function barkDamage(d) {
+  if (!isStage5() || !B || B.treeBark <= 0) return d;
+  return Math.max(1, Math.round(d * 0.5));
+}
+function comboBreak(i) {
+  if (!B || B.over || !isStage5()) return;
+  var now = B.elapsed;
+  if (B.comboBy >= 0 && B.comboBy !== i && now - B.comboT <= 3) {
+    B.comboBy = -1;
+    if (B.treeBark > 0) B.treeBark--;
+    var dmg = Math.round(CFG.dmgThunder * 0.8 * growMul());
+    B.boss.hp -= dmg; if (B.boss.hp < 0) B.boss.hp = 0;
+    B.fx.push({ type: 'combo', t: 0, dur: 0.9, x: BOSS_X - 60, y: BOSS_Y });
+    banner('✦ 组合技 · 双星破甲！树皮剩 ' + B.treeBark + ' 层');
+    floatText(BOSS_X - 60, BOSS_Y - 190, '破 甲 ！', '#ffe08a');
+    sfx('thunder'); bossSay('呃……你们两个，一起上？');
+    checkPhase();
+    return;
+  }
+  B.comboBy = i; B.comboT = now;
+  floatText(heroPt(i).x, heroPt(i).y - 150, '共鸣就绪 · 等搭档', '#ffe08a');
+}
+
+function treeGazeStart() {
+  if (!B || B.over) return;
+  var alive = aliveHeroes(); if (!alive.length) return;
+  var t = alive[ri(0, alive.length - 1)];
+  B.gazeIdx = t.i; B.gazeT = 6; B.gazeTick = 2;
+  B.fx.push({ type: 'gaze', t: 0, dur: 6, x: heroPt(t.i).x, y: heroPt(t.i).y });
+  bossSay('凝视 —— 被我看见的人，跑不掉。');
+  floatText(heroPt(t.i).x, heroPt(t.i).y - 120, '被凝视！', '#ffe27a');
+}
+function treeGazeTick(dt) {
+  if (B.gazeT <= 0) return;
+  B.gazeT -= dt; B.gazeTick -= dt;
+  if (B.gazeT <= 0) { B.gazeIdx = -1; return; }
+  if (B.gazeTick <= 0) {
+    B.gazeTick = 2;
+    var h = B.heroes[B.gazeIdx];
+    if (h && h.alive) { hurtHero(h, Math.max(3, Math.round(CFG.bossAtk * 0.18))); }
+  }
+}
+function treeMeteor() {
+  var ph = PH()[B.boss.phase], phase = B.boss.phase;
+  B.meteorWarn = true;
+  var names = ['一片飞叶？！', '飞叶风暴！', '枝——条——抽——打！'];
+  banner(names[phase] + ' 大家小心！');
+  sfx('warn'); B.fx.push({ type: 'warn', t: 0, dur: 1.5 });
+  if (phase >= 1) {
+    /* 阶段2 起：飞叶群攻的预警从四周卷来 */
+    B.fx.push({ type: 'leafStorm', t: 0, dur: 2.8 });
+  }
+  bossSay(['看清楚，只是一片叶子。', '无数片叶子，就是一场风暴。', '我——是——格鲁特！！'][phase]);
+  after(1.5, function () {
+    B.meteorWarn = false; if (B.over) return;
+    sfx('meteor');
+    var alive = aliveHeroes();
+    if (phase === 0) {
+      /* 阶段1：按学生原案，一片飞叶随机攻击一个人 */
+      var t = alive[ri(0, alive.length - 1)]; if (!t) return;
+      B.fx.push({ type: 'meteorLeaf', t: 0, dur: 0.9,
+        x: heroPt(t.i).x + 20, y: heroPt(t.i).y });
+      after(0.45, function () { hurtHero(t, Math.round(CFG.meteorDmg * ph.meteorMul * stageAtkMul())); });
+    } else {
+      /* 阶段2/3：群攻，每人依次受击 */
+      var dmg = Math.round(CFG.meteorDmg * ph.meteorMul * stageAtkMul() * (phase === 2 ? 1.25 : 1));
+      alive.forEach(function (h, k) {
+        B.fx.push({ type: phase === 2 ? 'branchHit' : 'meteorLeaf', t: 0, dur: 0.9,
+          x: heroPt(h.i).x + 20, y: heroPt(h.i).y, delay: k * 0.13 });
+        after(0.6 + k * 0.13, function () { hurtHero(h, dmg); });
+      });
+      /* 阶段3 额外：缠住最弱者（视觉包围，题目仍可答） */
+      if (phase === 2) {
+        var weak = weakestHero();
+        if (weak) {
+          B.fx.push({ type: 'vineHold', t: 0, dur: 1.5,
+            x: heroPt(weak.i).x, y: heroPt(weak.i).y });
+          floatText(heroPt(weak.i).x, heroPt(weak.i).y - 150, '被枝条缠住！仍可答题', '#ffd98a');
+        }
+      }
+    }
+  });
+}
+
 function meteorAttack() {
   if (!B || B.over) return;
+  if (isStage5()) { treeMeteor(); return; }
   /* 第四关：陷坑吞掉这一次大招（倒计时在 tickBoss 里已照常重置） */
   if (isStage4() && B.pitStacks > 0 && !B.pitGuard) {
     B.pitStacks--;
@@ -1697,13 +1911,18 @@ function win() {
   saveProg(pr);
   B.stats.ms = Date.now() - B.stats.start;
   B.fx.push({ type: 'winburst', t: 0, dur: 2.0 });
-  sfx('win'); after(1.2, showResult);
+  if (isStage5()) {
+    B.boss.phase = 0; B.boss.morph = 1.3;
+    bossSay(TREE_LINES.wake);
+    B.fx.push({ type: 'awaken', t: 0, dur: 2.2, x: BOSS_X, y: BOSS_Y });
+  }
+  sfx('win'); bgmStop(); after(isStage5() ? 2.2 : 1.2, showResult);
 }
 function lose() {
   if (B.over) return;
   B.over = true; B.win = false;
   B.stats.ms = Date.now() - B.stats.start;
-  sfx('lose'); after(1.0, showResult);
+  sfx('lose'); bgmStop(); after(1.0, showResult);
 }
 
 /* ---------- 飘字 / 横幅 ---------- */
@@ -1862,7 +2081,61 @@ function drawDesertBg(c) {
 }
 
 /* ---------- 背景 ---------- */
+/* 第五关背景：被树根撑破的训练广场（学生手绘主题） */
+function drawTreeBg(c) {
+  var ph = B.boss.phase;
+  /* 天空：从灰紫到暗绿，随阶段变暗 */
+  var top = ['#3b3550', '#2f3a3c', '#252b25'][ph];
+  var bot = ['#6b6250', '#4a5540', '#37402e'][ph];
+  var g = c.createLinearGradient(0, 0, 0, AH);
+  g.addColorStop(0, top); g.addColorStop(1, bot);
+  c.fillStyle = g; c.fillRect(0, 0, W, AH);
+
+  /* 远处碎裂的训练器材剪影 */
+  c.fillStyle = 'rgba(20,18,28,.45)';
+  for (var i = 0; i < 6; i++) {
+    var x = 120 + i * 310;
+    c.fillRect(x, 300 + (i % 2) * 30, 60, 120);
+    c.fillRect(x - 18, 292 + (i % 2) * 30, 96, 14);
+  }
+  /* 地面裂缝 */
+  c.strokeStyle = 'rgba(24,26,18,.55)'; c.lineWidth = 5;
+  for (var k = 0; k < 7; k++) {
+    var sx = k * 290 + 40;
+    c.beginPath(); c.moveTo(sx, AH); c.lineTo(sx + 40, AH - 90); c.lineTo(sx + 10, AH - 170); c.stroke();
+  }
+  /* 地上树根（随阶段增多） */
+  c.strokeStyle = ph === 0 ? '#4a5b3a' : (ph === 1 ? '#3d4a2c' : '#2e3622');
+  c.lineWidth = 18; c.lineCap = 'round';
+  var roots = 5 + ph * 4;
+  for (var r = 0; r < roots; r++) {
+    var rx = 60 + r * 175, ry = AH - 20;
+    c.beginPath(); c.moveTo(BOSS_X, BOSS_Y + 150);
+    c.quadraticCurveTo(rx + 80, ry - 120, rx, ry); c.stroke();
+  }
+  /* 飘落的叶子（动态元素，只画 12 片） */
+  c.fillStyle = ph === 2 ? 'rgba(190,120,60,.55)' : 'rgba(150,200,110,.5)';
+  for (var l = 0; l < 12; l++) {
+    var t = (B.boss.bob * (0.35 + (l % 3) * 0.12) + l * 0.31) % 1;
+    var lx = (l * 173 + Math.sin(t * 6 + l) * 40) % W;
+    var ly = t * AH;
+    c.beginPath(); c.ellipse(lx, ly, 9, 4, t * 5 + l, 0, 6.2832); c.fill();
+  }
+  /* 阶段 2+：背景长出眼睛（凝视的视觉提示） */
+  if (ph >= 1) {
+    var eg = 0.35 + 0.25 * Math.sin(B.boss.bob * 2);
+    c.fillStyle = 'rgba(255,226,122,' + eg + ')';
+    for (var e = 0; e < 3; e++) {
+      var ex = 300 + e * 520, ey = 150 + (e % 2) * 80;
+      c.beginPath(); c.ellipse(ex, ey, 16, 9, 0, 0, 6.2832); c.fill();
+      c.fillStyle = '#2a2a1e'; c.beginPath(); c.arc(ex, ey, 4, 0, 6.2832); c.fill();
+      c.fillStyle = 'rgba(255,226,122,' + eg + ')';
+    }
+  }
+}
+
 function drawBg(c) {
+  if (isStage5()) { drawTreeBg(c); return; }
   if (isStage4()) { drawDesertBg(c); return; }
   if (isStage3()) { drawSeaBg(c); return; }
   if (isStage2()) {                            /* 第二关：白天的植物草坪 */
@@ -2749,6 +3022,58 @@ function drawZombot(c, ph, R) {
 }
 
 /* ---------- Boss ---------- */
+/* 第五关 Boss：学生手绘的树 —— 树干 + 乱线树冠 + 发光的眼睛 */
+function drawTreeBoss(c, ph, R) {
+  var phase = B.boss.phase;
+  /* 树根底座 */
+  c.fillStyle = ph.dark;
+  c.beginPath(); c.ellipse(0, R * 0.92, R * 1.25, R * 0.26, 0, 0, 6.2832); c.fill();
+  /* 树干（越往后越粗） */
+  c.fillStyle = ph.body;
+  c.beginPath();
+  c.moveTo(-R * 0.38, R * 0.95); c.lineTo(-R * 0.30, -R * 0.35);
+  c.lineTo(R * 0.30, -R * 0.35); c.lineTo(R * 0.38, R * 0.95);
+  c.closePath(); c.fill();
+  /* 树皮纹路 */
+  c.strokeStyle = ph.dark; c.lineWidth = 4;
+  for (var v = -1; v <= 1; v++) {
+    c.beginPath(); c.moveTo(v * 26, R * 0.8); c.quadraticCurveTo(v * 32 + 8, 0, v * 20, -R * 0.3); c.stroke();
+  }
+  /* 枝条（阶段越多越多） */
+  c.strokeStyle = ph.dark; c.lineWidth = 14; c.lineCap = 'round';
+  var arms = 2 + phase * 2;
+  for (var a = 0; a < arms; a++) {
+    var dir = a % 2 ? 1 : -1, lift = -R * (0.5 + Math.floor(a / 2) * 0.35);
+    c.beginPath(); c.moveTo(dir * 18, -R * 0.2);
+    c.quadraticCurveTo(dir * R * 0.9, lift - 30, dir * R * 1.2, lift); c.stroke();
+  }
+  /* 树冠：几团乱线圆环，呼应学生的手绘笔触 */
+  c.fillStyle = ph.body;
+  var puffs = [[0, -R * 0.75, 68], [-52, -R * 0.6, 50], [52, -R * 0.62, 52],
+               [-28, -R * 1.05, 44], [34, -R * 1.02, 46]];
+  for (var p = 0; p < puffs.length; p++) {
+    c.beginPath(); c.arc(puffs[p][0], puffs[p][1], puffs[p][2] * (1 + phase * 0.12), 0, 6.2832); c.fill();
+  }
+  c.strokeStyle = ph.horn; c.lineWidth = 3;
+  for (var q = 0; q < puffs.length; q++) {
+    c.beginPath(); c.arc(puffs[q][0], puffs[q][1], puffs[q][2] * (1 + phase * 0.12) * 0.78,
+      q, q + 4.6); c.stroke();
+  }
+  /* 眼睛：两团发光树洞 */
+  var eyeGlow = 0.6 + 0.4 * Math.sin(B.boss.bob * 2.2);
+  c.fillStyle = ph.eye;
+  c.globalAlpha = eyeGlow;
+  c.beginPath(); c.ellipse(-26, -R * 0.42, 17, 12, 0, 0, 6.2832); c.fill();
+  c.beginPath(); c.ellipse(26, -R * 0.42, 17, 12, 0, 0, 6.2832); c.fill();
+  c.globalAlpha = 1;
+  c.fillStyle = '#202018';
+  c.beginPath(); c.arc(-24, -R * 0.42, 6, 0, 6.2832); c.fill();
+  c.beginPath(); c.arc(28, -R * 0.42, 6, 0, 6.2832); c.fill();
+  /* 嘴：学生画的树是一条弧线 */
+  c.strokeStyle = '#202018'; c.lineWidth = 5;
+  c.beginPath(); c.arc(0, -R * 0.18, 22, 0.25, Math.PI - 0.25); c.stroke();
+}
+
 function drawBoss(c) {
   var ph = PH()[B.boss.phase];
   var mp = B.boss.morph > 0 ? Math.sin((1 - B.boss.morph / 1.3) * Math.PI) : 0;
@@ -2771,7 +3096,8 @@ function drawBoss(c) {
   }
 
   var R = 130;
-  if (isStage2()) { drawZombot(c, ph, R); }
+  if (isStage5()) { drawTreeBoss(c, ph, R); }
+  else if (isStage2()) { drawZombot(c, ph, R); }
   else if (isStage3()) { drawOctopus(c, ph, R); }
   else if (isStage4()) { drawScorpion(c, ph, R); }
   else {
@@ -3059,6 +3385,100 @@ function drawFx(c) {
         c.globalAlpha = (1 - p) * 2; c.strokeStyle = '#8e6ad0'; c.lineWidth = 8;
         c.beginPath(); c.arc(f.x, f.y, 30 + (p - 0.5) * 300, 0, 6.2832); c.stroke();
       }
+    } else if (f.type === 'bubble') {
+      /* Boss 台词气泡：画在头顶，不遮挡任何题目 */
+      c.globalAlpha = Math.min(1, f.t * 6) * Math.min(1, (f.dur - f.t) * 2.5);
+      c.font = '700 22px "Microsoft YaHei",sans-serif';
+      var tw = c.measureText(f.text).width + 34;
+      var bx = Math.max(20, Math.min(W - tw - 20, f.x - tw / 2)), by = f.y - 46;
+      c.fillStyle = 'rgba(28,24,34,.88)'; c.strokeStyle = '#8fd07a'; c.lineWidth = 2;
+      c.beginPath(); c.roundRect(bx, by, tw, 46, 12); c.fill(); c.stroke();
+      c.fillStyle = '#dff5c8'; c.textAlign = 'left'; c.textBaseline = 'middle';
+      c.fillText(f.text, bx + 17, by + 23);
+    } else if (f.type === 'awaken') {
+      /* 唤醒：暗色褪去、嫩绿光环扩散 */
+      c.globalAlpha = 1 - p;
+      c.strokeStyle = '#a8e57a'; c.lineWidth = 8;
+      c.beginPath(); c.arc(f.x, f.y, 60 + p * 260, 0, 6.2832); c.stroke();
+      c.fillStyle = 'rgba(168,229,122,' + (0.35 * (1 - p)) + ')';
+      c.beginPath(); c.arc(f.x, f.y, 40 + p * 120, 0, 6.2832); c.fill();
+    } else if (f.type === 'combo') {
+      c.globalAlpha = 1 - p;
+      c.strokeStyle = '#ffe08a'; c.lineWidth = 9;
+      for (var ci = 0; ci < 2; ci++) {
+        c.beginPath(); c.arc(f.x, f.y, 40 + p * 170 + ci * 30, 0, 6.2832); c.stroke();
+      }
+      c.fillStyle = 'rgba(255,224,138,.5)';
+      c.beginPath(); c.arc(f.x, f.y, 30 + p * 60, 0, 6.2832); c.fill();
+    } else if (f.type === 'leaf') {
+      /* 阶段1：单片飞叶旋转飞向目标 */
+      c.globalAlpha = 1;
+      var lp = Math.min(1, p / 0.55);
+      var lx = lerp(f.from.x, f.to.x, lp), ly = lerp(f.from.y, f.to.y, lp) - Math.sin(lp * Math.PI) * 70;
+      c.save(); c.translate(lx, ly); c.rotate(p * 14);
+      c.fillStyle = '#9ed36a';
+      c.beginPath(); c.ellipse(0, 0, 18, 7, 0, 0, 6.2832); c.fill();
+      c.strokeStyle = '#5a8a3c'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(-16, 0); c.lineTo(16, 0); c.stroke();
+      c.restore();
+    } else if (f.type === 'leafStorm') {
+      /* 阶段2：飞叶群攻预警，四片大叶子从四周卷来 */
+      c.globalAlpha = Math.min(1, p * 2) * (1 - Math.max(0, (p - 0.8) / 0.2));
+      for (var li = 0; li < 14; li++) {
+        var ang = li * 0.9 + p * 5;
+        var rad = 380 - p * 170;
+        var px = BOSS_X + Math.cos(ang) * rad, py = BOSS_Y + Math.sin(ang) * rad * 0.6;
+        c.save(); c.translate(px, py); c.rotate(ang * 2);
+        c.fillStyle = li % 2 ? '#8fc45e' : '#b6d97a';
+        c.beginPath(); c.ellipse(0, 0, 22, 8, 0, 0, 6.2832); c.fill();
+        c.restore();
+      }
+    } else if (f.type === 'meteorLeaf') {
+      /* 飞叶命中：一片大叶子砸在卡片上 */
+      c.globalAlpha = 1 - Math.max(0, (p - 0.6) / 0.4);
+      c.save(); c.translate(f.x, f.y); c.rotate((1 - p) * 12);
+      c.fillStyle = '#a8d96e';
+      c.beginPath(); c.ellipse(0, 0, 32, 12, 0, 0, 6.2832); c.fill();
+      c.strokeStyle = '#5a8a3c'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(-28, 0); c.lineTo(28, 0); c.stroke();
+      c.restore();
+      if (p > 0.55) {
+        c.globalAlpha = (1 - p) * 2;
+        c.strokeStyle = '#c8f090'; c.lineWidth = 4;
+        c.beginPath(); c.arc(f.x, f.y, 20 + (p - 0.55) * 90, 0, 6.2832); c.stroke();
+      }
+    } else if (f.type === 'gaze') {
+      /* 凝视：卡片上方一只缓慢眨眼的大眼睛，持续 6 秒 */
+      c.globalAlpha = p < 0.1 ? p * 10 : (p > 0.9 ? (1 - p) * 10 : 1);
+      var gy = f.y - 105;
+      c.fillStyle = '#ffe27a';
+      c.beginPath(); c.ellipse(f.x, gy, 30, 17, 0, 0, 6.2832); c.fill();
+      c.fillStyle = '#2a2a1e';
+      var blink = (Math.sin(p * 30) > 0.96) ? 1 : 8;
+      c.beginPath(); c.ellipse(f.x, gy, blink, blink, 0, 0, 6.2832); c.fill();
+    } else if (f.type === 'branchHit') {
+      /* 阶段3：枝条抽打，几根带叶的枝条扫过卡片 */
+      c.globalAlpha = 1 - Math.max(0, (p - 0.7) / 0.3);
+      for (var bi = 0; bi < 3; bi++) {
+        var off = (bi - 1) * 26;
+        c.strokeStyle = bi % 2 ? '#6b5a3c' : '#8a7148'; c.lineWidth = 11; c.lineCap = 'round';
+        c.beginPath();
+        c.moveTo(f.x - 150 + off, f.y - 80 + off);
+        c.quadraticCurveTo(f.x + off, f.y + off, f.x + 90 + off, f.y + 50 + off);
+        c.stroke();
+        c.fillStyle = '#9ed36a';
+        c.beginPath(); c.ellipse(f.x + 80 + off, f.y + 44 + off, 15, 6, 0.5, 0, 6.2832); c.fill();
+      }
+    } else if (f.type === 'vineHold') {
+      /* 缠住最弱者：藤蔓围住卡片 1.5 秒，题目仍完全可见 */
+      c.globalAlpha = p < 0.15 ? p * 7 : (p > 0.85 ? (1 - p) * 7 : 1);
+      c.strokeStyle = '#6f9a4a'; c.lineWidth = 9; c.lineCap = 'round';
+      for (var vi = 0; vi < 4; vi++) {
+        var a0 = vi * Math.PI / 2 + p * 1.2;
+        c.beginPath();
+        c.arc(f.x, f.y, 125, a0, a0 + 1.1);
+        c.stroke();
+      }
     } else if (f.type === 'bossatk') {
       var bx2 = lerp(f.from.x, f.to.x, p), by2 = lerp(f.from.y, f.to.y, p);
       c.globalAlpha = 1;
@@ -3297,7 +3717,10 @@ var STAGES = [
     outro: '章鱼怪吐出了又一片星核碎片！星图指向一片无垠沙海 —— 遗迹里的巨蝎王，正守着下一片碎片。' },
   { id: 4, name: '第四关 · 流沙遗迹',       desc: '英语单词 · 沙海巨蝎王',       subj: 'english', done: true,  hpMul: 2.5,  atkMul: 1.5,
     intro: '巨蝎王守着又一片星核碎片 —— 答对英语单词，别让沙暴把路埋了！',
-    outro: '又一片星核碎片归位，星图更亮了一块 —— 新的坐标正在浮现，旅程还长着呢。' }
+    outro: '又一片星核碎片归位，星图更亮了一块 —— 新的坐标正在浮现，旅程还长着呢。' },
+  { id: 5, name: '第五关 · 星核暗影', desc: '安全知识 · 同学设计的树', subj: 'safe', done: true, hpMul: 3.75, atkMul: 1.8,
+    intro: '魔君最后一击裂出十一枚影之碎片，第一枚钻进了一棵树 —— 它疯长成密林，认不出你们了。用学过的知识，把它叫醒！',
+    outro: '树叶由暗转绿，大树缩回一棵小树苗 —— 它轻轻晃了晃枝头：「我是格鲁特。」本关由三（×）班同学设计。' }
 ];
 function stageOf(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return STAGES[i]; return STAGES[0]; }
 function stageHpMul() { return stageOf(CFG.stage).hpMul || 1; }
@@ -3412,6 +3835,15 @@ function buildSetup() {
   /* 开始按钮状态：星尘不足 或 选中关卡锁定 → 置灰 */
   updateStartBtn();
   mkOpts('optLevel', LEVELS, CFG.level, function (id) { CFG.level = id; });
+  mkOpts('optVoiceOn', [
+    { id: 1, name: '开', desc: '语音 + 音乐' },
+    { id: 0, name: '关', desc: '只显示字幕' }
+  ], 1, function (id) {
+    voiceOn = !!id; bgmOn = !!id;
+    if (!voiceOn && window.speechSynthesis) window.speechSynthesis.cancel();
+    if (!bgmOn) bgmStop();
+    else if (B && !B.paused && !B.over && isStage5()) bgmStart();
+  });
   buildUnlockOpts();
   renderGrowth();
   mkFields('fldBoss', FIELDS.fldBoss);
