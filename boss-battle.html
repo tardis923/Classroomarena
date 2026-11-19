@@ -3519,8 +3519,33 @@ function drawZombot(c, ph, R) {
 
 /* ---------- Boss ---------- */
 /* 第五关 Boss：学生手绘的树 —— 树干 + 乱线树冠 + 发光的眼睛 */
+/* ===== 图片资源：豆包生成的树妖三阶段（透明底） ===== */
+var TREE_IMGS = {}, TREE_IMG_TRIED = false;
+function loadTreeImages() {
+  if (TREE_IMG_TRIED) return;
+  TREE_IMG_TRIED = true;
+  var files = ['小树形态_透明底.png', '大树形态_透明底.png', '树妖形态_透明底.png'];
+  files.forEach(function (f, i) {
+    var im = new Image();
+    im.onload = function () { TREE_IMGS[i] = im; };
+    im.src = 'images/' + encodeURIComponent(f);
+  });
+}
+loadTreeImages();
+
 function drawTreeBoss(c, ph, R) {
   var phase = B.boss.phase;
+  var img = TREE_IMGS[phase];
+  if (img && img.complete && img.naturalWidth) {
+    /* 豆包图：按阶段切换；体型随阶段放大，唤醒时变回小树 */
+    var size = [1.5, 1.9, 2.5][phase] * R;
+    var awake = B.win ? 0 : phase;
+    if (awake !== phase) size = 1.5 * R;
+    c.globalAlpha = 1;
+    c.drawImage(img, -size / 2, -size / 2 + 20, size, size);
+    return;
+  }
+  /* 图片未加载：矢量兜底 */
   /* 树根底座 */
   c.fillStyle = ph.dark;
   c.beginPath(); c.ellipse(0, R * 0.92, R * 1.25, R * 0.26, 0, 0, 6.2832); c.fill();
