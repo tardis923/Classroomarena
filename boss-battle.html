@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<script>window.ARENA_BUILD="2026-11-19b";</script>
+<script>window.ARENA_BUILD="2026-11-20a";</script>
 <title>团队合作知识闯关 · 进阶版</title>
 <style>
 /* ================= 基础 ================= */
@@ -1703,8 +1703,22 @@ function damageBoss(d, kind) {
   checkPhase();
   if (B.boss.hp <= 0) { after(0.5, win); }
 }
+/* ===== 星核护体：英雄篇专属减伤，抵消后段关卡的攻击力增长 =====
+   第5-10关 15% / 11-14关 20% / 15-17关 25%；前四关不受影响 */
+function shieldPct() {
+  if (isStage5()) return 15;
+  if (!isHeroStage()) return 0;
+  var id = CFG.stage;
+  return id <= 10 ? 15 : (id <= 14 ? 20 : 25);
+}
+function heroDamage(d) {
+  var pct = shieldPct();
+  return pct ? Math.max(1, Math.round(d * (100 - pct) / 100)) : d;
+}
+
 function hurtHero(h, d) {
   if (!h.alive || B.over) return;
+  d = heroDamage(d);                  /* 星核护体：先减伤，再扣护盾/血量 */
   var p = heroPt(h.i), abs = 0;
   if (h.shield > 0) {                        /* 有护盾先扣护盾 */
     abs = Math.min(h.shield, d);
@@ -2725,8 +2739,12 @@ function drawTopBar(c) {
     txt(c, 'P' + (i + 1), px + i * 46 + 19, 38, 19, on ? '#241a3d' : '#8d84a8', 'center');
   }
 
-  /* 状态标签：免控 / 灼烧 / 冻结 */
+  /* 状态标签：星核护体 / 免控 / 灼烧 / 冻结 */
   var sx = 1520;
+  if (shieldPct() > 0) {
+    c.fillStyle = '#2e6a5e'; rr(c, sx, 18, 116, 32, 8); c.fill();
+    txt(c, '护体 -' + shieldPct() + '%', sx + 58, 34, 18, '#a8f0d8', 'center'); sx += 124;
+  }
   if (PH()[bs.phase].bossImmune) {
     c.fillStyle = '#7a5f1c'; rr(c, sx, 18, 92, 32, 8); c.fill();
     txt(c, '免控', sx + 46, 34, 19, '#ffe08a', 'center'); sx += 100;
