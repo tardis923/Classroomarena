@@ -1268,6 +1268,7 @@ function newBattle() {
     /* 第五关：同学设计的树 —— 凝视目标 + 枝叶攻击计时 */
     gazeIdx: -1, gazeT: 0, gazeTick: 0, leafCd: 8, branchCd: 0, treeBark: 3, treeBarkT: 0,
     comboT: 0, comboBy: -1,
+    ultPoseT: 0,        /* 大招姿势图显示剩余秒数 */
     fx: [], floats: [], banner: '', bannerT: 0,
     sayText: '', sayT: 0,
     stats: {
@@ -1823,6 +1824,7 @@ function tickBoss(dt) {
   if (bs.stun > 0) { bs.stun -= dt; if (bs.stun < 0) bs.stun = 0; }   /* 连环电弧：短暂麻痹 */
   if (B.slowT > 0) { B.slowT -= dt; if (B.slowT < 0) B.slowT = 0; }   /* 寒冰豌豆：减速 */
   if (isStage5() || isHeroStage()) treeGazeTick(dt);    /* 凝视持续伤害（不禁止按键） */
+  if (B.ultPoseT > 0) B.ultPoseT = Math.max(0, B.ultPoseT - dt);   /* 大招姿势图计时 */
 
   if (bs.burnT > 0) {                        /* 灼烧：按秒跳伤害 */
     bs.burnT -= dt; bs.burnTick -= dt;
@@ -2016,6 +2018,7 @@ function heroMeteor() {
   after(1.5, function () {
     B.meteorWarn = false; if (B.over) return;
     sfx('meteor');
+    B.ultPoseT = 0.75;    /* 切到大招姿势图，0.75 秒后自动恢复 */
     var alive = aliveHeroes();
     var dmg = Math.round(CFG.meteorDmg * ph.meteorMul * stageAtkMul());
     /* 单体大招（凝视/狙击类）只打一人，其余群攻 */
@@ -3618,7 +3621,7 @@ function loadHeroImages() {
 loadHeroImages();
 
 /* 豆包生成的 12 张场景背景 + 三套星核小队战衣 */
-var HERO_BGS = {}, TEAM_IMGS = {}, ASSET_TRIED = false;
+var HERO_BGS = {}, TEAM_IMGS = {}, ULT_IMGS = {}, ASSET_TRIED = false;
 function loadScenery() {
   if (ASSET_TRIED) return;
   ASSET_TRIED = true;
@@ -3629,6 +3632,12 @@ function loadScenery() {
       im.src = 'images/bg' + id + '.png';
     })(i);
   }
+  /* 大招姿势图（豆包生成的攻击瞬间） */
+  [12,17].forEach(function (id) {
+    var im = new Image();
+    im.onload = function () { ULT_IMGS[id] = im; };
+    im.src = 'images/ult' + id + '_t.png';
+  });
   ['team0','team1','team2'].forEach(function (name, i) {
     var im = new Image();
     im.onload = function () { TEAM_IMGS[i] = im; };
@@ -4105,7 +4114,7 @@ function drawFx(c) {
       c.globalAlpha = 1 - Math.max(0,(p-0.7)/0.3);
       var hc = f.color || '#ffd88a';
       if (f.ult === 'snap') {
-        c.fillStyle = 'rgba(255,255,255,' + (1-p) + ')'; c.fillRect(0,0,W,AH);
+        c.fillStyle = 'rgba(255,240,210,' + ((1-p)*0.55) + ')'; c.fillRect(0,0,W,AH);
       } else if (f.ult === 'quake' || f.ult === 'pounce') {
         c.strokeStyle = hc; c.lineWidth = 9;
         c.beginPath(); c.arc(f.x, f.y, 20 + p*150, 0, 6.2832); c.stroke();
@@ -4378,6 +4387,8 @@ function render() {
   if (isHeroStage() || isStage5()) {
     seg('bossImg', function () {
       var im = isHeroStage() ? HERO_IMGS[CFG.stage] : TREE_IMGS[B.boss.phase];
+      /* 大招姿势图临时替换立绘 */
+      if (isHeroStage() && B.ultPoseT > 0 && ULT_IMGS[CFG.stage]) im = ULT_IMGS[CFG.stage];
       if (!im || !im.complete || !im.naturalWidth) return;
       var ph0 = B.boss.phase;
       /* 缩小尺寸：Boss 顶部不越过 y=95，避免遮住血条/倒计时 */
