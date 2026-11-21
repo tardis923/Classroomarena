@@ -54,6 +54,10 @@ body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; touch-action: 
 .pQ.small { font-size: 26px; line-height: 1.2; padding: 0 8px; text-align: center; }
 .pQ.opt   { height: 72px; font-size: 24px; line-height: 1.25; padding: 4px 10px; text-align: center; }
 .pQ.hint  { color: #ff8a6a; }
+/* 长题干（应用题/长句四选一）：自动降字号、加高容器，避免溢出 */
+.pQ.long { font-size: 22px; line-height: 1.25; height: 78px; padding: 4px 10px; text-align: center; letter-spacing: 0; }
+.pQ.opt.long { font-size: 20px; height: 84px; }
+.pQ.long .qline { display: block; max-height: 74px; overflow: hidden; }
 
 .pAns { height: 38px; display: flex; align-items: center; justify-content: center;
         font-size: 28px; font-weight: 700; color: #ffe27a;
@@ -4966,11 +4970,15 @@ function panelHTML(i) {
     s += '<div class="pAns cmp">' + (h.input === '' ? '?' : (CMP_TXT[h.input] || '?')) + '</div>';
     s += '<div class="pKeys cmpkeys">' + cmpKeysHTML(i) + '</div>';
   } else if (q.mode === 'num') {
-    s += '<div class="pQ' + (bad ? ' hint' : '') + '">' + esc(bad ? '答错了，再试一次' : q.text) + '</div>';
+    var longQ = !bad && q.text.length > 14;
+    s += '<div class="pQ' + (longQ ? ' long' : '') + (bad ? ' hint' : '') + '"><span class="qline">' +
+      esc(bad ? '答错了，再试一次' : q.text) + '</span></div>';
     s += '<div class="pAns">' + (h.input === '' ? '?' : esc(h.input)) + '</div>';
     s += '<div class="pKeys">' + keysHTML(i) + '</div>';
   } else {
-    s += '<div class="pQ opt' + (bad ? ' hint' : '') + '">' + esc(bad ? '答错了，再试一次' : q.text) + '</div>';
+    var longOpt = !bad && q.text.length > 22;
+    s += '<div class="pQ opt' + (longOpt ? ' long' : '') + (bad ? ' hint' : '') + '"><span class="qline">' +
+      esc(bad ? '答错了，再试一次' : q.text) + '</span></div>';
     s += '<div class="pOpts">';
     q.opts.forEach(function (o, k) {
       s += '<button class="obtn" data-i="' + i + '" data-o="' + k + '">' +
