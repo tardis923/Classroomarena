@@ -306,8 +306,8 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
     <div id="setup" class="card">
       <div class="cardHead">
         <div id="storyLine" class="storyLine"></div>
-        <h1>团队合作知识闯关 · 第一关</h1>
-        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。第一关用安全知识题（四选一），第二关的数学口算难度可在设置页调整。</p>
+        <h1>团队合作知识闯关 · 第1关</h1>
+        <p class="sub">四名魔法师各答各的题，随时出手（自由攻击），各带专属技能，合力打倒三阶段变身的大魔王。答对才能释放技能，答错会换一题。第1关用安全知识题（四选一），第2关的数学口算难度可在设置页调整。</p>
       </div>
       <div class="cardBody">
       <div class="setRow">
@@ -363,7 +363,7 @@ body.adminOnly #overlay { background: transparent !important; backdrop-filter: n
         <div class="setRow">
           <div class="setLabel">关卡开放（关掉后首页显示「敬请期待」）</div>
           <div class="opts" id="optStageOn"></div>
-          <div class="tip" style="text-align:left;margin:6px 0 0">老师可单独关闭某一关：该关在首页星图和选关页都显示「敬请期待」，学生无法进入；随时可重新打开。第一关不建议关闭。设置会存到本机浏览器，并同步给首页。</div>
+          <div class="tip" style="text-align:left;margin:6px 0 0">老师可单独关闭某一关：该关在首页星图和选关页都显示「敬请期待」，学生无法进入；随时可重新打开。第1关不建议关闭。设置会存到本机浏览器，并同步给首页。</div>
         </div>
 
         <div class="setRow">
@@ -4460,19 +4460,19 @@ var LEVELS = [
    故事是开放式的「知识星图」：碎片散落各界，每点亮一块就指出下一界坐标，
    没有「最后一片」，随时可以往数组末尾追加新的一界。 */
 var STAGES = [
-  { id: 1, name: '第一关 · 魔法师大战魔王', desc: '安全知识 · 三阶段变身大魔王', subj: 'safe',    done: true,  hpMul: 1,    atkMul: 1,
+  { id: 1, name: '第1关 · 魔法师大战魔王', desc: '安全知识 · 三阶段变身大魔王', subj: 'safe',    done: true,  hpMul: 1,    atkMul: 1,
     intro: '森林的咒语全失灵了 —— 答对安全知识题，把魔君的影子打回去！',
     outro: '第一片星核碎片归位！星图亮起一块，指向一片长满杂草的草坪……那里有个开机甲的博士。' },
-  { id: 2, name: '第二关 · 植物守卫战',     desc: '数学口算 · 僵尸博士开机甲来袭', subj: 'math',    done: true,  hpMul: 1.5,  atkMul: 1.2,
+  { id: 2, name: '第2关 · 植物守卫战',     desc: '数学口算 · 僵尸博士开机甲来袭', subj: 'math',    done: true,  hpMul: 1.5,  atkMul: 1.2,
     intro: '星核把四个人变成了植物 —— 种好坚果墙，连喷豌豆，拆掉博士的机甲！',
     outro: '又一片星核碎片归位！星图指向深海：珊瑚碑林的字词被一只章鱼怪搅乱了……穿上潜水服，下潜！' },
-  { id: 3, name: '第三关 · 海底探险',       desc: '语文知识 · 章鱼怪守着珊瑚碑林', subj: 'chinese', done: true,  hpMul: 2.0,  atkMul: 1.35,
+  { id: 3, name: '第3关 · 海底探险',       desc: '语文知识 · 章鱼怪守着珊瑚碑林', subj: 'chinese', done: true,  hpMul: 2.0,  atkMul: 1.35,
     intro: '海底碑文被章鱼怪搅乱了字词 —— 答对语文题，破译鲸歌密码！',
     outro: '章鱼怪吐出了又一片星核碎片！星图指向一片无垠沙海 —— 遗迹里的巨蝎王，正守着下一片碎片。' },
-  { id: 4, name: '第四关 · 流沙遗迹',       desc: '英语单词 · 沙海巨蝎王',       subj: 'english', done: true,  hpMul: 2.5,  atkMul: 1.5,
+  { id: 4, name: '第4关 · 流沙遗迹',       desc: '英语单词 · 沙海巨蝎王',       subj: 'english', done: true,  hpMul: 2.5,  atkMul: 1.5,
     intro: '巨蝎王守着又一片星核碎片 —— 答对英语单词，别让沙暴把路埋了！',
     outro: '又一片星核碎片归位，星图更亮了一块 —— 新的坐标正在浮现，旅程还长着呢。' },
-  { id: 5, name: '第五关 · 星核暗影', desc: '安全知识 · 同学设计的树', subj: 'safe', done: true, hpMul: 3.75, atkMul: 1.8,
+  { id: 5, name: '第5关 · 星核暗影', desc: '安全知识 · 同学设计的树', subj: 'safe', done: true, hpMul: 3.75, atkMul: 1.8,
     intro: '魔君最后一击裂出十一枚影之碎片，第一枚钻进了一棵树 —— 它疯长成密林，认不出你们了。用学过的知识，把它叫醒！',
     outro: '树叶由暗转绿，大树缩回一棵小树苗 —— 它轻轻晃了晃枝头：「我是格鲁特。」本关由三（×）班同学设计。' }
 ];
